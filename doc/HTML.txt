@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML macros, menus and toolbar buttons.
-		Last change: 2003 May 14
+		Last change: 2003 Oct 27
 		Written by Christian J. Robinson
 
 
@@ -584,8 +584,7 @@ HTMLgenerateTable()
 
 							*HTMLinput()*
 HTMLinput({prompt} [, {default}])
-		This function calls input({prompt}) for Vim 5, and
-		inputdialog({prompt} [, {default}]) for Vim 6.
+		This function has been removed.
 
 							*HTMLmap()*
 HTMLmap({maptype}, {lhs}, {rhs} [, {re-indent}])

@@ -57,20 +57,21 @@
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
+if version < 600
+  echohl WarningMsg
+  echo "WARNING: This script no longer supports Vim versions prior to 6."
+  echohl None
+endif
+
 if ! exists("b:did_html_mappings")
 let b:did_html_mappings = 1
 
 " Save cpoptions and remove some junk that will throw us off (reset at the end
 " of the script):
 let savecpo = &cpoptions
-"set cpoptions-=<
-"set cpoptions-=b
-if version >= 600
-  set cpoptions&vim
-  setlocal matchpairs+=<:>
-else
-  set cpoptions=aABceFs
-endif
+set cpoptions&vim
+
+setlocal matchpairs+=<:>
 
 function! SetIfUnset(var,val)
   execute "let varisset = exists(\"g:" . a:var . "\")"
@@ -125,13 +126,9 @@ function! HTMLmap(cmd, map, arg, ...)
 
   let arg = HTMLconvertCase(a:arg)
 
-  if version >= 600
-    if a:cmd =~ '^v' && a:0 >= 1 && a:1 >= 1
-      execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
-            \ . "m':call HTMLreIndent(line(\"'<\"), line(\"'>\"), " . a:1 . ")<CR>``"
-    else
-      execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
-    endif
+  if a:cmd =~ '^v' && a:0 >= 1 && a:1 >= 1
+    execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
+      \ . "m':call HTMLreIndent(line(\"'<\"), line(\"'>\"), " . a:1 . ")<CR>``"
   else
     execute a:cmd . " " . a:map . " " . arg
   endif
@@ -151,11 +148,7 @@ function! HTMLconvertCase(str)
     let str = substitute(a:str, '\[{\(.\{-}\)}\]', '\L\1', 'g')
   else
     echohl WarningMsg
-    if v:version >= 600
-      echomsg "g:html_tag_case = '" . g:html_tag_case . "' invalid, overriding to 'upppercase'."
-    else
-      echo "g:html_tag_case = '" . g:html_tag_case . "' invalid, overriding to 'upppercase'."
-    endif
+    echomsg "g:html_tag_case = '" . g:html_tag_case . "' invalid, overriding to 'upppercase'."
     echohl None
     let g:html_tag_case = 'uppercase'
     let str = HTMLconvertCase(a:str)
@@ -202,26 +195,6 @@ function! HTMLreIndent(first, last, extraline)
   exe firstline . ',' . lastline . 'norm =='
 endfunction
 
-" Vim6 offers inputdialog and a default argument, but I want Vim5
-" compatibility:  (This doesn't handle the possibility of the user
-" wanting a null reply for Vim5. Oh well.)
-function! HTMLinput(prompt, ...)
-    if version >= 600
-        if a:0 >= 1
-            return inputdialog(a:prompt, a:1)
-        else
-            return inputdialog(a:prompt)
-        endif
-    else
-        let r = input(a:prompt)
-        if r == "" && a:0 >= 1
-            return a:1
-        else
-            return r
-        endif
-    endif
-endfunction
-
 " Make it convenient to use ; as "normal":
 call HTMLmap("inoremap", ";;", ";")
 call HTMLmap("vnoremap", ";;", ";")
@@ -230,81 +203,51 @@ call HTMLmap("nnoremap", ";;", ";")
 call HTMLmap("inoremap", ";<tab>", "<tab>")
 
 " Tab takes us to a (hopefully) reasonable next insert point:
-if version >= 504
+call HTMLmap("inoremap", "<TAB>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
+call HTMLmap("nnoremap", "<TAB>", ":call HTMLnextInsertPoint('n')<CR>")
 
-  call HTMLmap("inoremap", "<TAB>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
-  call HTMLmap("nnoremap", "<TAB>", ":call HTMLnextInsertPoint('n')<CR>")
+function! HTMLnextInsertPoint(mode)
+  let saveerrmsg = v:errmsg
+  let v:errmsg = ""
+  let byteoffset = line2byte(line(".")) + col(".") - 1
 
-  if version >= 600
+  " Tab in insert mode on the beginning of a closing tag jumps us to
+  " after the tag:
+  if a:mode == "i" && strpart(getline(line(".")), col(".") - 1, 2) == "</"
+    normal %
+    if col('.') == col('$') - 1
+      startinsert!
+    else
+      normal l
+    endif
 
-    function! HTMLnextInsertPoint(mode)
-      let saveerrmsg = v:errmsg
-      let v:errmsg = ""
-      let byteoffset = line2byte(line(".")) + col(".") - 1
-
-      " Tab in insert mode on the beginning of a closing tag jumps us to
-      " after the tag:
-      if a:mode == "i" && strpart(getline(line(".")), col(".") - 1, 2) == "</"
-        normal %
-        if col('.') == col('$') - 1
-          startinsert!
-        else
-          normal l
-        endif
-
-        return
-      endif
-
-      normal 0
-
-      " Running the search twice is inefficient, but it squelches error
-      " messages and the second search puts my cursor where I need it...
-
-      if search("<\\([^ <>]\\+\\)[^<>]*>\\(\\n *\\)\\{0,2}<\\/\\1>\\|<[^<>]*\"\"[^<>]*>","w") == 0
-        silent execute ":go " . byteoffset
-      else
-        normal 0
-        exe 'silent normal /<\([^ <>]\+\)[^<>]*>\(\n *\)\{0,2}<\/\1>\|<[^<>]*""[^<>]*>/;/>\(\n *\)\{0,2}<\|""/e' . "\<CR>"
-
-        " Since matching open/close tags that spans lines is possible, it
-        " might be necessary to position the cursor on a blank line:
-        if getline('.') =~ "^ *<\\/[^<>]\\+>" && getline(line('.')-1) =~ "^ *$"
-          normal k$
-        endif
-
-        call histdel('search', -1)
-        let @/ = histget('search', -1)
-      endif
-
-      let v:errmsg = saveerrmsg
-
-    endfunction
-
-  else
-
-    function! HTMLnextInsertPoint(mode)
-      let saveerrmsg = v:errmsg
-      let v:errmsg = ""
-      let byteoffset = line2byte(line(".")) + col(".") - 1
-      normal 0
-
-      exe 'normal /<\([^ <>]\+\)[^<>]*><\/\1>\|<[^<>]*""[^<>]*>/;/><\|""/e' . "\<CR>"
-
-      call histdel('search', -1)
-      let @/ = histget('search', -1)
-
-      if v:errmsg =~# '^Pattern not found:'
-        execute ":go " . byteoffset
-      endif
-
-      let v:errmsg = saveerrmsg
-      echo
-
-    endfunction
-
+    return
   endif
 
-endif
+  normal 0
+
+  " Running the search twice is inefficient, but it squelches error
+  " messages and the second search puts my cursor where I need it...
+
+  if search("<\\([^ <>]\\+\\)[^<>]*>\\(\\n *\\)\\{0,2}<\\/\\1>\\|<[^<>]*\"\"[^<>]*>","w") == 0
+    silent execute ":go " . byteoffset
+  else
+    normal 0
+    exe 'silent normal /<\([^ <>]\+\)[^<>]*>\(\n *\)\{0,2}<\/\1>\|<[^<>]*""[^<>]*>/;/>\(\n *\)\{0,2}<\|""/e' . "\<CR>"
+
+    " Since matching open/close tags that spans lines is possible, it
+    " might be necessary to position the cursor on a blank line:
+    if getline('.') =~ "^ *<\\/[^<>]\\+>" && getline(line('.')-1) =~ "^ *$"
+      normal k$
+    endif
+
+    call histdel('search', -1)
+    let @/ = histget('search', -1)
+  endif
+
+  let v:errmsg = saveerrmsg
+
+endfunction
 
 " ----------------------------------------------------------------------------
 
@@ -582,9 +525,6 @@ call HTMLmap("inoremap", ";sp", "<[{SUP></SUP}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";sp", "<ESC>`>a</[{SUP}]><C-O>`<<[{SUP}]><ESC>", 2)
 
-"       TAB                             HTML 3.0
-"imap ;ta <TAB>
-
 "       TITLE                           HTML 2.0        HEADER
 call HTMLmap("inoremap", ";ti", "<[{TITLE></TITLE}]><ESC>bhhi")
 " Visual mapping:
@@ -635,15 +575,15 @@ call HTMLmap("nnoremap", ";ta", ":call HTMLgenerateTable()<CR>")
 function! HTMLgenerateTable()
     let byteoffset = line2byte(line(".")) + col(".") - 1
 
-    let rows    = HTMLinput("Number of rows: ") + 0
-    let columns = HTMLinput("Number of columns: ") + 0
+    let rows    = inputdialog("Number of rows: ") + 0
+    let columns = inputdialog("Number of columns: ") + 0
 
     if (! (rows > 0 && columns > 0))
         echo "Rows and columns must be integers."
         return
     endif
 
-    let border = HTMLinput("Border width of table [none]: ") + 0
+    let border = inputdialog("Border width of table [none]: ") + 0
 
     let r = 0
     let c = 0
@@ -849,7 +789,8 @@ function! HTMLtemplate2()
     let g:html_authoremail_encoded = ''
   endif
 
-  execute HTMLconvertCase("normal 1G0i<[{HTML}]>\<CR> <[{HEAD}]>\<CR>\<CR>  <[{TITLE></TITLE}]>\<CR>  <[{BASE HREF}]=\"\">\<ESC>")
+  "execute HTMLconvertCase("normal 1G0i<[{HTML}]>\<CR> <[{HEAD}]>\<CR>\<CR>  <[{TITLE></TITLE}]>\<CR>  <[{BASE HREF}]=\"\">\<ESC>")
+  execute HTMLconvertCase("normal 1G0i<[{HTML}]>\<CR> <[{HEAD}]>\<CR>\<CR>  <[{TITLE></TITLE}]>\<CR>\<ESC>")
   execute HTMLconvertCase("normal o  <[{META NAME}]=\"Generator\" [{CONTENT}]=\"vim (Vi IMproved editor; http://www.vim.org/)\">\<ESC>")
   execute HTMLconvertCase("normal o  <[{META NAME}]=\"Author\" [{CONTENT}]=\"" . g:html_authorname . "\">\<ESC>")
   execute HTMLconvertCase("normal o  <[{META NAME}]=\"Copyright\" [{CONTENT}]=\"Copyright (C) " . strftime("%B %d, %Y") . ' ' . g:html_authorname . "\">\<ESC>")
@@ -879,15 +820,9 @@ endfunction
 " ----------------------------------------------------------------------------
 
 " ---- Browser Remote Controls: ----------------------------------------- {{{1
-if ((version >= 504) && has("unix"))
+if (has("unix"))
   if !exists("*LaunchBrowser")
-    if filereadable(expand('<sfile>:p:h') . "/" . "browser_launcher.vim")
-      execute "source " . expand('<sfile>:p:h') . "/" . "browser_launcher.vim"
-    elseif filereadable(expand('<sfile>:p:h:h') . "/" . "browser_launcher.vim")
-      execute "source " . expand('<sfile>:p:h:h') . "/" . "browser_launcher.vim"
-    elseif version >= 600
-      runtime! browser_launcher.vim
-    endif
+    runtime! browser_launcher.vim
   endif
 
   " Mozilla: View current file, starting Netscape if it's not running:
@@ -911,11 +846,11 @@ if ((version >= 504) && has("unix"))
   call HTMLmap("nnoremap",";ly",":call LaunchBrowser(2,0)<CR>")
   " Lynx in an xterm:      (This happens regardless if you're in the Vim GUI.)
   call HTMLmap("nnoremap", ";nly", ":call LaunchBrowser(2,1)<CR>")
-elseif ((version >= 504) && has("win32"))
+elseif (has("win32"))
   " Internet Explorer:
   "SetIfUnset html_internet_explorer C:\program\ files\internet\ explorer\iexplore
   "function! HTMLstartExplorer(file)
-  "  if v:version >= 600 && executable(g:html_internet_explorer)
+  "  if executable(g:html_internet_explorer)
   "    exe '!start ' g:html_internet_explorer . ' ' . a:file
   "  else
   "    exe '!start explorer ' . a:file
@@ -937,7 +872,12 @@ if ! has("gui_running")
   au!
   execute 'autocmd GUIEnter * source ' . expand('<sfile>:p')
   augroup END
-elseif ! exists("did_html_menus")
+elseif exists("did_html_menus")
+  if &filetype ==? "html"
+    amenu enable HTML
+    amenu enable ToolBar.*
+  endif
+else
 
 if has("toolbar") || has("win32") || has("gui_gtk")
 
@@ -1096,29 +1036,27 @@ endif  " has("toolbar") || has("win32") || has("gui_gtk")
 
 " ---- Menu Items: ------------------------------------------------------ {{{1
 
-if version >= 600
-    augroup HTML_menu_autos
-    au!
-    autocmd BufLeave,BufWinLeave *
-     \ if &filetype ==? "html" |
-       \ amenu disable HTML |
-       \ amenu disable ToolBar.* |
-       \ amenu enable ToolBar.Open |
-       \ amenu enable ToolBar.Save |
-       \ amenu enable ToolBar.SaveAll |
-       \ amenu enable ToolBar.Cut |
-       \ amenu enable ToolBar.Copy |
-       \ amenu enable ToolBar.Paste |
-       \ amenu enable ToolBar.Find |
-       \ amenu enable ToolBar.Replace |
-     \ endif
-    autocmd BufEnter,BufWinEnter *
-     \ if &filetype ==? "html" |
-       \ amenu enable HTML |
-       \ amenu enable ToolBar.* |
-     \ endif
-    augroup END
-endif
+augroup HTML_menu_autos
+au!
+autocmd BufLeave,BufWinLeave *
+ \ if &filetype ==? "html" |
+   \ amenu disable HTML |
+   \ amenu disable ToolBar.* |
+   \ amenu enable ToolBar.Open |
+   \ amenu enable ToolBar.Save |
+   \ amenu enable ToolBar.SaveAll |
+   \ amenu enable ToolBar.Cut |
+   \ amenu enable ToolBar.Copy |
+   \ amenu enable ToolBar.Paste |
+   \ amenu enable ToolBar.Find |
+   \ amenu enable ToolBar.Replace |
+ \ endif
+autocmd BufEnter,BufWinEnter *
+ \ if &filetype ==? "html" |
+   \ amenu enable HTML |
+   \ amenu enable ToolBar.* |
+ \ endif
+augroup END
 
 amenu HTM&L.Template<tab>;html                 ;html
 
