@@ -1,7 +1,7 @@
 " ---- Author & Copyright: ---------------------------------------------- {{{1
 "
 " Author: Christian J. Robinson <infynity@onewest.net>
-" URL:    http://www.infynity.spodzone.com/vim/HTML.shtml
+" URL:    http://www.infynity.spodzone.com/vim/HTML/
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -72,6 +72,13 @@ set cpoptions&vim
 
 setlocal matchpairs+=<:>
 
+" Set a global variable if it's not already set.
+" Arguments:
+"  1 - String:  The variable name.
+"  2 - String:  The default value to use, "-" for the null string. 
+" Return value:
+"  0 - The variable already existed.
+"  1 - The variable didn't exist and was set.
 function! SetIfUnset(var,val)
   execute "let varisset = exists(\"g:" . a:var . "\")"
   if (varisset == 0)
@@ -80,7 +87,9 @@ function! SetIfUnset(var,val)
     else
       execute "let g:" . a:var . "= a:val"
     endif
+    return 1
   endif
+  return 0
 endfunction
 
 command! -nargs=+ SetIfUnset call SetIfUnset(<f-args>)
@@ -96,6 +105,16 @@ SetIfUnset html_tag_case    uppercase
 SetIfUnset html_authorname  -
 SetIfUnset html_authoremail -
 
+" ----------------------------------------------------------------------------
+
+
+" ---- Functions: ------------------------------------------------------- {{{1
+
+" Encode the characters in a string into their HTML &#...; representations.
+" Arguments:
+"  1 - String:  The string to encode.
+" Return value:
+"  String:  The encoded string.
 function! HTMLencodeString(string)
   let out = ''
   let c   = 0
@@ -109,10 +128,8 @@ function! HTMLencodeString(string)
   return out
 endfunction
 
-" ----------------------------------------------------------------------------
-
 " Define the HTML mappings with the appropriate case:
-" Args:
+" Arguments:
 "  1 - String:  Which map command to run.
 "  2 - String:  LHS of the map.
 "  3 - String:  RHS of the map.
@@ -123,11 +140,11 @@ endfunction
 "                2: re-selects the region and re-indents.
 function! HTMLmap(cmd, map, arg, ...)
 
-  let arg = HTMLconvertCase(a:arg)
+  let arg = s:HTMLconvertCase(a:arg)
 
   if a:cmd =~ '^v' && a:0 >= 1 && a:1 >= 1
     execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
-      \ . "m':call HTMLreIndent(line(\"'<\"), line(\"'>\"), " . a:1 . ")<CR>``"
+      \ . "m':call <SID>HTMLreIndent(line(\"'<\"), line(\"'>\"), " . a:1 . ")<CR>``"
   else
     execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
   endif
@@ -136,13 +153,13 @@ endfunction
 
 " Convert special regions in a string to the appropriate case determined by
 " g:html_tag_case
-" Args:
+" Arguments:
 "  1 - String: The string with the regions to convert surrounded by [{...}].
 " Return Value:
 "  The converted string.
-function! HTMLconvertCase(str)
+function! s:HTMLconvertCase(str)
   if (! exists('g:html_tag_case')) || g:html_tag_case =~? 'u\(pper\(case\)\?\)\?' || g:html_tag_case == ''
-    let str = substitute(a:str, '\(\[{\|}\]\)', '', 'g')
+    let str = substitute(a:str, '\[{\(.\{-}\)}\]', '\U\1', 'g')
   elseif g:html_tag_case =~? 'l\(ower\(case\)\?\)\?'
     let str = substitute(a:str, '\[{\(.\{-}\)}\]', '\L\1', 'g')
   else
@@ -150,19 +167,19 @@ function! HTMLconvertCase(str)
     echomsg "g:html_tag_case = '" . g:html_tag_case . "' invalid, overriding to 'upppercase'."
     echohl None
     let g:html_tag_case = 'uppercase'
-    let str = HTMLconvertCase(a:str)
+    let str = s:HTMLconvertCase(a:str)
   endif
   return str
 endfunction
 
 " Re-indent a region.  (Usually called by HTMLmap.)
 "  Nothing happens if filetype indenting isn't enabled.
-" Args:
+" Arguments:
 "  1 - Integer: Start of region.
 "  2 - Integer: End of region.
 "  3 - Integer: 1: Add an extra line below the region to re-indent.
 "               *: Don't add an extra line.
-function! HTMLreIndent(first, last, extraline)
+function! s:HTMLreIndent(first, last, extraline)
   " To find out if filetype indenting is enabled:
   let save_register = @x
   redir @x | silent! filetype | redir END
@@ -194,17 +211,12 @@ function! HTMLreIndent(first, last, extraline)
   exe firstline . ',' . lastline . 'norm =='
 endfunction
 
-" Make it convenient to use ; as "normal":
-call HTMLmap("inoremap", ";;", ";")
-call HTMLmap("vnoremap", ";;", ";")
-call HTMLmap("nnoremap", ";;", ";")
-" Allow hard tabs to be inserted:
-call HTMLmap("inoremap", ";<tab>", "<tab>")
-
-" Tab takes us to a (hopefully) reasonable next insert point:
-call HTMLmap("inoremap", "<TAB>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
-call HTMLmap("nnoremap", "<TAB>", ":call HTMLnextInsertPoint('n')<CR>")
-
+" Position the cursor at the next point in the file that needs data.
+" Arguments:
+"  1 - Character: The mode the function is being called from. 'n' for normal,
+"                 'i' for insert.
+" Return value:
+"  None.
 function! HTMLnextInsertPoint(mode)
   let saveerrmsg = v:errmsg
   let v:errmsg = ""
@@ -251,7 +263,138 @@ endfunction
 " ----------------------------------------------------------------------------
 
 
-" ---- General Markup Tags: --------------------------------------------- {{{1
+" ---- Misc. Mappings: -------------------------------------------------- {{{1
+
+" Make it convenient to use ; as "normal":
+call HTMLmap("inoremap", ";;", ";")
+call HTMLmap("vnoremap", ";;", ";")
+call HTMLmap("nnoremap", ";;", ";")
+" Allow hard tabs to be inserted:
+call HTMLmap("inoremap", ";<tab>", "<tab>")
+
+" Tab takes us to a (hopefully) reasonable next insert point:
+call HTMLmap("inoremap", "<TAB>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
+call HTMLmap("nnoremap", "<TAB>", ":call HTMLnextInsertPoint('n')<CR>")
+
+" Update an image tag's WIDTH & HEIGHT attributes (experimental!):
+runtime! MangleImageTag.vim 
+if exists("*MangleImageTag")
+  call HTMLmap("nnoremap", ";mi", ":call MangleImageTag()<CR>")
+  call HTMLmap("inoremap", ";mi", "<C-O>:call MangleImageTag()<CR>")
+endif
+
+" ----------------------------------------------------------------------------
+
+
+" ---- Template Creation Stuff: ----------------------------------------- {{{1
+call HTMLmap("nnoremap", ";html", ":if (HTMLtemplate()) \\| startinsert \\| endif<CR>")
+
+" Determine whether to insert the HTML template:
+" Arguments:
+"  None
+" Return Value:
+"  0 - The cursor is not on an insert point.
+"  1 - The cursor is on an insert point.
+function! HTMLtemplate()
+  if (line('$') == 1 && getline(1) == "")
+    return s:HTMLtemplate2()
+  else
+    let YesNoOverwrite = confirm("Non-empty file.\nInsert template anyway?", "&Yes\n&No\n&Overwrite", 2, "W")
+    if (YesNoOverwrite == 1)
+      return s:HTMLtemplate2()
+    elseif (YesNoOverwrite == 3)
+      execute "1,$delete"
+      return s:HTMLtemplate2()
+    endif
+  endif
+  return 0
+endfunction
+
+let s:internal_html_template=
+  \"<[{HTML}]>\n" .
+  \" <[{HEAD}]>\n\n" .
+  \"  <[{TITLE></TITLE}]>\n\n" .
+  \"  <[{META NAME}]=\"Generator\" [{CONTENT}]=\"vim (Vi IMproved editor; http://www.vim.org/)\">\n" .
+  \"  <[{META NAME}]=\"Author\" [{CONTENT}]=\"%authorname%\">\n" .
+  \"  <[{META NAME}]=\"Copyright\" [{CONTENT}]=\"Copyright (C) %date% %authorname%\">\n" .
+  \"  <[{LINK REV}]=\"made\" [{HREF}]=\"mailto:%authoremail%\">\n\n" .
+  \" </[{HEAD}]>\n" .
+  \" <[{BODY BGCOLOR}]=\"%bgcolor%\"" .
+    \" [{TEXT}]=\"%textcolor%\"" .
+    \" [{LINK}]=\"%linkcolor%\"" .
+    \" [{ALINK}]=\"%alinkcolor%\"" .
+    \" [{VLINK}]=\"%vlinkcolor%\">\n\n" .
+  \"  <[{H1 ALIGN=CENTER></H1}]>\n\n" .
+  \"  <[{P}]>\n" .
+  \"  </[{P}]>\n\n" .
+  \"  <[{HR WIDTH}]=\"75%\">\n\n" .
+  \"  <[{P}]>\n" .
+  \"  Last Modified: <[{I}]>%date%</[{I}]>\n" .
+  \"  </[{P}]>\n\n" .
+  \"  <[{ADDRESS}]>\n" .
+  \"   <[{A HREF}]=\"mailto:%authoremail%\">%authorname%&lt;%authoremail%&gt;</[{A}]>\n" .
+  \"  </[{ADDRESS}]>\n" .
+  \" </[{BODY}]>\n" .
+  \"</[{HTML}]>"
+
+let s:internal_html_template = s:HTMLconvertCase(s:internal_html_template)
+
+" Actually insert the HTML template:
+" Arguments:
+"  None
+" Return Value:
+"  0 - The cursor is not on an insert point.
+"  1 - The cursor is on an insert point.
+function! s:HTMLtemplate2()
+
+  if g:html_authoremail != ''
+    let g:html_authoremail_encoded = HTMLencodeString(g:html_authoremail)
+  else
+    let g:html_authoremail_encoded = ''
+  endif
+
+  if (! exists('g:html_template')) || g:html_template == ""
+      0put =s:internal_html_template
+  else
+    if filereadable(expand(g:html_template))
+      execute "0read " . g:html_template
+    else
+      echohl ErrorMsg
+      echomsg "Unable to insert template file: " . g:html_template
+      echomsg "Either it doesn't exist or it isn't readable."
+      echohl None
+      return 0
+    endif
+  endif
+
+  if getline('$') =~ '^\s*$'
+    $delete
+  endif
+
+  " Replace the various tokens with appropriate values:
+  silent! %s/\C%authorname%/\=g:html_authorname/g
+  silent! %s/\C%authoremail%/\=g:html_authoremail/g
+  silent! %s/\C%bgcolor%/\=g:html_bgcolor/g
+  silent! %s/\C%textcolor%/\=g:html_textcolor/g
+  silent! %s/\C%linkcolor%/\=g:html_linkcolor/g
+  silent! %s/\C%alinkcolor%/\=g:html_alinkcolor/g
+  silent! %s/\C%vlinkcolor%/\=g:html_vlinkcolor/g
+  silent! %s/\C%date%/\=strftime('%B %d, %Y')/g
+
+  go 1
+
+  call HTMLnextInsertPoint('n')
+  if getline('.')[col('.') - 2] . getline('.')[col('.') - 1] == '><'
+        \ || (getline('.') =~ '^\s*$' && line('.') != 1)
+    return 1
+  else
+    return 0
+  endif
+
+endfunction
+" ----------------------------------------------------------------------------
+
+" ---- General Markup Tag Mappings: ------------------------------------- {{{1
 
 "       SGML Doctype Command
 "call HTMLmap("nnoremap", ";4", "1GO<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\"><ESC>``")
@@ -588,27 +731,27 @@ function! HTMLgenerateTable()
     let c = 0
 
     if (border)
-        exe HTMLconvertCase("normal o<[{TABLE BORDER}]=" . border . ">\<ESC>")
+        exe s:HTMLconvertCase("normal o<[{TABLE BORDER}]=" . border . ">\<ESC>")
     else
-        exe HTMLconvertCase("normal o<[{TABLE}]>\<ESC>")
+        exe s:HTMLconvertCase("normal o<[{TABLE}]>\<ESC>")
     endif
 
     while r < rows
         let r = r + 1
         let c = 0
 
-        exe HTMLconvertCase("normal o<[{TR}]>\<ESC>")
+        exe s:HTMLconvertCase("normal o<[{TR}]>\<ESC>")
 
         while c < columns
             let c = c + 1
-            exe HTMLconvertCase("normal o<[{TD}]>\<CR></[{TD}]>\<ESC>")
+            exe s:HTMLconvertCase("normal o<[{TD}]>\<CR></[{TD}]>\<ESC>")
         endwhile
 
-        exe HTMLconvertCase("normal o</[{TR}]>\<ESC>")
+        exe s:HTMLconvertCase("normal o</[{TR}]>\<ESC>")
 
     endwhile
 
-    exe HTMLconvertCase("normal o</[{TABLE}]>\<ESC>")
+    exe s:HTMLconvertCase("normal o</[{TABLE}]>\<ESC>")
 
     if byteoffset == -1
       go 1
@@ -668,7 +811,13 @@ call HTMLmap("vnoremap", ";lA", "<ESC>`>a\"></[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"
 " ----------------------------------------------------------------------------
 
 
-" ---- Special Characters (Character Entities): ------------------------- {{{1
+" ---- Special Character (Character Entities) Mappings: ----------------- {{{1
+
+" Convert the character under the cursor or the highlighted string to straight
+" HTML entities:
+call HTMLmap("nnoremap", ";&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
+call HTMLmap("vnoremap", ";&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
+
 call HTMLmap("inoremap", "&&", "&amp;")
 call HTMLmap("inoremap", "&cO", "&copy;")
 call HTMLmap("inoremap", "&rO", "&reg;")
@@ -754,143 +903,37 @@ call HTMLmap("inoremap", "&12", "&frac12;")
 call HTMLmap("inoremap", "&34", "&frac34;")
 " ----------------------------------------------------------------------------
 
-" ---- Template Creation Stuff: ----------------------------------------- {{{1
-call HTMLmap("nnoremap", ";html", ":if (HTMLtemplate()) \\| startinsert \\| endif<CR>")
-
-" Determine whether to insert the HTML template:
-" Args:
-"  None
-" Return Value:
-"  0 - The cursor is not on an insert point.
-"  1 - The cursor is on an insert point.
-function! HTMLtemplate()
-  if (line('$') == 1 && getline(1) == "")
-    return HTMLtemplate2()
-  else
-    let YesNoOverwrite = confirm("Non-empty file.\nInsert template anyway?", "&Yes\n&No\n&Overwrite", 2, "W")
-    if (YesNoOverwrite == 1)
-      return HTMLtemplate2()
-    elseif (YesNoOverwrite == 3)
-      execute "1,$delete"
-      return HTMLtemplate2()
-    endif
-  endif
-  return 0
-endfunction
-
-let s:internal_html_template=
-  \"<[{HTML}]>\n" .
-  \" <[{HEAD}]>\n\n" .
-  \"  <[{TITLE></TITLE}]>\n\n" .
-  \"  <[{META NAME}]=\"Generator\" [{CONTENT}]=\"vim (Vi IMproved editor; http://www.vim.org/)\">\n" .
-  \"  <[{META NAME}]=\"Author\" [{CONTENT}]=\"%authorname%\">\n" .
-  \"  <[{META NAME}]=\"Copyright\" [{CONTENT}]=\"Copyright (C) %date% %authorname%\">\n" .
-  \"  <[{LINK REV}]=\"made\" [{HREF}]=\"mailto:%authoremail%\">\n\n" .
-  \" </[{HEAD}]>\n" .
-  \" <[{BODY BGCOLOR}]=\"%bgcolor%\"" .
-    \" [{TEXT}]=\"%textcolor%\"" .
-    \" [{LINK}]=\"%linkcolor%\"" .
-    \" [{ALINK}]=\"%alinkcolor%\"" .
-    \" [{VLINK}]=\"%vlinkcolor%\">\n\n" .
-  \"  <[{H1 ALIGN=CENTER></H1}]>\n\n" .
-  \"  <[{P}]>\n" .
-  \"  </[{P}]>\n\n" .
-  \"  <[{HR WIDTH}]=\"75%\">\n\n" .
-  \"  <[{P}]>\n" .
-  \"  Last Modified: <[{I}]>%date%</[{I}]>\n" .
-  \"  </[{P}]>\n\n" .
-  \"  <[{ADDRESS}]>\n" .
-  \"   <[{A HREF}]=\"mailto:%authoremail%\">%authorname%&lt;%authoremail%&gt;</[{A}]>\n" .
-  \"  </[{ADDRESS}]>\n" .
-  \" </[{BODY}]>\n" .
-  \"</[{HTML}]>"
-
-let s:internal_html_template = HTMLconvertCase(s:internal_html_template)
-
-" Actually insert the HTML template:
-" Args:
-"  None
-" Return Value:
-"  0 - The cursor is not on an insert point.
-"  1 - The cursor is on an insert point.
-function! HTMLtemplate2()
-
-  if g:html_authoremail != ''
-    let g:html_authoremail_encoded = HTMLencodeString(g:html_authoremail)
-  else
-    let g:html_authoremail_encoded = ''
-  endif
-
-  if (! exists('g:html_template')) || g:html_template == ""
-      0put =s:internal_html_template
-  else
-    if filereadable(expand(g:html_template))
-      execute "0read " . g:html_template
-    else
-      echohl ErrorMsg
-      echomsg "Unable to insert template file: " . g:html_template
-      echomsg "Either it doesn't exist or it isn't readable."
-      echohl None
-      return 0
-    endif
-  endif
-
-  if getline('$') =~ '^\s*$'
-    $delete
-  endif
-
-  " Replace the various tokens with appropriate values:
-  silent! %s/\C%authorname%/\=g:html_authorname/g
-  silent! %s/\C%authoremail%/\=g:html_authoremail/g
-  silent! %s/\C%bgcolor%/\=g:html_bgcolor/g
-  silent! %s/\C%textcolor%/\=g:html_textcolor/g
-  silent! %s/\C%linkcolor%/\=g:html_linkcolor/g
-  silent! %s/\C%alinkcolor%/\=g:html_alinkcolor/g
-  silent! %s/\C%vlinkcolor%/\=g:html_vlinkcolor/g
-  silent! %s/\C%date%/\=strftime('%B %d, %Y')/g
-
-  go 1
-
-  call HTMLnextInsertPoint('n')
-  if getline('.')[col('.') - 2] . getline('.')[col('.') - 1] == '><'
-        \ || (getline('.') =~ '^\s*$' && line('.') != 1)
-    return 1
-  else
-    return 0
-  endif
-
-endfunction
-" ----------------------------------------------------------------------------
-
 " ---- Browser Remote Controls: ----------------------------------------- {{{1
-if (has("unix"))
+if has("unix")
   if !exists("*LaunchBrowser")
     runtime! browser_launcher.vim
   endif
 
-  " Mozilla: View current file, starting Netscape if it's not running:
-  call HTMLmap("nnoremap", ";mo", ":call LaunchBrowser(3,0)<CR>")
-  " Mozilla: Open a new window, and view the current file:
-  call HTMLmap("nnoremap", ";nmo", ":call LaunchBrowser(3,1)<CR>")
-  " Mozilla: Open a new tab, and view the current file:
-  call HTMLmap("nnoremap", ";tmo", ":call LaunchBrowser(3,2)<CR>")
+  if exists("*LaunchBrowser")
+    " Mozilla: View current file, starting Netscape if it's not running:
+    call HTMLmap("nnoremap", ";mo", ":call LaunchBrowser(3,0)<CR>")
+    " Mozilla: Open a new window, and view the current file:
+    call HTMLmap("nnoremap", ";nmo", ":call LaunchBrowser(3,1)<CR>")
+    " Mozilla: Open a new tab, and view the current file:
+    call HTMLmap("nnoremap", ";tmo", ":call LaunchBrowser(3,2)<CR>")
 
-  " Netscape: View current file, starting Netscape if it's not running:
-  call HTMLmap("nnoremap", ";ns", ":call LaunchBrowser(0,0)<CR>")
-  " Netscape: Open a new window, and view the current file:
-  call HTMLmap("nnoremap", ";nns", ":call LaunchBrowser(0,1)<CR>")
+    " Netscape: View current file, starting Netscape if it's not running:
+    call HTMLmap("nnoremap", ";ns", ":call LaunchBrowser(0,0)<CR>")
+    " Netscape: Open a new window, and view the current file:
+    call HTMLmap("nnoremap", ";nns", ":call LaunchBrowser(0,1)<CR>")
 
-  " Opera: View current file, starting Opera if it's not running:
-  call HTMLmap("nnoremap", ";oa", ":call LaunchBrowser(1,0)<CR>")
-  " Opera: View current file in a new window, starting Opera if it's not running:
-  call HTMLmap("nnoremap", ";noa", ":call LaunchBrowser(1,1)<CR>")
-  " Opera: Open a new tab, and view the current file:
-  call HTMLmap("nnoremap", ";toa", ":call LaunchBrowser(1,2)<CR>")
+    " Opera: View current file, starting Opera if it's not running:
+    call HTMLmap("nnoremap", ";oa", ":call LaunchBrowser(1,0)<CR>")
+    " Opera: View current file in a new window, starting Opera if it's not running:
+    call HTMLmap("nnoremap", ";noa", ":call LaunchBrowser(1,1)<CR>")
+    " Opera: Open a new tab, and view the current file:
+    call HTMLmap("nnoremap", ";toa", ":call LaunchBrowser(1,2)<CR>")
 
-  " Lynx:  (This happens anyway if there's no DISPLAY environmental variable.)
-  call HTMLmap("nnoremap",";ly",":call LaunchBrowser(2,0)<CR>")
-  " Lynx in an xterm:      (This happens regardless if you're in the Vim GUI.)
-  call HTMLmap("nnoremap", ";nly", ":call LaunchBrowser(2,1)<CR>")
+    " Lynx:  (This happens anyway if there's no DISPLAY environmental variable.)
+    call HTMLmap("nnoremap",";ly",":call LaunchBrowser(2,0)<CR>")
+    " Lynx in an xterm:      (This happens regardless if you're in the Vim GUI.)
+    call HTMLmap("nnoremap", ";nly", ":call LaunchBrowser(2,1)<CR>")
+  endif
 elseif (has("win32"))
   " Internet Explorer:
   "SetIfUnset html_internet_explorer C:\program\ files\internet\ explorer\iexplore
@@ -908,8 +951,9 @@ elseif (has("win32"))
   call HTMLmap("nnoremap", ";ie", ":exe '!start explorer ' . expand('%:p')<CR>")
 endif
 
-endif " ! exists("b:did_html_mappings")
 " ----------------------------------------------------------------------------
+
+endif " ! exists("b:did_html_mappings")
 
 " ---- ToolBar Buttons: ------------------------------------------------- {{{1
 if ! has("gui_running")
@@ -920,6 +964,7 @@ if ! has("gui_running")
 elseif exists("did_html_menus")
   if &filetype ==? "html"
     amenu enable HTML
+    amenu enable HTML.*
     amenu enable ToolBar.*
   endif
 else
@@ -1089,6 +1134,7 @@ au!
 autocmd BufLeave,BufWinLeave *
  \ if &filetype ==? "html" |
    \ amenu disable HTML |
+   \ amenu disable HTML.* |
    \ if exists('g:did_html_toolbar') |
    \ amenu disable ToolBar.* |
    \ amenu enable ToolBar.Open |
@@ -1104,6 +1150,7 @@ autocmd BufLeave,BufWinLeave *
 autocmd BufEnter,BufWinEnter *
  \ if &filetype ==? "html" |
    \ amenu enable HTML |
+   \ amenu enable HTML.* |
    \ amenu enable ToolBar.* |
  \ endif
 augroup END
@@ -1120,6 +1167,7 @@ if exists("*LaunchBrowser")
   amenu HTML.Preview.-sep2-                            <nop>
   amenu HTML.Preview.Opera<tab>;oa                     ;oa
   amenu HTML.Preview.Opera\ (New\ Window)<tab>;noa     ;noa
+  amenu HTML.Preview.Opera\ (New\ Tab)<tab>;toa        ;toa
   amenu HTML.Preview.-sep3-                            <nop>
   amenu HTML.Preview.Lynx<tab>;ly                      ;ly
 elseif maparg(';ie', 'n') != ""
@@ -1133,6 +1181,9 @@ endif
 let b:save_encoding=&encoding
 let &encoding='latin1'
 
+nmenu HTML.Character\ Entities.Convert\ to\ Entity<tab>;\&         ;&
+vmenu HTML.Character\ Entities.Convert\ to\ Entity<tab>;\&         ;&
+ menu HTML.Character\ Entities.-sep0- <nul>
 imenu HTML.Character\ Entities.Ampersand<tab>\&\&                  &&
 imenu HTML.Character\ Entities.Greaterthan\ (>)<tab>\&>            &>
 imenu HTML.Character\ Entities.Lessthan\ (<)<tab>\&<               &<
@@ -1831,6 +1882,10 @@ nmenu HTML.Hyperlink<tab>;ah                   i;ah
 imenu HTML.Inline\ Image<tab>;im               ;im
 vmenu HTML.Inline\ Image<tab>;im               ;im
 nmenu HTML.Inline\ Image<tab>;im               i;im
+if exists("*MangleImageTag")
+  imenu HTML.Update\ Image\ Size\ Attributes<tab>;mi ;mi
+  nmenu HTML.Update\ Image\ Size\ Attributes<tab>;mi ;mi
+endif
 imenu HTML.Line\ Break<tab>;br                 ;br
 nmenu HTML.Line\ Break<tab>;br                 i;br
 imenu HTML.Named\ Anchor<tab>;an               ;an
