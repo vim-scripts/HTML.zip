@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML macros, menus and toolbar buttons.
-		Last change: 2003 Oct 27
+		Last change: 2003 Nov 05
 		Written by Christian J. Robinson
 
 
@@ -505,7 +505,7 @@ You can use a browser to preview your current HTML document.
 
 For Unix, you need the browser_launcher.vim script and netscape-remote.
 They're available here, along with installation instructions:
-http://www.infynity.spodzone.com/vim/HTML.shtml
+http://www.infynity.spodzone.com/vim/HTML/
 
 For Windows:
 								*;ie*

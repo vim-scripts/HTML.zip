@@ -130,7 +130,7 @@ function! HTMLmap(cmd, map, arg, ...)
     execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
       \ . "m':call HTMLreIndent(line(\"'<\"), line(\"'>\"), " . a:1 . ")<CR>``"
   else
-    execute a:cmd . " " . a:map . " " . arg
+    execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
   endif
 
 endfunction
