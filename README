@@ -1,0 +1,17 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=453
+
+This is a set of HTML/XHTML mappings and menus for Vim 7 or later. The mappings will be local to the buffer so they won't interfere if you edit other files in the same Vim session.
+
+The macros are automatically insert a tag and position the cursor at the logical insert point.  For example, in insert the mapping ";ah" inserts <A HREF=""></A> and leaves the cursor between the double quotes.  If you were to visually highlight some text then type ";ah" it would wrap the tag around the text.  For example:
+        some text
+Becomes:
+        <A HREF="">some text</A>
+With the cursor positioned between the double quotes in insert mode. Or if you used ";aH" instead:
+        <A HREF="some text"></A>
+With the cursor positioned between the > and the < in insert mode.
+
+There are many other features, such as a configurable template inserted with the ";html" normal mode macro, browser remote control mappings, etc.
+
+See http://christianrobinson.name/vim/HTML/faq.shtml for frequently asked questions.
+
+See http://christianrobinson.name/vim/HTML/HTML.html to preview the help file.
