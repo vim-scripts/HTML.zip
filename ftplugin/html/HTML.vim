@@ -58,9 +58,8 @@
 " ---- Initialization: -------------------------------------------------- {{{1
 
 if version < 600
-  echohl WarningMsg
-  echo "WARNING: This script no longer supports Vim versions prior to 6."
-  echohl None
+  echoerr "HTML.vim no longer supports Vim versions prior to 6."
+  finish
 endif
 
 if ! exists("b:did_html_mappings")
@@ -92,18 +91,18 @@ SetIfUnset html_linkcolor   #0000EE
 SetIfUnset html_alinkcolor  #FF0000
 SetIfUnset html_vlinkcolor  #990066
 SetIfUnset html_tag_case    uppercase
-" No way to know sensible defaults here so just make sure the variables are
-" set:
+" No way to know sensible defaults here so just make sure the
+" variables are set:
 SetIfUnset html_authorname  -
 SetIfUnset html_authoremail -
 
-function! HTMLencodeEmail(email)
+function! HTMLencodeString(string)
   let out = ''
   let c   = 0
-  let len = strlen(a:email)
+  let len = strlen(a:string)
 
   while c < len
-    let out = out . '&#' . char2nr(a:email[c]) . ';'
+    let out = out . '&#' . char2nr(a:string[c]) . ';'
     let c = c + 1
   endwhile
 
@@ -112,7 +111,7 @@ endfunction
 
 " ----------------------------------------------------------------------------
 
-" Functions to make the mappings local to the buffer, if we're in Vim6:
+" Define the HTML mappings with the appropriate case:
 " Args:
 "  1 - String:  Which map command to run.
 "  2 - String:  LHS of the map.
@@ -758,63 +757,107 @@ call HTMLmap("inoremap", "&34", "&frac34;")
 " ---- Template Creation Stuff: ----------------------------------------- {{{1
 call HTMLmap("nnoremap", ";html", ":if (HTMLtemplate()) \\| startinsert \\| endif<CR>")
 
+" Determine whether to insert the HTML template:
+" Args:
+"  None
+" Return Value:
+"  0 - The cursor is not on an insert point.
+"  1 - The cursor is on an insert point.
 function! HTMLtemplate()
   if (line('$') == 1 && getline(1) == "")
-    call HTMLtemplate2()
-    return 1
+    return HTMLtemplate2()
   else
     let YesNoOverwrite = confirm("Non-empty file.\nInsert template anyway?", "&Yes\n&No\n&Overwrite", 2, "W")
     if (YesNoOverwrite == 1)
-      execute "normal 1GO\<ESC>"
-      call HTMLtemplate2()
-      return 1
+      return HTMLtemplate2()
     elseif (YesNoOverwrite == 3)
       execute "1,$delete"
-      call HTMLtemplate2()
-      return 1
+      return HTMLtemplate2()
     endif
   endif
   return 0
 endfunction
 
+let s:internal_html_template=
+  \"<[{HTML}]>\n" .
+  \" <[{HEAD}]>\n\n" .
+  \"  <[{TITLE></TITLE}]>\n\n" .
+  \"  <[{META NAME}]=\"Generator\" [{CONTENT}]=\"vim (Vi IMproved editor; http://www.vim.org/)\">\n" .
+  \"  <[{META NAME}]=\"Author\" [{CONTENT}]=\"%authorname%\">\n" .
+  \"  <[{META NAME}]=\"Copyright\" [{CONTENT}]=\"Copyright (C) %date% %authorname%\">\n" .
+  \"  <[{LINK REV}]=\"made\" [{HREF}]=\"mailto:%authoremail%\">\n\n" .
+  \" </[{HEAD}]>\n" .
+  \" <[{BODY BGCOLOR}]=\"%bgcolor%\"" .
+    \" [{TEXT}]=\"%textcolor%\"" .
+    \" [{LINK}]=\"%linkcolor%\"" .
+    \" [{ALINK}]=\"%alinkcolor%\"" .
+    \" [{VLINK}]=\"%vlinkcolor%\">\n\n" .
+  \"  <[{H1 ALIGN=CENTER></H1}]>\n\n" .
+  \"  <[{P}]>\n" .
+  \"  </[{P}]>\n\n" .
+  \"  <[{HR WIDTH}]=\"75%\">\n\n" .
+  \"  <[{P}]>\n" .
+  \"  Last Modified: <[{I}]>%date%</[{I}]>\n" .
+  \"  </[{P}]>\n\n" .
+  \"  <[{ADDRESS}]>\n" .
+  \"   <[{A HREF}]=\"mailto:%authoremail%\">%authorname%&lt;%authoremail%&gt;</[{A}]>\n" .
+  \"  </[{ADDRESS}]>\n" .
+  \" </[{BODY}]>\n" .
+  \"</[{HTML}]>"
+
+let s:internal_html_template = HTMLconvertCase(s:internal_html_template)
+
+" Actually insert the HTML template:
+" Args:
+"  None
+" Return Value:
+"  0 - The cursor is not on an insert point.
+"  1 - The cursor is on an insert point.
 function! HTMLtemplate2()
 
-  let savepaste = &paste
-  "let saveautoindent = &autoindent
-  set paste
-
   if g:html_authoremail != ''
-    let g:html_authoremail_encoded = HTMLencodeEmail(g:html_authoremail)
+    let g:html_authoremail_encoded = HTMLencodeString(g:html_authoremail)
   else
     let g:html_authoremail_encoded = ''
   endif
 
-  "execute HTMLconvertCase("normal 1G0i<[{HTML}]>\<CR> <[{HEAD}]>\<CR>\<CR>  <[{TITLE></TITLE}]>\<CR>  <[{BASE HREF}]=\"\">\<ESC>")
-  execute HTMLconvertCase("normal 1G0i<[{HTML}]>\<CR> <[{HEAD}]>\<CR>\<CR>  <[{TITLE></TITLE}]>\<CR>\<ESC>")
-  execute HTMLconvertCase("normal o  <[{META NAME}]=\"Generator\" [{CONTENT}]=\"vim (Vi IMproved editor; http://www.vim.org/)\">\<ESC>")
-  execute HTMLconvertCase("normal o  <[{META NAME}]=\"Author\" [{CONTENT}]=\"" . g:html_authorname . "\">\<ESC>")
-  execute HTMLconvertCase("normal o  <[{META NAME}]=\"Copyright\" [{CONTENT}]=\"Copyright (C) " . strftime("%B %d, %Y") . ' ' . g:html_authorname . "\">\<ESC>")
-  execute HTMLconvertCase("normal o  <[{LINK REV}]=\"made\" [{HREF}]=\"mailto:" . g:html_authoremail_encoded . "\">\<CR>\<CR> </[{HEAD}]>\<ESC>")
-  execute HTMLconvertCase("normal o <[{BODY BGCOLOR}]=\"" . g:html_bgcolor . "\"\<ESC>")
-  execute HTMLconvertCase("normal A [{TEXT}]=\"" . g:html_textcolor . "\"\<ESC>")
-  execute HTMLconvertCase("normal A [{LINK}]=\"" . g:html_linkcolor . "\"\<ESC>")
-  execute HTMLconvertCase("normal A [{ALINK}]=\"" . g:html_alinkcolor . "\"\<ESC>")
-  execute HTMLconvertCase("normal A [{VLINK}]=\"" . g:html_vlinkcolor . "\">\<CR>\<ESC>")
-  execute HTMLconvertCase("normal o  <[{H1 ALIGN=CENTER></H1}]>\<CR>\<CR>  <[{P></P}]>\<CR>\<ESC>")
-  execute HTMLconvertCase("normal o  <[{HR WIDTH}]=\"75%\">\<CR>\<CR>  <[{P}]>\<CR>   Last Modified:\<CR>   <[{I}]>\<ESC>")
-  execute HTMLconvertCase("normal o    <!-- Last modification date: -->\<CR>    " . strftime("%B %d, %Y") . "\<CR>\<ESC>")
-  execute HTMLconvertCase("normal o   </[{I}]>\<CR>  </[{P}]>\<CR>\<CR>  <[{ADDRESS}]>\<ESC>")
-
-  if (g:html_authorname != "" && g:html_authoremail_encoded != "")
-    execute HTMLconvertCase("normal o   <[{A HREF}]=\"mailto:" . g:html_authoremail_encoded . "\">" . g:html_authorname . " &lt;" . g:html_authoremail_encoded . "&gt;</[{A}]>\<ESC>")
+  if (! exists('g:html_template')) || g:html_template == ""
+      0put =s:internal_html_template
+  else
+    if filereadable(expand(g:html_template))
+      execute "0read " . g:html_template
+    else
+      echohl ErrorMsg
+      echomsg "Unable to insert template file: " . g:html_template
+      echomsg "Either it doesn't exist or it isn't readable."
+      echohl None
+      return 0
+    endif
   endif
 
-  execute HTMLconvertCase("normal o  </[{ADDRESS}]>\<CR>\<CR> </[{BODY}]>\<CR></[{HTML}]>\<ESC>")
+  if getline('$') =~ '^\s*$'
+    $delete
+  endif
 
-  "let &autoindent = saveautoindent
-  let &paste = savepaste
+  " Replace the various tokens with appropriate values:
+  silent! %s/\C%authorname%/\=g:html_authorname/g
+  silent! %s/\C%authoremail%/\=g:html_authoremail/g
+  silent! %s/\C%bgcolor%/\=g:html_bgcolor/g
+  silent! %s/\C%textcolor%/\=g:html_textcolor/g
+  silent! %s/\C%linkcolor%/\=g:html_linkcolor/g
+  silent! %s/\C%alinkcolor%/\=g:html_alinkcolor/g
+  silent! %s/\C%vlinkcolor%/\=g:html_vlinkcolor/g
+  silent! %s/\C%date%/\=strftime('%B %d, %Y')/g
 
-  normal 4G0eell
+  go 1
+
+  call HTMLnextInsertPoint('n')
+  if getline('.')[col('.') - 2] . getline('.')[col('.') - 1] == '><'
+        \ || (getline('.') =~ '^\s*$' && line('.') != 1)
+    return 1
+  else
+    return 0
+  endif
 
 endfunction
 " ----------------------------------------------------------------------------
@@ -841,6 +884,8 @@ if (has("unix"))
   call HTMLmap("nnoremap", ";oa", ":call LaunchBrowser(1,0)<CR>")
   " Opera: View current file in a new window, starting Opera if it's not running:
   call HTMLmap("nnoremap", ";noa", ":call LaunchBrowser(1,1)<CR>")
+  " Opera: Open a new tab, and view the current file:
+  call HTMLmap("nnoremap", ";toa", ":call LaunchBrowser(1,2)<CR>")
 
   " Lynx:  (This happens anyway if there's no DISPLAY environmental variable.)
   call HTMLmap("nnoremap",";ly",":call LaunchBrowser(2,0)<CR>")
@@ -879,13 +924,15 @@ elseif exists("did_html_menus")
   endif
 else
 
-if has("toolbar") || has("win32") || has("gui_gtk")
+if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gui_gtk")
+  \ || (v:version >= 600 && (has("gui_athena") || has("gui_motif") || has("gui_photon"))))
 
   set guioptions+=T
 
+  " A kluge to overcome a problem with the GTK2 interface:
   command! -nargs=+ HTMLtmenu call HTMLtmenu(<f-args>)
   function! HTMLtmenu(icon, level, menu, tip)
-    if has('gui_gtk2')
+    if has('gui_gtk2' && v:version <= 602 && ! has('patch240'))
       exe 'tmenu icon=' . a:icon . ' ' . a:level . ' ' . a:menu . ' ' . a:tip
     else
       exe 'tmenu ' . a:level . ' ' . a:menu . ' ' . a:tip
@@ -956,7 +1003,7 @@ if has("toolbar") || has("win32") || has("gui_gtk")
   imenu               1.150 ToolBar.Nlist     ;ol;li
   vmenu               1.150 ToolBar.Nlist     ;oli;li<ESC>
   nmenu               1.150 ToolBar.Nlist     i;ol;li
-  HTMLtmenu Litem     1.160 ToolBar.Litem     Create\ List\ Item
+  HTMLtmenu Litem     1.160 ToolBar.Litem     Add\ List\ Item
   imenu               1.160 ToolBar.Litem     ;li
   nmenu               1.160 ToolBar.Litem     i;li
 
@@ -1031,7 +1078,8 @@ if has("toolbar") || has("win32") || has("gui_gtk")
   delcommand HTMLtmenu
   delfunction HTMLtmenu
 
-endif  " has("toolbar") || has("win32") || has("gui_gtk")
+  let did_html_toolbar = 1
+endif  " (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") [...]
 " ----------------------------------------------------------------------------
 
 " ---- Menu Items: ------------------------------------------------------ {{{1
@@ -1041,6 +1089,7 @@ au!
 autocmd BufLeave,BufWinLeave *
  \ if &filetype ==? "html" |
    \ amenu disable HTML |
+   \ if exists('g:did_html_toolbar') |
    \ amenu disable ToolBar.* |
    \ amenu enable ToolBar.Open |
    \ amenu enable ToolBar.Save |
@@ -1050,6 +1099,7 @@ autocmd BufLeave,BufWinLeave *
    \ amenu enable ToolBar.Paste |
    \ amenu enable ToolBar.Find |
    \ amenu enable ToolBar.Replace |
+   \ endif |
  \ endif
 autocmd BufEnter,BufWinEnter *
  \ if &filetype ==? "html" |
@@ -1079,6 +1129,9 @@ endif
  menu HTML.-sep1-                              <nul>
 
 " Character Entities menu:   {{{2
+
+let b:save_encoding=&encoding
+let &encoding='latin1'
 
 imenu HTML.Character\ Entities.Ampersand<tab>\&\&                  &&
 imenu HTML.Character\ Entities.Greaterthan\ (>)<tab>\&>            &>
@@ -1250,292 +1303,311 @@ nmenu HTML.Character\ Entities.\ \ \ \ \ \ \ etc\.\.\..c-cedilla\ (ç)<tab>\&c,  
 nmenu HTML.Character\ Entities.\ \ \ \ \ \ \ etc\.\.\..O-slash\ (Ø)<tab>\&O/     i&O/<ESC>
 nmenu HTML.Character\ Entities.\ \ \ \ \ \ \ etc\.\.\..o-slash\ (ø)<tab>\&o/     i&o/<ESC>
 
+let &encoding=b:save_encoding
+unlet b:save_encoding
 
 " Colors menu:   {{{2
 
-nmenu HTML.Colors.AliceBlue<TAB>(#F0F8FF)      i#F0F8FF<ESC>
-nmenu HTML.Colors.AntiqueWhite<TAB>(#FAEBD7)   i#FAEBD7<ESC>
-nmenu HTML.Colors.Aqua<TAB>(#00FFFF)           i#00FFFF<ESC>
-nmenu HTML.Colors.Aquamarine<TAB>(#7FFFD4)     i#7FFFD4<ESC>
-nmenu HTML.Colors.Azure<TAB>(#F0FFFF)          i#F0FFFF<ESC>
-nmenu HTML.Colors.Beige<TAB>(#F5F5DC)          i#F5F5DC<ESC>
-nmenu HTML.Colors.Bisque<TAB>(#FFE4C4)         i#FFE4C4<ESC>
-nmenu HTML.Colors.Black<TAB>(#000000)          i#000000<ESC>
-nmenu HTML.Colors.BlanchedAlmond<TAB>(#FFEBCD) i#FFEBCD<ESC>
-nmenu HTML.Colors.Blue<TAB>(#0000FF)           i#0000FF<ESC>
-nmenu HTML.Colors.BlueViolet<TAB>(#8A2BE2)     i#8A2BE2<ESC>
-nmenu HTML.Colors.Brown<TAB>(#A52A2A)          i#A52A2A<ESC>
-nmenu HTML.Colors.Burlywood<TAB>(#DEB887)      i#DEB887<ESC>
-nmenu HTML.Colors.CadetBlue<TAB>(#5F9EA0)      i#5F9EA0<ESC>
-nmenu HTML.Colors.Chartreuse<TAB>(#7FFF00)     i#7FFF00<ESC>
-nmenu HTML.Colors.Chocolate<TAB>(#D2691E)      i#D2691E<ESC>
-nmenu HTML.Colors.Coral<TAB>(#FF7F50)          i#FF7F50<ESC>
-nmenu HTML.Colors.CornflowerBlue<TAB>(#6495ED) i#6495ED<ESC>
-nmenu HTML.Colors.Cornsilk<TAB>(#FFF8DC)       i#FFF8DC<ESC>
-nmenu HTML.Colors.Crimson<TAB>(#DC143C)        i#DC143C<ESC>
-nmenu HTML.Colors.Cyan<TAB>(#00FFFF)           i#00FFFF<ESC>
-nmenu HTML.Colors.DarkBlue<TAB>(#00008B)       i#00008B<ESC>
-nmenu HTML.Colors.DarkCyan<TAB>(#008B8B)       i#008B8B<ESC>
-nmenu HTML.Colors.DarkGoldenrod<TAB>(#B8860B)  i#B8860B<ESC>
-nmenu HTML.Colors.DarkGray<TAB>(#A9A9A9)       i#A9A9A9<ESC>
+nmenu HTML.Colors.&A.AliceBlue<TAB>(#F0F8FF)            i#F0F8FF<ESC>
+nmenu HTML.Colors.&A.AntiqueWhite<TAB>(#FAEBD7)         i#FAEBD7<ESC>
+nmenu HTML.Colors.&A.Aqua<TAB>(#00FFFF)                 i#00FFFF<ESC>
+nmenu HTML.Colors.&A.Aquamarine<TAB>(#7FFFD4)           i#7FFFD4<ESC>
+nmenu HTML.Colors.&A.Azure<TAB>(#F0FFFF)                i#F0FFFF<ESC>
 
-nmenu HTML.Colors.More\.\.\..DarkGreen<TAB>(#006400)      i#006400<ESC>
-nmenu HTML.Colors.More\.\.\..DarkKhaki<TAB>(#BDB76B)      i#BDB76B<ESC>
-nmenu HTML.Colors.More\.\.\..DarkMagenta<TAB>(#8B008B)    i#8B008B<ESC>
-nmenu HTML.Colors.More\.\.\..DarkOliveGreen<TAB>(#556B2F) i#556B2F<ESC>
-nmenu HTML.Colors.More\.\.\..DarkOrange<TAB>(#FF8C00)     i#FF8C00<ESC>
-nmenu HTML.Colors.More\.\.\..DarkOrchid<TAB>(#9932CC)     i#9932CC<ESC>
-nmenu HTML.Colors.More\.\.\..DarkRed<TAB>(#8B0000)        i#8B0000<ESC>
-nmenu HTML.Colors.More\.\.\..DarkSalmon<TAB>(#E9967A)     i#E9967A<ESC>
-nmenu HTML.Colors.More\.\.\..DarkSeagreen<TAB>(#8FBC8F)   i#8FBC8F<ESC>
-nmenu HTML.Colors.More\.\.\..DarkSlateBlue<TAB>(#483D8B)  i#483D8B<ESC>
-nmenu HTML.Colors.More\.\.\..DarkSlateGray<TAB>(#2F4F4F)  i#2F4F4F<ESC>
-nmenu HTML.Colors.More\.\.\..DarkTurquoise<TAB>(#00CED1)  i#00CED1<ESC>
-nmenu HTML.Colors.More\.\.\..DarkViolet<TAB>(#9400D3)     i#9400D3<ESC>
-nmenu HTML.Colors.More\.\.\..DeepPink<TAB>(#FF1493)       i#FF1493<ESC>
-nmenu HTML.Colors.More\.\.\..DeepSkyblue<TAB>(#00BFFF)    i#00BFFF<ESC>
-nmenu HTML.Colors.More\.\.\..DimGray<TAB>(#696969)        i#696969<ESC>
-nmenu HTML.Colors.More\.\.\..Dodgerblue<TAB>(#1E90FF)     i#1E90FF<ESC>
-nmenu HTML.Colors.More\.\.\..Firebrick<TAB>(#B22222)      i#B22222<ESC>
-nmenu HTML.Colors.More\.\.\..FloralWhite<TAB>(#FFFAF0)    i#FFFAF0<ESC>
-nmenu HTML.Colors.More\.\.\..ForestGreen<TAB>(#228B22)    i#228B22<ESC>
-nmenu HTML.Colors.More\.\.\..Fuchsia<TAB>(#FF00FF)        i#FF00FF<ESC>
-nmenu HTML.Colors.More\.\.\..Gainsboro<TAB>(#DCDCDC)      i#DCDCDC<ESC>
-nmenu HTML.Colors.More\.\.\..GhostWhite<TAB>(#F8F8FF)     i#F8F8FF<ESC>
-nmenu HTML.Colors.More\.\.\..Gold<TAB>(#FFD700)           i#FFD700<ESC>
-nmenu HTML.Colors.More\.\.\..Goldenrod<TAB>(#DAA520)      i#DAA520<ESC>
+nmenu HTML.Colors.&B.Beige<TAB>(#F5F5DC)                i#F5F5DC<ESC>
+nmenu HTML.Colors.&B.Bisque<TAB>(#FFE4C4)               i#FFE4C4<ESC>
+nmenu HTML.Colors.&B.Black<TAB>(#000000)                i#000000<ESC>
+nmenu HTML.Colors.&B.BlanchedAlmond<TAB>(#FFEBCD)       i#FFEBCD<ESC>
+nmenu HTML.Colors.&B.Blue<TAB>(#0000FF)                 i#0000FF<ESC>
+nmenu HTML.Colors.&B.BlueViolet<TAB>(#8A2BE2)           i#8A2BE2<ESC>
+nmenu HTML.Colors.&B.Brown<TAB>(#A52A2A)                i#A52A2A<ESC>
+nmenu HTML.Colors.&B.Burlywood<TAB>(#DEB887)            i#DEB887<ESC>
 
-nmenu HTML.Colors.More\.\.\..More\.\.\..Gray<TAB>(#808080)                 i#808080<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..Green<TAB>(#008000)                i#008000<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..GreenYellow<TAB>(#ADFF2F)          i#ADFF2F<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..Honeydew<TAB>(#F0FFF0)             i#F0FFF0<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..HotPink<TAB>(#FF69B4)              i#FF69B4<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..IndianRed<TAB>(#CD5C5C)            i#CD5C5C<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..Indigo<TAB>(#4B0082)               i#4B0082<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..Ivory<TAB>(#FFFFF0)                i#FFFFF0<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..Khaki<TAB>(#F0E68C)                i#F0E68C<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..Lavender<TAB>(#E6E6FA)             i#E6E6FA<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LavenderBlush<TAB>(#FFF0F5)        i#FFF0F5<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LawnGreen<TAB>(#7CFC00)            i#7CFC00<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LemonChiffon<TAB>(#FFFACD)         i#FFFACD<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightBlue<TAB>(#ADD8E6)            i#ADD8E6<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightCoral<TAB>(#F08080)           i#F08080<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightCyan<TAB>(#E0FFFF)            i#E0FFFF<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightGoldenrodYellow<TAB>(#FAFAD2) i#FAFAD2<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightGreen<TAB>(#90EE90)           i#90EE90<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightGrey<TAB>(#D3D3D3)            i#D3D3D3<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightPink<TAB>(#FFB6C1)            i#FFB6C1<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightSalmon<TAB>(#FFA07A)          i#FFA07A<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightSeaGreen<TAB>(#20B2AA)        i#20B2AA<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightSkyBlue<TAB>(#87CEFA)         i#87CEFA<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightSlaTegray<TAB>(#778899)       i#778899<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..LightSteelBlue<TAB>(#B0C4DE)       i#B0C4DE<ESC>
+nmenu HTML.Colors.&C.CadetBlue<TAB>(#5F9EA0)            i#5F9EA0<ESC>
+nmenu HTML.Colors.&C.Chartreuse<TAB>(#7FFF00)           i#7FFF00<ESC>
+nmenu HTML.Colors.&C.Chocolate<TAB>(#D2691E)            i#D2691E<ESC>
+nmenu HTML.Colors.&C.Coral<TAB>(#FF7F50)                i#FF7F50<ESC>
+nmenu HTML.Colors.&C.CornflowerBlue<TAB>(#6495ED)       i#6495ED<ESC>
+nmenu HTML.Colors.&C.Cornsilk<TAB>(#FFF8DC)             i#FFF8DC<ESC>
+nmenu HTML.Colors.&C.Crimson<TAB>(#DC143C)              i#DC143C<ESC>
+nmenu HTML.Colors.&C.Cyan<TAB>(#00FFFF)                 i#00FFFF<ESC>
 
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..LightYellow<TAB>(#FFFFE0)       i#FFFFE0<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Lime<TAB>(#00FF00)              i#00FF00<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..LimeGreen<TAB>(#32CD32)         i#32CD32<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Linen<TAB>(#FAF0E6)             i#FAF0E6<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Magenta<TAB>(#FF00FF)           i#FF00FF<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Maroon<TAB>(#800000)            i#800000<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumAquamarine<TAB>(#66CDAA)  i#66CDAA<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumBlue<TAB>(#0000CD)        i#0000CD<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumOrchid<TAB>(#BA55D3)      i#BA55D3<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumPurple<TAB>(#9370DB)      i#9370DB<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumSeaGreen<TAB>(#3CB371)    i#3CB371<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumSlateBlue<TAB>(#7B68EE)   i#7B68EE<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumSpringGreen<TAB>(#00FA9A) i#00FA9A<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumTurquoise<TAB>(#48D1CC)   i#48D1CC<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumVioletRed<TAB>(#C71585)   i#C71585<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MidnightBlue<TAB>(#191970)      i#191970<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Mintcream<TAB>(#F5FFFA)         i#F5FFFA<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Mistyrose<TAB>(#FFE4E1)         i#FFE4E1<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Moccasin<TAB>(#FFE4B5)          i#FFE4B5<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..NavajoWhite<TAB>(#FFDEAD)       i#FFDEAD<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Navy<TAB>(#000080)              i#000080<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..OldLace<TAB>(#FDF5E6)           i#FDF5E6<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Olive<TAB>(#808000)             i#808000<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..OliveDrab<TAB>(#6B8E23)         i#6B8E23<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Orange<TAB>(#FFA500)            i#FFA500<ESC>
+nmenu HTML.Colors.&D.DarkBlue<TAB>(#00008B)             i#00008B<ESC>
+nmenu HTML.Colors.&D.DarkCyan<TAB>(#008B8B)             i#008B8B<ESC>
+nmenu HTML.Colors.&D.DarkGoldenrod<TAB>(#B8860B)        i#B8860B<ESC>
+nmenu HTML.Colors.&D.DarkGray<TAB>(#A9A9A9)             i#A9A9A9<ESC>
+nmenu HTML.Colors.&D.DarkGreen<TAB>(#006400)            i#006400<ESC>
+nmenu HTML.Colors.&D.DarkKhaki<TAB>(#BDB76B)            i#BDB76B<ESC>
+nmenu HTML.Colors.&D.DarkMagenta<TAB>(#8B008B)          i#8B008B<ESC>
+nmenu HTML.Colors.&D.DarkOliveGreen<TAB>(#556B2F)       i#556B2F<ESC>
+nmenu HTML.Colors.&D.DarkOrange<TAB>(#FF8C00)           i#FF8C00<ESC>
+nmenu HTML.Colors.&D.DarkOrchid<TAB>(#9932CC)           i#9932CC<ESC>
+nmenu HTML.Colors.&D.DarkRed<TAB>(#8B0000)              i#8B0000<ESC>
+nmenu HTML.Colors.&D.DarkSalmon<TAB>(#E9967A)           i#E9967A<ESC>
+nmenu HTML.Colors.&D.DarkSeagreen<TAB>(#8FBC8F)         i#8FBC8F<ESC>
+nmenu HTML.Colors.&D.DarkSlateBlue<TAB>(#483D8B)        i#483D8B<ESC>
+nmenu HTML.Colors.&D.DarkSlateGray<TAB>(#2F4F4F)        i#2F4F4F<ESC>
+nmenu HTML.Colors.&D.DarkTurquoise<TAB>(#00CED1)        i#00CED1<ESC>
+nmenu HTML.Colors.&D.DarkViolet<TAB>(#9400D3)           i#9400D3<ESC>
+nmenu HTML.Colors.&D.DeepPink<TAB>(#FF1493)             i#FF1493<ESC>
+nmenu HTML.Colors.&D.DeepSkyblue<TAB>(#00BFFF)          i#00BFFF<ESC>
+nmenu HTML.Colors.&D.DimGray<TAB>(#696969)              i#696969<ESC>
+nmenu HTML.Colors.&D.Dodgerblue<TAB>(#1E90FF)           i#1E90FF<ESC>
 
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..OrangeRed<TAB>(#FF4500)     i#FF4500<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Orchid<TAB>(#DA70D6)        i#DA70D6<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..PaleGoldenrod<TAB>(#EEE8AA) i#EEE8AA<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..PaleGreen<TAB>(#98FB98)     i#98FB98<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..PaleTurquoise<TAB>(#AFEEEE) i#AFEEEE<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..PaleVioletred<TAB>(#DB7093) i#DB7093<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Papayawhip<TAB>(#FFEFD5)    i#FFEFD5<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Peachpuff<TAB>(#FFDAB9)     i#FFDAB9<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Peru<TAB>(#CD853F)          i#CD853F<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Pink<TAB>(#FFC0CB)          i#FFC0CB<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Plum<TAB>(#DDA0DD)          i#DDA0DD<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..PowderBlue<TAB>(#B0E0E6)    i#B0E0E6<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Purple<TAB>(#800080)        i#800080<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Red<TAB>(#FF0000)           i#FF0000<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..RosyBrown<TAB>(#BC8F8F)     i#BC8F8F<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..RoyalBlue<TAB>(#4169E1)     i#4169E1<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..SaddleBrown<TAB>(#8B4513)   i#8B4513<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Salmon<TAB>(#FA8072)        i#FA8072<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..SandyBrown<TAB>(#F4A460)    i#F4A460<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..SeaGreen<TAB>(#2E8B57)      i#2E8B57<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Seashell<TAB>(#FFF5EE)      i#FFF5EE<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Sienna<TAB>(#A0522D)        i#A0522D<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Silver<TAB>(#C0C0C0)        i#C0C0C0<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..SkyBlue<TAB>(#87CEEB)       i#87CEEB<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..SlateBlue<TAB>(#6A5ACD)     i#6A5ACD<ESC>
+nmenu HTML.Colors.&F.Firebrick<TAB>(#B22222)            i#B22222<ESC>
+nmenu HTML.Colors.&F.FloralWhite<TAB>(#FFFAF0)          i#FFFAF0<ESC>
+nmenu HTML.Colors.&F.ForestGreen<TAB>(#228B22)          i#228B22<ESC>
+nmenu HTML.Colors.&F.Fuchsia<TAB>(#FF00FF)              i#FF00FF<ESC>
 
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..SlateGray<TAB>(#708090)   i#708090<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Snow<TAB>(#FFFAFA)        i#FFFAFA<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..SpringGreen<TAB>(#00FF7F) i#00FF7F<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..SteelBlue<TAB>(#4682B4)   i#4682B4<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Tan<TAB>(#D2B48C)         i#D2B48C<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Teal<TAB>(#008080)        i#008080<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Thistle<TAB>(#D8BFD8)     i#D8BFD8<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Tomato<TAB>(#FF6347)      i#FF6347<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Turquoise<TAB>(#40E0D0)   i#40E0D0<ESC>
-nmenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Violet<TAB>(#EE82EE)      i#EE82EE<ESC>
+nmenu HTML.Colors.&G.Gainsboro<TAB>(#DCDCDC)            i#DCDCDC<ESC>
+nmenu HTML.Colors.&G.GhostWhite<TAB>(#F8F8FF)           i#F8F8FF<ESC>
+nmenu HTML.Colors.&G.Gold<TAB>(#FFD700)                 i#FFD700<ESC>
+nmenu HTML.Colors.&G.Goldenrod<TAB>(#DAA520)            i#DAA520<ESC>
+nmenu HTML.Colors.&G.Gray<TAB>(#808080)                 i#808080<ESC>
+nmenu HTML.Colors.&G.Green<TAB>(#008000)                i#008000<ESC>
+nmenu HTML.Colors.&G.GreenYellow<TAB>(#ADFF2F)          i#ADFF2F<ESC>
+
+nmenu HTML.Colors.&H-K.Honeydew<TAB>(#F0FFF0)           i#F0FFF0<ESC>
+nmenu HTML.Colors.&H-K.HotPink<TAB>(#FF69B4)            i#FF69B4<ESC>
+nmenu HTML.Colors.&H-K.IndianRed<TAB>(#CD5C5C)          i#CD5C5C<ESC>
+nmenu HTML.Colors.&H-K.Indigo<TAB>(#4B0082)             i#4B0082<ESC>
+nmenu HTML.Colors.&H-K.Ivory<TAB>(#FFFFF0)              i#FFFFF0<ESC>
+nmenu HTML.Colors.&H-K.Khaki<TAB>(#F0E68C)              i#F0E68C<ESC>
+
+nmenu HTML.Colors.&L.Lavender<TAB>(#E6E6FA)             i#E6E6FA<ESC>
+nmenu HTML.Colors.&L.LavenderBlush<TAB>(#FFF0F5)        i#FFF0F5<ESC>
+nmenu HTML.Colors.&L.LawnGreen<TAB>(#7CFC00)            i#7CFC00<ESC>
+nmenu HTML.Colors.&L.LemonChiffon<TAB>(#FFFACD)         i#FFFACD<ESC>
+nmenu HTML.Colors.&L.LightBlue<TAB>(#ADD8E6)            i#ADD8E6<ESC>
+nmenu HTML.Colors.&L.LightCoral<TAB>(#F08080)           i#F08080<ESC>
+nmenu HTML.Colors.&L.LightCyan<TAB>(#E0FFFF)            i#E0FFFF<ESC>
+nmenu HTML.Colors.&L.LightGoldenrodYellow<TAB>(#FAFAD2) i#FAFAD2<ESC>
+nmenu HTML.Colors.&L.LightGreen<TAB>(#90EE90)           i#90EE90<ESC>
+nmenu HTML.Colors.&L.LightGrey<TAB>(#D3D3D3)            i#D3D3D3<ESC>
+nmenu HTML.Colors.&L.LightPink<TAB>(#FFB6C1)            i#FFB6C1<ESC>
+nmenu HTML.Colors.&L.LightSalmon<TAB>(#FFA07A)          i#FFA07A<ESC>
+nmenu HTML.Colors.&L.LightSeaGreen<TAB>(#20B2AA)        i#20B2AA<ESC>
+nmenu HTML.Colors.&L.LightSkyBlue<TAB>(#87CEFA)         i#87CEFA<ESC>
+nmenu HTML.Colors.&L.LightSlaTegray<TAB>(#778899)       i#778899<ESC>
+nmenu HTML.Colors.&L.LightSteelBlue<TAB>(#B0C4DE)       i#B0C4DE<ESC>
+nmenu HTML.Colors.&L.LightYellow<TAB>(#FFFFE0)          i#FFFFE0<ESC>
+nmenu HTML.Colors.&L.Lime<TAB>(#00FF00)                 i#00FF00<ESC>
+nmenu HTML.Colors.&L.LimeGreen<TAB>(#32CD32)            i#32CD32<ESC>
+nmenu HTML.Colors.&L.Linen<TAB>(#FAF0E6)                i#FAF0E6<ESC>
+
+nmenu HTML.Colors.&M.Magenta<TAB>(#FF00FF)              i#FF00FF<ESC>
+nmenu HTML.Colors.&M.Maroon<TAB>(#800000)               i#800000<ESC>
+nmenu HTML.Colors.&M.MediumAquamarine<TAB>(#66CDAA)     i#66CDAA<ESC>
+nmenu HTML.Colors.&M.MediumBlue<TAB>(#0000CD)           i#0000CD<ESC>
+nmenu HTML.Colors.&M.MediumOrchid<TAB>(#BA55D3)         i#BA55D3<ESC>
+nmenu HTML.Colors.&M.MediumPurple<TAB>(#9370DB)         i#9370DB<ESC>
+nmenu HTML.Colors.&M.MediumSeaGreen<TAB>(#3CB371)       i#3CB371<ESC>
+nmenu HTML.Colors.&M.MediumSlateBlue<TAB>(#7B68EE)      i#7B68EE<ESC>
+nmenu HTML.Colors.&M.MediumSpringGreen<TAB>(#00FA9A)    i#00FA9A<ESC>
+nmenu HTML.Colors.&M.MediumTurquoise<TAB>(#48D1CC)      i#48D1CC<ESC>
+nmenu HTML.Colors.&M.MediumVioletRed<TAB>(#C71585)      i#C71585<ESC>
+nmenu HTML.Colors.&M.MidnightBlue<TAB>(#191970)         i#191970<ESC>
+nmenu HTML.Colors.&M.Mintcream<TAB>(#F5FFFA)            i#F5FFFA<ESC>
+nmenu HTML.Colors.&M.Mistyrose<TAB>(#FFE4E1)            i#FFE4E1<ESC>
+nmenu HTML.Colors.&M.Moccasin<TAB>(#FFE4B5)             i#FFE4B5<ESC>
+
+nmenu HTML.Colors.&N.NavajoWhite<TAB>(#FFDEAD)          i#FFDEAD<ESC>
+nmenu HTML.Colors.&N.Navy<TAB>(#000080)                 i#000080<ESC>
+
+nmenu HTML.Colors.&O.OldLace<TAB>(#FDF5E6)              i#FDF5E6<ESC>
+nmenu HTML.Colors.&O.Olive<TAB>(#808000)                i#808000<ESC>
+nmenu HTML.Colors.&O.OliveDrab<TAB>(#6B8E23)            i#6B8E23<ESC>
+nmenu HTML.Colors.&O.Orange<TAB>(#FFA500)               i#FFA500<ESC>
+nmenu HTML.Colors.&O.OrangeRed<TAB>(#FF4500)            i#FF4500<ESC>
+nmenu HTML.Colors.&O.Orchid<TAB>(#DA70D6)               i#DA70D6<ESC>
+
+nmenu HTML.Colors.&P.PaleGoldenrod<TAB>(#EEE8AA)        i#EEE8AA<ESC>
+nmenu HTML.Colors.&P.PaleGreen<TAB>(#98FB98)            i#98FB98<ESC>
+nmenu HTML.Colors.&P.PaleTurquoise<TAB>(#AFEEEE)        i#AFEEEE<ESC>
+nmenu HTML.Colors.&P.PaleVioletred<TAB>(#DB7093)        i#DB7093<ESC>
+nmenu HTML.Colors.&P.Papayawhip<TAB>(#FFEFD5)           i#FFEFD5<ESC>
+nmenu HTML.Colors.&P.Peachpuff<TAB>(#FFDAB9)            i#FFDAB9<ESC>
+nmenu HTML.Colors.&P.Peru<TAB>(#CD853F)                 i#CD853F<ESC>
+nmenu HTML.Colors.&P.Pink<TAB>(#FFC0CB)                 i#FFC0CB<ESC>
+nmenu HTML.Colors.&P.Plum<TAB>(#DDA0DD)                 i#DDA0DD<ESC>
+nmenu HTML.Colors.&P.PowderBlue<TAB>(#B0E0E6)           i#B0E0E6<ESC>
+nmenu HTML.Colors.&P.Purple<TAB>(#800080)               i#800080<ESC>
+
+nmenu HTML.Colors.&R.Red<TAB>(#FF0000)                  i#FF0000<ESC>
+nmenu HTML.Colors.&R.RosyBrown<TAB>(#BC8F8F)            i#BC8F8F<ESC>
+nmenu HTML.Colors.&R.RoyalBlue<TAB>(#4169E1)            i#4169E1<ESC>
+
+nmenu HTML.Colors.&S.SaddleBrown<TAB>(#8B4513)          i#8B4513<ESC>
+nmenu HTML.Colors.&S.Salmon<TAB>(#FA8072)               i#FA8072<ESC>
+nmenu HTML.Colors.&S.SandyBrown<TAB>(#F4A460)           i#F4A460<ESC>
+nmenu HTML.Colors.&S.SeaGreen<TAB>(#2E8B57)             i#2E8B57<ESC>
+nmenu HTML.Colors.&S.Seashell<TAB>(#FFF5EE)             i#FFF5EE<ESC>
+nmenu HTML.Colors.&S.Sienna<TAB>(#A0522D)               i#A0522D<ESC>
+nmenu HTML.Colors.&S.Silver<TAB>(#C0C0C0)               i#C0C0C0<ESC>
+nmenu HTML.Colors.&S.SkyBlue<TAB>(#87CEEB)              i#87CEEB<ESC>
+nmenu HTML.Colors.&S.SlateBlue<TAB>(#6A5ACD)            i#6A5ACD<ESC>
+nmenu HTML.Colors.&S.SlateGray<TAB>(#708090)            i#708090<ESC>
+nmenu HTML.Colors.&S.Snow<TAB>(#FFFAFA)                 i#FFFAFA<ESC>
+nmenu HTML.Colors.&S.SpringGreen<TAB>(#00FF7F)          i#00FF7F<ESC>
+nmenu HTML.Colors.&S.SteelBlue<TAB>(#4682B4)            i#4682B4<ESC>
+
+nmenu HTML.Colors.&T-Z.Tan<TAB>(#D2B48C)                i#D2B48C<ESC>
+nmenu HTML.Colors.&T-Z.Teal<TAB>(#008080)               i#008080<ESC>
+nmenu HTML.Colors.&T-Z.Thistle<TAB>(#D8BFD8)            i#D8BFD8<ESC>
+nmenu HTML.Colors.&T-Z.Tomato<TAB>(#FF6347)             i#FF6347<ESC>
+nmenu HTML.Colors.&T-Z.Turquoise<TAB>(#40E0D0)          i#40E0D0<ESC>
+nmenu HTML.Colors.&T-Z.Violet<TAB>(#EE82EE)             i#EE82EE<ESC>
 
 
-imenu HTML.Colors.AliceBlue<TAB>(#F0F8FF)      #F0F8FF
-imenu HTML.Colors.AntiqueWhite<TAB>(#FAEBD7)   #FAEBD7
-imenu HTML.Colors.Aqua<TAB>(#00FFFF)           #00FFFF
-imenu HTML.Colors.Aquamarine<TAB>(#7FFFD4)     #7FFFD4
-imenu HTML.Colors.Azure<TAB>(#F0FFFF)          #F0FFFF
-imenu HTML.Colors.Beige<TAB>(#F5F5DC)          #F5F5DC
-imenu HTML.Colors.Bisque<TAB>(#FFE4C4)         #FFE4C4
-imenu HTML.Colors.Black<TAB>(#000000)          #000000
-imenu HTML.Colors.BlanchedAlmond<TAB>(#FFEBCD) #FFEBCD
-imenu HTML.Colors.Blue<TAB>(#0000FF)           #0000FF
-imenu HTML.Colors.BlueViolet<TAB>(#8A2BE2)     #8A2BE2
-imenu HTML.Colors.Brown<TAB>(#A52A2A)          #A52A2A
-imenu HTML.Colors.Burlywood<TAB>(#DEB887)      #DEB887
-imenu HTML.Colors.CadetBlue<TAB>(#5F9EA0)      #5F9EA0
-imenu HTML.Colors.Chartreuse<TAB>(#7FFF00)     #7FFF00
-imenu HTML.Colors.Chocolate<TAB>(#D2691E)      #D2691E
-imenu HTML.Colors.Coral<TAB>(#FF7F50)          #FF7F50
-imenu HTML.Colors.CornflowerBlue<TAB>(#6495ED) #6495ED
-imenu HTML.Colors.Cornsilk<TAB>(#FFF8DC)       #FFF8DC
-imenu HTML.Colors.Crimson<TAB>(#DC143C)        #DC143C
-imenu HTML.Colors.Cyan<TAB>(#00FFFF)           #00FFFF
-imenu HTML.Colors.DarkBlue<TAB>(#00008B)       #00008B
-imenu HTML.Colors.DarkCyan<TAB>(#008B8B)       #008B8B
-imenu HTML.Colors.DarkGoldenrod<TAB>(#B8860B)  #B8860B
-imenu HTML.Colors.DarkGray<TAB>(#A9A9A9)       #A9A9A9
+imenu HTML.Colors.&A.AliceBlue<TAB>(#F0F8FF)            #F0F8FF
+imenu HTML.Colors.&A.AntiqueWhite<TAB>(#FAEBD7)         #FAEBD7
+imenu HTML.Colors.&A.Aqua<TAB>(#00FFFF)                 #00FFFF
+imenu HTML.Colors.&A.Aquamarine<TAB>(#7FFFD4)           #7FFFD4
+imenu HTML.Colors.&A.Azure<TAB>(#F0FFFF)                #F0FFFF
 
-imenu HTML.Colors.More\.\.\..DarkGreen<TAB>(#006400)      #006400
-imenu HTML.Colors.More\.\.\..DarkKhaki<TAB>(#BDB76B)      #BDB76B
-imenu HTML.Colors.More\.\.\..DarkMagenta<TAB>(#8B008B)    #8B008B
-imenu HTML.Colors.More\.\.\..DarkOliveGreen<TAB>(#556B2F) #556B2F
-imenu HTML.Colors.More\.\.\..DarkOrange<TAB>(#FF8C00)     #FF8C00
-imenu HTML.Colors.More\.\.\..DarkOrchid<TAB>(#9932CC)     #9932CC
-imenu HTML.Colors.More\.\.\..DarkRed<TAB>(#8B0000)        #8B0000
-imenu HTML.Colors.More\.\.\..DarkSalmon<TAB>(#E9967A)     #E9967A
-imenu HTML.Colors.More\.\.\..DarkSeagreen<TAB>(#8FBC8F)   #8FBC8F
-imenu HTML.Colors.More\.\.\..DarkSlateBlue<TAB>(#483D8B)  #483D8B
-imenu HTML.Colors.More\.\.\..DarkSlateGray<TAB>(#2F4F4F)  #2F4F4F
-imenu HTML.Colors.More\.\.\..DarkTurquoise<TAB>(#00CED1)  #00CED1
-imenu HTML.Colors.More\.\.\..DarkViolet<TAB>(#9400D3)     #9400D3
-imenu HTML.Colors.More\.\.\..DeepPink<TAB>(#FF1493)       #FF1493
-imenu HTML.Colors.More\.\.\..DeepSkyblue<TAB>(#00BFFF)    #00BFFF
-imenu HTML.Colors.More\.\.\..DimGray<TAB>(#696969)        #696969
-imenu HTML.Colors.More\.\.\..Dodgerblue<TAB>(#1E90FF)     #1E90FF
-imenu HTML.Colors.More\.\.\..Firebrick<TAB>(#B22222)      #B22222
-imenu HTML.Colors.More\.\.\..FloralWhite<TAB>(#FFFAF0)    #FFFAF0
-imenu HTML.Colors.More\.\.\..ForestGreen<TAB>(#228B22)    #228B22
-imenu HTML.Colors.More\.\.\..Fuchsia<TAB>(#FF00FF)        #FF00FF
-imenu HTML.Colors.More\.\.\..Gainsboro<TAB>(#DCDCDC)      #DCDCDC
-imenu HTML.Colors.More\.\.\..GhostWhite<TAB>(#F8F8FF)     #F8F8FF
-imenu HTML.Colors.More\.\.\..Gold<TAB>(#FFD700)           #FFD700
-imenu HTML.Colors.More\.\.\..Goldenrod<TAB>(#DAA520)      #DAA520
+imenu HTML.Colors.&B.Beige<TAB>(#F5F5DC)                #F5F5DC
+imenu HTML.Colors.&B.Bisque<TAB>(#FFE4C4)               #FFE4C4
+imenu HTML.Colors.&B.Black<TAB>(#000000)                #000000
+imenu HTML.Colors.&B.BlanchedAlmond<TAB>(#FFEBCD)       #FFEBCD
+imenu HTML.Colors.&B.Blue<TAB>(#0000FF)                 #0000FF
+imenu HTML.Colors.&B.BlueViolet<TAB>(#8A2BE2)           #8A2BE2
+imenu HTML.Colors.&B.Brown<TAB>(#A52A2A)                #A52A2A
+imenu HTML.Colors.&B.Burlywood<TAB>(#DEB887)            #DEB887
 
-imenu HTML.Colors.More\.\.\..More\.\.\..Gray<TAB>(#808080)                 #808080
-imenu HTML.Colors.More\.\.\..More\.\.\..Green<TAB>(#008000)                #008000
-imenu HTML.Colors.More\.\.\..More\.\.\..GreenYellow<TAB>(#ADFF2F)          #ADFF2F
-imenu HTML.Colors.More\.\.\..More\.\.\..Honeydew<TAB>(#F0FFF0)             #F0FFF0
-imenu HTML.Colors.More\.\.\..More\.\.\..HotPink<TAB>(#FF69B4)              #FF69B4
-imenu HTML.Colors.More\.\.\..More\.\.\..IndianRed<TAB>(#CD5C5C)            #CD5C5C
-imenu HTML.Colors.More\.\.\..More\.\.\..Indigo<TAB>(#4B0082)               #4B0082
-imenu HTML.Colors.More\.\.\..More\.\.\..Ivory<TAB>(#FFFFF0)                #FFFFF0
-imenu HTML.Colors.More\.\.\..More\.\.\..Khaki<TAB>(#F0E68C)                #F0E68C
-imenu HTML.Colors.More\.\.\..More\.\.\..Lavender<TAB>(#E6E6FA)             #E6E6FA
-imenu HTML.Colors.More\.\.\..More\.\.\..LavenderBlush<TAB>(#FFF0F5)        #FFF0F5
-imenu HTML.Colors.More\.\.\..More\.\.\..LawnGreen<TAB>(#7CFC00)            #7CFC00
-imenu HTML.Colors.More\.\.\..More\.\.\..LemonChiffon<TAB>(#FFFACD)         #FFFACD
-imenu HTML.Colors.More\.\.\..More\.\.\..LightBlue<TAB>(#ADD8E6)            #ADD8E6
-imenu HTML.Colors.More\.\.\..More\.\.\..LightCoral<TAB>(#F08080)           #F08080
-imenu HTML.Colors.More\.\.\..More\.\.\..LightCyan<TAB>(#E0FFFF)            #E0FFFF
-imenu HTML.Colors.More\.\.\..More\.\.\..LightGoldenrodYellow<TAB>(#FAFAD2) #FAFAD2
-imenu HTML.Colors.More\.\.\..More\.\.\..LightGreen<TAB>(#90EE90)           #90EE90
-imenu HTML.Colors.More\.\.\..More\.\.\..LightGrey<TAB>(#D3D3D3)            #D3D3D3
-imenu HTML.Colors.More\.\.\..More\.\.\..LightPink<TAB>(#FFB6C1)            #FFB6C1
-imenu HTML.Colors.More\.\.\..More\.\.\..LightSalmon<TAB>(#FFA07A)          #FFA07A
-imenu HTML.Colors.More\.\.\..More\.\.\..LightSeaGreen<TAB>(#20B2AA)        #20B2AA
-imenu HTML.Colors.More\.\.\..More\.\.\..LightSkyBlue<TAB>(#87CEFA)         #87CEFA
-imenu HTML.Colors.More\.\.\..More\.\.\..LightSlaTegray<TAB>(#778899)       #778899
-imenu HTML.Colors.More\.\.\..More\.\.\..LightSteelBlue<TAB>(#B0C4DE)       #B0C4DE
+imenu HTML.Colors.&C.CadetBlue<TAB>(#5F9EA0)            #5F9EA0
+imenu HTML.Colors.&C.Chartreuse<TAB>(#7FFF00)           #7FFF00
+imenu HTML.Colors.&C.Chocolate<TAB>(#D2691E)            #D2691E
+imenu HTML.Colors.&C.Coral<TAB>(#FF7F50)                #FF7F50
+imenu HTML.Colors.&C.CornflowerBlue<TAB>(#6495ED)       #6495ED
+imenu HTML.Colors.&C.Cornsilk<TAB>(#FFF8DC)             #FFF8DC
+imenu HTML.Colors.&C.Crimson<TAB>(#DC143C)              #DC143C
+imenu HTML.Colors.&C.Cyan<TAB>(#00FFFF)                 #00FFFF
 
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..LightYellow<TAB>(#FFFFE0)       #FFFFE0
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Lime<TAB>(#00FF00)              #00FF00
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..LimeGreen<TAB>(#32CD32)         #32CD32
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Linen<TAB>(#FAF0E6)             #FAF0E6
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Magenta<TAB>(#FF00FF)           #FF00FF
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Maroon<TAB>(#800000)            #800000
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumAquamarine<TAB>(#66CDAA)  #66CDAA
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumBlue<TAB>(#0000CD)        #0000CD
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumOrchid<TAB>(#BA55D3)      #BA55D3
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumPurple<TAB>(#9370DB)      #9370DB
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumSeaGreen<TAB>(#3CB371)    #3CB371
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumSlateBlue<TAB>(#7B68EE)   #7B68EE
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumSpringGreen<TAB>(#00FA9A) #00FA9A
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumTurquoise<TAB>(#48D1CC)   #48D1CC
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MediumVioletRed<TAB>(#C71585)   #C71585
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..MidnightBlue<TAB>(#191970)      #191970
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Mintcream<TAB>(#F5FFFA)         #F5FFFA
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Mistyrose<TAB>(#FFE4E1)         #FFE4E1
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Moccasin<TAB>(#FFE4B5)          #FFE4B5
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..NavajoWhite<TAB>(#FFDEAD)       #FFDEAD
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Navy<TAB>(#000080)              #000080
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..OldLace<TAB>(#FDF5E6)           #FDF5E6
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Olive<TAB>(#808000)             #808000
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..OliveDrab<TAB>(#6B8E23)         #6B8E23
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..Orange<TAB>(#FFA500)            #FFA500
+imenu HTML.Colors.&D.DarkBlue<TAB>(#00008B)             #00008B
+imenu HTML.Colors.&D.DarkCyan<TAB>(#008B8B)             #008B8B
+imenu HTML.Colors.&D.DarkGoldenrod<TAB>(#B8860B)        #B8860B
+imenu HTML.Colors.&D.DarkGray<TAB>(#A9A9A9)             #A9A9A9
+imenu HTML.Colors.&D.DarkGreen<TAB>(#006400)            #006400
+imenu HTML.Colors.&D.DarkKhaki<TAB>(#BDB76B)            #BDB76B
+imenu HTML.Colors.&D.DarkMagenta<TAB>(#8B008B)          #8B008B
+imenu HTML.Colors.&D.DarkOliveGreen<TAB>(#556B2F)       #556B2F
+imenu HTML.Colors.&D.DarkOrange<TAB>(#FF8C00)           #FF8C00
+imenu HTML.Colors.&D.DarkOrchid<TAB>(#9932CC)           #9932CC
+imenu HTML.Colors.&D.DarkRed<TAB>(#8B0000)              #8B0000
+imenu HTML.Colors.&D.DarkSalmon<TAB>(#E9967A)           #E9967A
+imenu HTML.Colors.&D.DarkSeagreen<TAB>(#8FBC8F)         #8FBC8F
+imenu HTML.Colors.&D.DarkSlateBlue<TAB>(#483D8B)        #483D8B
+imenu HTML.Colors.&D.DarkSlateGray<TAB>(#2F4F4F)        #2F4F4F
+imenu HTML.Colors.&D.DarkTurquoise<TAB>(#00CED1)        #00CED1
+imenu HTML.Colors.&D.DarkViolet<TAB>(#9400D3)           #9400D3
+imenu HTML.Colors.&D.DeepPink<TAB>(#FF1493)             #FF1493
+imenu HTML.Colors.&D.DeepSkyblue<TAB>(#00BFFF)          #00BFFF
+imenu HTML.Colors.&D.DimGray<TAB>(#696969)              #696969
+imenu HTML.Colors.&D.Dodgerblue<TAB>(#1E90FF)           #1E90FF
 
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..OrangeRed<TAB>(#FF4500)     #FF4500
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Orchid<TAB>(#DA70D6)        #DA70D6
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..PaleGoldenrod<TAB>(#EEE8AA) #EEE8AA
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..PaleGreen<TAB>(#98FB98)     #98FB98
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..PaleTurquoise<TAB>(#AFEEEE) #AFEEEE
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..PaleVioletred<TAB>(#DB7093) #DB7093
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Papayawhip<TAB>(#FFEFD5)    #FFEFD5
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Peachpuff<TAB>(#FFDAB9)     #FFDAB9
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Peru<TAB>(#CD853F)          #CD853F
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Pink<TAB>(#FFC0CB)          #FFC0CB
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Plum<TAB>(#DDA0DD)          #DDA0DD
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..PowderBlue<TAB>(#B0E0E6)    #B0E0E6
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Purple<TAB>(#800080)        #800080
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Red<TAB>(#FF0000)           #FF0000
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..RosyBrown<TAB>(#BC8F8F)     #BC8F8F
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..RoyalBlue<TAB>(#4169E1)     #4169E1
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..SaddleBrown<TAB>(#8B4513)   #8B4513
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Salmon<TAB>(#FA8072)        #FA8072
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..SandyBrown<TAB>(#F4A460)    #F4A460
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..SeaGreen<TAB>(#2E8B57)      #2E8B57
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Seashell<TAB>(#FFF5EE)      #FFF5EE
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Sienna<TAB>(#A0522D)        #A0522D
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..Silver<TAB>(#C0C0C0)        #C0C0C0
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..SkyBlue<TAB>(#87CEEB)       #87CEEB
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..SlateBlue<TAB>(#6A5ACD)     #6A5ACD
+imenu HTML.Colors.&F.Firebrick<TAB>(#B22222)            #B22222
+imenu HTML.Colors.&F.FloralWhite<TAB>(#FFFAF0)          #FFFAF0
+imenu HTML.Colors.&F.ForestGreen<TAB>(#228B22)          #228B22
+imenu HTML.Colors.&F.Fuchsia<TAB>(#FF00FF)              #FF00FF
 
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..SlateGray<TAB>(#708090)   #708090
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Snow<TAB>(#FFFAFA)        #FFFAFA
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..SpringGreen<TAB>(#00FF7F) #00FF7F
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..SteelBlue<TAB>(#4682B4)   #4682B4
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Tan<TAB>(#D2B48C)         #D2B48C
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Teal<TAB>(#008080)        #008080
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Thistle<TAB>(#D8BFD8)     #D8BFD8
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Tomato<TAB>(#FF6347)      #FF6347
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Turquoise<TAB>(#40E0D0)   #40E0D0
-imenu HTML.Colors.More\.\.\..More\.\.\..More\.\.\..More\.\.\..More\.\.\..Violet<TAB>(#EE82EE)      #EE82EE
+imenu HTML.Colors.&G.Gainsboro<TAB>(#DCDCDC)            #DCDCDC
+imenu HTML.Colors.&G.GhostWhite<TAB>(#F8F8FF)           #F8F8FF
+imenu HTML.Colors.&G.Gold<TAB>(#FFD700)                 #FFD700
+imenu HTML.Colors.&G.Goldenrod<TAB>(#DAA520)            #DAA520
+imenu HTML.Colors.&G.Gray<TAB>(#808080)                 #808080
+imenu HTML.Colors.&G.Green<TAB>(#008000)                #008000
+imenu HTML.Colors.&G.GreenYellow<TAB>(#ADFF2F)          #ADFF2F
 
+imenu HTML.Colors.&H-K.Honeydew<TAB>(#F0FFF0)           #F0FFF0
+imenu HTML.Colors.&H-K.HotPink<TAB>(#FF69B4)            #FF69B4
+imenu HTML.Colors.&H-K.IndianRed<TAB>(#CD5C5C)          #CD5C5C
+imenu HTML.Colors.&H-K.Indigo<TAB>(#4B0082)             #4B0082
+imenu HTML.Colors.&H-K.Ivory<TAB>(#FFFFF0)              #FFFFF0
+imenu HTML.Colors.&H-K.Khaki<TAB>(#F0E68C)              #F0E68C
+
+imenu HTML.Colors.&L.Lavender<TAB>(#E6E6FA)             #E6E6FA
+imenu HTML.Colors.&L.LavenderBlush<TAB>(#FFF0F5)        #FFF0F5
+imenu HTML.Colors.&L.LawnGreen<TAB>(#7CFC00)            #7CFC00
+imenu HTML.Colors.&L.LemonChiffon<TAB>(#FFFACD)         #FFFACD
+imenu HTML.Colors.&L.LightBlue<TAB>(#ADD8E6)            #ADD8E6
+imenu HTML.Colors.&L.LightCoral<TAB>(#F08080)           #F08080
+imenu HTML.Colors.&L.LightCyan<TAB>(#E0FFFF)            #E0FFFF
+imenu HTML.Colors.&L.LightGoldenrodYellow<TAB>(#FAFAD2) #FAFAD2
+imenu HTML.Colors.&L.LightGreen<TAB>(#90EE90)           #90EE90
+imenu HTML.Colors.&L.LightGrey<TAB>(#D3D3D3)            #D3D3D3
+imenu HTML.Colors.&L.LightPink<TAB>(#FFB6C1)            #FFB6C1
+imenu HTML.Colors.&L.LightSalmon<TAB>(#FFA07A)          #FFA07A
+imenu HTML.Colors.&L.LightSeaGreen<TAB>(#20B2AA)        #20B2AA
+imenu HTML.Colors.&L.LightSkyBlue<TAB>(#87CEFA)         #87CEFA
+imenu HTML.Colors.&L.LightSlaTegray<TAB>(#778899)       #778899
+imenu HTML.Colors.&L.LightSteelBlue<TAB>(#B0C4DE)       #B0C4DE
+imenu HTML.Colors.&L.LightYellow<TAB>(#FFFFE0)          #FFFFE0
+imenu HTML.Colors.&L.Lime<TAB>(#00FF00)                 #00FF00
+imenu HTML.Colors.&L.LimeGreen<TAB>(#32CD32)            #32CD32
+imenu HTML.Colors.&L.Linen<TAB>(#FAF0E6)                #FAF0E6
+
+imenu HTML.Colors.&M.Magenta<TAB>(#FF00FF)              #FF00FF
+imenu HTML.Colors.&M.Maroon<TAB>(#800000)               #800000
+imenu HTML.Colors.&M.MediumAquamarine<TAB>(#66CDAA)     #66CDAA
+imenu HTML.Colors.&M.MediumBlue<TAB>(#0000CD)           #0000CD
+imenu HTML.Colors.&M.MediumOrchid<TAB>(#BA55D3)         #BA55D3
+imenu HTML.Colors.&M.MediumPurple<TAB>(#9370DB)         #9370DB
+imenu HTML.Colors.&M.MediumSeaGreen<TAB>(#3CB371)       #3CB371
+imenu HTML.Colors.&M.MediumSlateBlue<TAB>(#7B68EE)      #7B68EE
+imenu HTML.Colors.&M.MediumSpringGreen<TAB>(#00FA9A)    #00FA9A
+imenu HTML.Colors.&M.MediumTurquoise<TAB>(#48D1CC)      #48D1CC
+imenu HTML.Colors.&M.MediumVioletRed<TAB>(#C71585)      #C71585
+imenu HTML.Colors.&M.MidnightBlue<TAB>(#191970)         #191970
+imenu HTML.Colors.&M.Mintcream<TAB>(#F5FFFA)            #F5FFFA
+imenu HTML.Colors.&M.Mistyrose<TAB>(#FFE4E1)            #FFE4E1
+imenu HTML.Colors.&M.Moccasin<TAB>(#FFE4B5)             #FFE4B5
+
+imenu HTML.Colors.&N.NavajoWhite<TAB>(#FFDEAD)          #FFDEAD
+imenu HTML.Colors.&N.Navy<TAB>(#000080)                 #000080
+
+imenu HTML.Colors.&O.OldLace<TAB>(#FDF5E6)              #FDF5E6
+imenu HTML.Colors.&O.Olive<TAB>(#808000)                #808000
+imenu HTML.Colors.&O.OliveDrab<TAB>(#6B8E23)            #6B8E23
+imenu HTML.Colors.&O.Orange<TAB>(#FFA500)               #FFA500
+imenu HTML.Colors.&O.OrangeRed<TAB>(#FF4500)            #FF4500
+imenu HTML.Colors.&O.Orchid<TAB>(#DA70D6)               #DA70D6
+
+imenu HTML.Colors.&P.PaleGoldenrod<TAB>(#EEE8AA)        #EEE8AA
+imenu HTML.Colors.&P.PaleGreen<TAB>(#98FB98)            #98FB98
+imenu HTML.Colors.&P.PaleTurquoise<TAB>(#AFEEEE)        #AFEEEE
+imenu HTML.Colors.&P.PaleVioletred<TAB>(#DB7093)        #DB7093
+imenu HTML.Colors.&P.Papayawhip<TAB>(#FFEFD5)           #FFEFD5
+imenu HTML.Colors.&P.Peachpuff<TAB>(#FFDAB9)            #FFDAB9
+imenu HTML.Colors.&P.Peru<TAB>(#CD853F)                 #CD853F
+imenu HTML.Colors.&P.Pink<TAB>(#FFC0CB)                 #FFC0CB
+imenu HTML.Colors.&P.Plum<TAB>(#DDA0DD)                 #DDA0DD
+imenu HTML.Colors.&P.PowderBlue<TAB>(#B0E0E6)           #B0E0E6
+imenu HTML.Colors.&P.Purple<TAB>(#800080)               #800080
+
+imenu HTML.Colors.&R.Red<TAB>(#FF0000)                  #FF0000
+imenu HTML.Colors.&R.RosyBrown<TAB>(#BC8F8F)            #BC8F8F
+imenu HTML.Colors.&R.RoyalBlue<TAB>(#4169E1)            #4169E1
+
+imenu HTML.Colors.&S.SaddleBrown<TAB>(#8B4513)          #8B4513
+imenu HTML.Colors.&S.Salmon<TAB>(#FA8072)               #FA8072
+imenu HTML.Colors.&S.SandyBrown<TAB>(#F4A460)           #F4A460
+imenu HTML.Colors.&S.SeaGreen<TAB>(#2E8B57)             #2E8B57
+imenu HTML.Colors.&S.Seashell<TAB>(#FFF5EE)             #FFF5EE
+imenu HTML.Colors.&S.Sienna<TAB>(#A0522D)               #A0522D
+imenu HTML.Colors.&S.Silver<TAB>(#C0C0C0)               #C0C0C0
+imenu HTML.Colors.&S.SkyBlue<TAB>(#87CEEB)              #87CEEB
+imenu HTML.Colors.&S.SlateBlue<TAB>(#6A5ACD)            #6A5ACD
+imenu HTML.Colors.&S.SlateGray<TAB>(#708090)            #708090
+imenu HTML.Colors.&S.Snow<TAB>(#FFFAFA)                 #FFFAFA
+imenu HTML.Colors.&S.SpringGreen<TAB>(#00FF7F)          #00FF7F
+imenu HTML.Colors.&S.SteelBlue<TAB>(#4682B4)            #4682B4
+
+imenu HTML.Colors.&T-Z.Tan<TAB>(#D2B48C)                #D2B48C
+imenu HTML.Colors.&T-Z.Teal<TAB>(#008080)               #008080
+imenu HTML.Colors.&T-Z.Thistle<TAB>(#D8BFD8)            #D8BFD8
+imenu HTML.Colors.&T-Z.Tomato<TAB>(#FF6347)             #FF6347
+imenu HTML.Colors.&T-Z.Turquoise<TAB>(#40E0D0)          #40E0D0
+imenu HTML.Colors.&T-Z.Violet<TAB>(#EE82EE)             #EE82EE
 
 " Font Styles menu:   {{{2
 

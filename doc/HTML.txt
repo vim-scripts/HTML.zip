@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML macros, menus and toolbar buttons.
-		Last change: 2003 Nov 05
+		Last change: 2004 Mar 16
 		Written by Christian J. Robinson
 
 
@@ -71,6 +71,8 @@ The ;html macro inserts a basic template at the top of the file.  If you
 already have text in the file, you are asked if you want to replace it or add
 the template anyway.
 
+See |html_template| for information on how to customize your template.
+
 ==============================================================================
 2. Customization variables.				*html-variables*
 
@@ -81,31 +83,83 @@ the macros are sourced.
 *html_tag_case*
 This variable can be set to "l" / "lower" / "lowercase" or "u" / "upper" /
 "uppercase" to determine the case of the text in the HTML tags.  This variable
-must be set before HTML.vim is sourced.
+must be set before HTML.vim is sourced.  The default is "uppercase".
+
+*no_html_toolbar*
+Set this variable if you don't want this plugin to modify the Vim toolbar and
+add "T" to 'guioptions'.  The contents of the variable don't matter, as long
+as it's set.  e.g.: >
+	:let no_html_toolbar = 'yes'
+
+*html_template*
+Set this to the location of your template file to be used by the ;html
+mapping.  If unset, a basic internal template will be used.
+
+See |html-template-tokens| for special tokens you can use in this file.
 
 *html_authorname* *html_authoremail*
-html_authorname is inserted inside <META NAME="Author" CONTENT="...">
+Within the internal template, html_authorname is inserted inside
+<META NAME="Author" CONTENT="...">
 html_authoremail is converted to |html_authoremail_encoded| and inserted
-inside <LINK REV="made" HREF="mailto:...">
+inside <LINK REV="made" HREF="mailto:...">  e.g.: >
+	:let html_authorname  = 'John Smith'
+	:let html_authoremail = 'jsmith@example.com'
 
 These two variables are also used for the <ADDRESS></ADDRESS> section of the
-template.  There is no default for these variables.
+internal template.
+
+The default for these variables are empty strings.
 
 *html_authoremail_encoded*
-This variable will be set using |HTMLencodeEmail()| if your |html_authoremail|
-variable is set.  (Do not set this yourself, it will be overwritten when the
-template macro is used.)
+This variable will be set using |HTMLencodeString()| if your
+|html_authoremail| variable is set.  (Do not set this yourself, it will be
+overwritten when the template macro is used.)
 
 *html_textcolor* *html_linkcolor* *html_alinkcolor* *html_vlinkcolor*
-These control the <BODY> tag in the template.  They default to:
- html_bgcolor     = #FFFFFF
- html_textcolor   = #000000
- html_linkcolor   = #0000EE
- html_alinkcolor  = #FF0000
- html_vlinkcolor  = #990066
-So you get:
- <BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" ALINK="#FF0000" VLINK="#990066">
+These control the <BODY> tag in the internal template.  They default to: >
+	:let html_bgcolor     = '#FFFFFF'
+	:let html_textcolor   = '#000000'
+	:let html_linkcolor   = '#0000EE'
+	:let html_alinkcolor  = '#FF0000'
+	:let html_vlinkcolor  = '#990066'
 
+------------------------------------------------------------------------------
+					*html-template-tokens* *html-tokens*
+
+When you define a template file with the |html_template| variable, special
+tokens within the template will automatically replaced with their
+corresponding variables:
+
+Token:		Variable: ~
+%authorname%	|html_authorname|
+%authoremail%	|html_authoremail_encoded|
+%bgcolor%	|html_bgcolor|
+%textcolor%	|html_textcolor|
+%linkcolor%	|html_linkcolor|
+%alinkcolor%	|html_alinkcolor|
+%vlinkcolor%	|html_vlinkcolor|
+%date%		strftime("%B %d, %Y")  (e.g.: March 16, 2004)
+
+So if you had the template: >
+ <HTML>
+  <HEAD>
+   <META NAME="Author" CONTENT="%authorname%">
+   <META NAME="Copyright" CONTENT="Copyright (C) %date% %authorname%">
+   <LINK REV="made" HREF="mailto:%authoremail%">
+  <BODY BGCOLOR="%bgcolor%" TEXT="%textcolor%" LINK="%linkcolor%" ALINK="%alinkcolor%" VLINK="%vlinkcolor%">
+  </BODY>
+ </HTML>
+<
+You'd get: >
+ <HTML>
+  <HEAD>
+   <META NAME="Author" CONTENT="John Smith">
+   <META NAME="Copyright" CONTENT="Copyright (C) March 16, 2004 John Smith">
+   <LINK REV="made" HREF="mailto:jsmith@example.com">
+  <BODY BGCOLOR="#FFFFFF" TEXT="#000000" LINK="#0000EE" ALINK="#FF0000" VLINK="#990066">
+  </BODY>
+ </HTML>
+<
 ==============================================================================
 3. Mappings for normal <> tags.				*html-tags*
 
@@ -542,6 +596,9 @@ Make Opera view the current file, starting Opera if it's not running.
 								*;noa*
 {Normal} ~
 Same as ;oa, but start a new browser window.
+								*;toa*
+{Normal} ~
+Same as ;noa, but open a new tab.
 								*;ly*
 {Normal} ~
 Use lynx to view your document.  This behaves like ;nly if you're in the Vim
@@ -567,13 +624,13 @@ HTMLconvertCase({string})
 		only removes the markers for uppercase, and does the
 		conversion for lowercase.)
 
-							*HTMLencodeEmail()*
-HTMLencodeEmail({string})
-		Returns {string} encoded into HTML entities.  This is to
-		prevent email harvesting spiders from catching your email
-		address for spamming purposes.
+							*HTMLencodeString()*
+HTMLencodeString({string})
+		Returns {string} encoded into HTML entities.  This is
+		primarily used to prevent email harvesting spiders from
+		catching your email address for spamming purposes.
 		Example: >
-		:echo HTMLencodeEmail('foo@bar.baz')
+		:echo HTMLencodeString('foo@bar.baz')
 <		results in: >
 		&#102;&#111;&#111;&#64;&#98;&#97;&#114;&#46;&#98;&#97;&#122;
 <
