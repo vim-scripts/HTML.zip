@@ -977,7 +977,7 @@ if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gu
   " A kluge to overcome a problem with the GTK2 interface:
   command! -nargs=+ HTMLtmenu call HTMLtmenu(<f-args>)
   function! HTMLtmenu(icon, level, menu, tip)
-    if has('gui_gtk2' && v:version <= 602 && ! has('patch240'))
+    if has('gui_gtk2') && v:version <= 602 && ! has('patch240')
       exe 'tmenu icon=' . a:icon . ' ' . a:level . ' ' . a:menu . ' ' . a:tip
     else
       exe 'tmenu ' . a:level . ' ' . a:menu . ' ' . a:tip
