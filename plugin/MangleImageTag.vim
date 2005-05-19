@@ -22,8 +22,11 @@
 " Place - Suite 330, Boston, MA 02111-1307, USA.
 "
 " RCS info: ---------------------------------------------------------------{{{
-" $Id: MangleImageTag.vim,v 1.2 2004/03/22 10:04:24 infynity Exp $
+" $Id: MangleImageTag.vim,v 1.3 2005/05/19 18:31:31 infynity Exp $
 " $Log: MangleImageTag.vim,v $
+" Revision 1.3  2005/05/19 18:31:31  infynity
+" SizeGif was returning width as height and vice-versa.
+"
 " Revision 1.2  2004/03/22 10:04:24  infynity
 " Update the right tag if more than one IMG tag appears on the line.
 "
@@ -181,8 +184,8 @@ function! s:SizeGif() "{{{1
 	let savea=@a
 	let saveb=@b
 	normal 6l"ay2l2l"by2l
-	let height=@a[1] . @a[0]
-	let width=@b[1] . @b[0]
+	let width=@a[1] . @a[0]
+	let height=@b[1] . @b[0]
 	let @a=savea
 	let @b=saveb
 

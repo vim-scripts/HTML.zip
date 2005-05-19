@@ -1,7 +1,9 @@
 " ---- Author & Copyright: ---------------------------------------------- {{{1
 "
-" Author: Christian J. Robinson <infynity@onewest.net>
-" URL:    http://www.infynity.spodzone.com/vim/HTML/
+" Author:      Christian J. Robinson <infynity@onewest.net>
+" URL:         http://www.infynity.spodzone.com/vim/HTML/
+" Last Change: December 15, 2004
+" Version:     0.15.1
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -53,7 +55,8 @@
 "   just ;ie?  (:silent!!start rundll32 url.dll,FileProtocolHandler <URL/File>)
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
-
+" RCS Information: 
+" $Id: HTML.vim,v 1.89 2004/12/19 19:49:05 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -62,13 +65,13 @@ if version < 600
   finish
 endif
 
-if ! exists("b:did_html_mappings")
-let b:did_html_mappings = 1
-
 " Save cpoptions and remove some junk that will throw us off (reset at the end
 " of the script):
-let savecpo = &cpoptions
+let s:savecpo = &cpoptions
 set cpoptions&vim
+
+if ! exists("b:did_html_mappings")
+let b:did_html_mappings = 1
 
 setlocal matchpairs+=<:>
 
@@ -238,13 +241,16 @@ function! HTMLnextInsertPoint(mode)
   normal 0
 
   " Running the search twice is inefficient, but it squelches error
-  " messages and the second search puts my cursor where I need it...
-
+  " messages and the second search puts my cursor where it's needed...
   if search("<\\([^ <>]\\+\\)[^<>]*>\\(\\n *\\)\\{0,2}<\\/\\1>\\|<[^<>]*\"\"[^<>]*>","w") == 0
-    silent execute ":go " . byteoffset
+    if byteoffset == -1
+      go 1
+    else
+      execute ":go " . byteoffset
+    endif
   else
     normal 0
-    exe 'silent normal /<\([^ <>]\+\)[^<>]*>\(\n *\)\{0,2}<\/\1>\|<[^<>]*""[^<>]*>/;/>\(\n *\)\{0,2}<\|""/e' . "\<CR>"
+    exe 'silent normal! /<\([^ <>]\+\)[^<>]*>\(\n *\)\{0,2}<\/\1>\|<[^<>]*""[^<>]*>/;/>\(\n *\)\{0,2}<\|""/e' . "\<CR>"
 
     " Since matching open/close tags that spans lines is possible, it
     " might be necessary to position the cursor on a blank line:
@@ -934,7 +940,7 @@ if has("unix")
     " Lynx in an xterm:      (This happens regardless if you're in the Vim GUI.)
     call HTMLmap("nnoremap", ";nly", ":call LaunchBrowser(2,1)<CR>")
   endif
-elseif (has("win32"))
+elseif has("win32")
   " Internet Explorer:
   "SetIfUnset html_internet_explorer C:\program\ files\internet\ explorer\iexplore
   "function! HTMLstartExplorer(file)
@@ -1947,7 +1953,8 @@ endif  " ! has("gui_running"))
 
 " ---- Clean Up: -------------------------------------------------------- {{{1
 " Restore cpoptions:
-let &cpoptions = savecpo
+let &cpoptions = s:savecpo
+unlet s:savecpo
 
 " vim:ts=2:sw=2:expandtab:tw=78:fo=croq2:comments=b\:\":
 " vim600:fdm=marker:fdc=3:cms=\ "\ %s:
