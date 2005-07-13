@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: December 15, 2004
-" Version:     0.15.1
+" Last Change: July 01, 2005
+" Version:     0.16
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.89 2004/12/19 19:49:05 infynity Exp $
+" $Id: HTML.vim,v 1.92 2005/07/13 13:08:04 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -131,27 +131,50 @@ function! HTMLencodeString(string)
   return out
 endfunction
 
-" Define the HTML mappings with the appropriate case:
+" Define the HTML mappings with the appropriate case, plus some extra stuff:
 " Arguments:
 "  1 - String:  Which map command to run.
 "  2 - String:  LHS of the map.
 "  3 - String:  RHS of the map.
-"  4 - Integer: Optional, applies only to visual maps when filetype indenting
-"                is on.
-"               Don't use this argument for maps that enter insert mode!
+"  4 - Integer: Optional, applies only to visual maps:
+"                0: Mapping enters insert mode.
+"               Applies only when filetype indenting is on:
 "                1: re-selects the region, moves down a line, and re-indents.
 "                2: re-selects the region and re-indents.
+"                (Don't use these two arguments for maps that enter insert
+"                mode!)
 function! HTMLmap(cmd, map, arg, ...)
 
   let arg = s:HTMLconvertCase(a:arg)
 
-  if a:cmd =~ '^v' && a:0 >= 1 && a:1 >= 1
-    execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
-      \ . "m':call <SID>HTMLreIndent(line(\"'<\"), line(\"'>\"), " . a:1 . ")<CR>``"
+  if a:cmd =~ '^v'
+    if a:0 >= 1 && a:1 >= 1
+      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>SM(0)<CR>gv" . arg
+        \ . ":call <SID>SM(1)<CR>m':call <SID>HTMLreIndent(line(\"'<\"), line(\"'>\"), " . a:1 . ")<CR>``"
+    elseif a:0 >= 1
+      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>SM(0)<CR>gv" . arg
+        \ . "<C-O>:call <SID>SM(1)<CR>"
+    else
+      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>SM(0)<CR>gv" . arg
+        \ . ":call <SID>SM(1)<CR>"
+    endif
   else
     execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
   endif
 
+endfunction
+
+" Used to make sure the 'showmatch' option is off temporarily to prevent the
+" visual mappings from causing a (visual)bell:
+" Arguments:
+"  1 - Integer: 0 - Turn 'showmatch' off.
+"               1 - Turn 'showmatch' back on, if it was on before.
+function! s:SM(s)
+  if a:s == 0
+    let s:savesm=&sm | set nosm
+  else
+    let &sm=s:savesm | unlet s:savesm
+  endif
 endfunction
 
 " Convert special regions in a string to the appropriate case determined by
@@ -281,6 +304,7 @@ call HTMLmap("inoremap", ";<tab>", "<tab>")
 " Tab takes us to a (hopefully) reasonable next insert point:
 call HTMLmap("inoremap", "<TAB>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
 call HTMLmap("nnoremap", "<TAB>", ":call HTMLnextInsertPoint('n')<CR>")
+call HTMLmap("vnoremap", "<TAB>", "<C-C>:call HTMLnextInsertPoint('n')<CR>")
 
 " Update an image tag's WIDTH & HEIGHT attributes (experimental!):
 runtime! MangleImageTag.vim 
@@ -420,32 +444,32 @@ call HTMLmap("vnoremap", ";cm", "<ESC>`>a --><C-O>`<<!-- <ESC>", 2)
 "       A HREF  Anchor Hyperlink        HTML 2.0
 call HTMLmap("inoremap", ";ah", "<[{A HREF=\"\"></A}]><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";ah", "<ESC>`>a</[{A}]><C-O>`<<[{A HREF}]=\"\"><C-O>F\"")
-call HTMLmap("vnoremap", ";aH", "<ESC>`>a\"></[{A}]><C-O>`<<[{A HREF}]=\"<C-O>f<")
+call HTMLmap("vnoremap", ";ah", "<ESC>`>a</[{A}]><C-O>`<<[{A HREF}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", ";aH", "<ESC>`>a\"></[{A}]><C-O>`<<[{A HREF}]=\"<C-O>f<", 0)
 
 "       A HREF  Anchor Hyperlink, with TARGET=""
 call HTMLmap("inoremap", ";at", "<[{A HREF=\"\" TARGET=\"\"></A}]><ESC>3F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";at", "<ESC>`>a</[{A}]><C-O>`<<[{A HREF=\"\" TARGET}]=\"\"><C-O>3F\"")
-call HTMLmap("vnoremap", ";aT", "<ESC>`>a\" [{TARGET=\"\"></A}]><C-O>`<<[{A HREF}]=\"<C-O>3f\"")
+call HTMLmap("vnoremap", ";at", "<ESC>`>a</[{A}]><C-O>`<<[{A HREF=\"\" TARGET}]=\"\"><C-O>3F\"", 0)
+call HTMLmap("vnoremap", ";aT", "<ESC>`>a\" [{TARGET=\"\"></A}]><C-O>`<<[{A HREF}]=\"<C-O>3f\"", 0)
 
 "       A NAME  Named Anchor            HTML 2.0
 call HTMLmap("inoremap", ";an", "<[{A NAME=\"\"></A}]><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";an", "<ESC>`>a</[{A}]><C-O>`<<[{A NAME}]=\"\"><C-O>F\"")
-call HTMLmap("vnoremap", ";aN", "<ESC>`>a\"></[{A}]><C-O>`<<[{A NAME}]=\"<C-O>f<")
+call HTMLmap("vnoremap", ";an", "<ESC>`>a</[{A}]><C-O>`<<[{A NAME}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", ";aN", "<ESC>`>a\"></[{A}]><C-O>`<<[{A NAME}]=\"<C-O>f<", 0)
 
 "       ABBR  Abbreviation              HTML 4.0
 call HTMLmap("inoremap", ";ab", "<[{ABBR TITLE=\"\"></ABBR}]><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";ab", "<ESC>`>a</[{ABBR}]><C-O>`<<[{ABBR TITLE}]=\"\"><C-O>F\"")
-call HTMLmap("vnoremap", ";aB", "<ESC>`>a\"></[{ABBR}]><C-O>`<<[{ABBR TITLE}]=\"<C-O>f<")
+call HTMLmap("vnoremap", ";ab", "<ESC>`>a</[{ABBR}]><C-O>`<<[{ABBR TITLE}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", ";aB", "<ESC>`>a\"></[{ABBR}]><C-O>`<<[{ABBR TITLE}]=\"<C-O>f<", 0)
 
 "       ACRONYM                         HTML 4.0
 call HTMLmap("inoremap", ";ac", "<[{ACRONYM TITLE=\"\"></ACRONYM}]><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";ac", "<ESC>`>a</[{ACRONYM}]><C-O>`<<[{ACRONYM TITLE}]=\"\"><C-O>F\"")
-call HTMLmap("vnoremap", ";aC", "<ESC>`>a\"></[{ACRONYM}]><C-O>`<<[{ACRONYM TITLE}]=\"<C-O>f<")
+call HTMLmap("vnoremap", ";ac", "<ESC>`>a</[{ACRONYM}]><C-O>`<<[{ACRONYM TITLE}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", ";aC", "<ESC>`>a\"></[{ACRONYM}]><C-O>`<<[{ACRONYM TITLE}]=\"<C-O>f<", 0)
 
 "       ADDRESS                         HTML 2.0
 call HTMLmap("inoremap", ";ad", "<[{ADDRESS></ADDRESS}]><ESC>bhhi")
@@ -537,8 +561,8 @@ call HTMLmap("vnoremap", ";em", "<ESC>`>a</[{EM}]><C-O>`<<[{EM}]><ESC>", 2)
 call HTMLmap("inoremap", ";fo", "<[{FONT SIZE=\"\"></FONT}]><ESC>F\"i")
 call HTMLmap("inoremap", ";fc", "<[{FONT COLOR=\"\"></FONT}]><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";fo", "<ESC>`>a</[{FONT}]><C-O>`<<[{FONT SIZE}]=\"\"><C-O>F\"")
-call HTMLmap("vnoremap", ";fc", "<ESC>`>a</[{FONT}]><C-O>`<<[{FONT COLOR}]=\"\"><C-O>F\"")
+call HTMLmap("vnoremap", ";fo", "<ESC>`>a</[{FONT}]><C-O>`<<[{FONT SIZE}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", ";fc", "<ESC>`>a</[{FONT}]><C-O>`<<[{FONT COLOR}]=\"\"><C-O>F\"", 0)
 
 "       HEADERS, LEVELS 1-6             HTML 2.0
 call HTMLmap("inoremap", ";h1", "<[{H1 ALIGN=CENTER}]></[{H1}]><ESC>bhhi")
@@ -576,7 +600,7 @@ call HTMLmap("vnoremap", ";it", "<ESC>`>a</[{I}]><C-O>`<<[{I}]><ESC>", 2)
 "       IMG     Image                   HTML 2.0
 call HTMLmap("inoremap", ";im", "<[{IMG SRC=\"\" ALT}]=\"\"><ESC>Bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";im", "<ESC>`>a\"><C-O>`<<[{IMG SRC=\"\" ALT}]=\"<C-O>2F\"")
+call HTMLmap("vnoremap", ";im", "<ESC>`>a\"><C-O>`<<[{IMG SRC=\"\" ALT}]=\"<C-O>2F\"", 0)
 
 "       INS     Inserted Text           HTML 3.0
 call HTMLmap("inoremap", ";in", "<lt>[{INS></INS}]><ESC>bhhi")
@@ -610,8 +634,8 @@ call HTMLmap("vnoremap", ";lh", "<ESC>`>a</[{LH}]><C-O>`<<[{LH}]><ESC>", 2)
 "       META    Meta Information        HTML 2.0        HEADER
 call HTMLmap("inoremap", ";me", "<[{META NAME=\"\" CONTENT}]=\"\"><ESC>Bhhi")
 " Visual mappings:
-call HTMLmap("vnoremap", ";me", "<ESC>`>a\" [{CONTENT}]=\"\"><C-O>`<<[{META NAME}]=\"<C-O>3f\"")
-call HTMLmap("vnoremap", ";mE", "<ESC>`>a\"><C-O>`<<[{META NAME=\"\" CONTENT}]=\"<C-O>2F\"")
+call HTMLmap("vnoremap", ";me", "<ESC>`>a\" [{CONTENT}]=\"\"><C-O>`<<[{META NAME}]=\"<C-O>3f\"", 0)
+call HTMLmap("vnoremap", ";mE", "<ESC>`>a\"><C-O>`<<[{META NAME=\"\" CONTENT}]=\"<C-O>2F\"", 0)
 
 "       OL      Ordered List            HTML 3.0
 call HTMLmap("inoremap", ";ol", "<[{OL}]><CR></[{OL}]><ESC>O")
@@ -789,8 +813,9 @@ call HTMLmap("inoremap", ";bu", "<[{INPUT TYPE=BUTTON NAME=\"\" VALUE}]=\"\"><ES
 call HTMLmap("inoremap", ";ch", "<[{INPUT TYPE=CHECKBOX NAME=\"\" VALUE}]=\"\"><ESC>BF\"i")
 call HTMLmap("inoremap", ";ra", "<[{INPUT TYPE=RADIO NAME=\"\" VALUE}]=\"\"><ESC>BF\"i")
 call HTMLmap("inoremap", ";hi", "<[{INPUT TYPE=HIDDEN NAME=\"\" VALUE}]=\"\"><ESC>BF\"i")
-call HTMLmap("inoremap", ";pa", "<[{INPUT TYPE=PASSWORD NAME=\"\" VALUE}]=\"\"><ESC>BF\"i")
+call HTMLmap("inoremap", ";pa", "<[{INPUT TYPE=PASSWORD NAME=\"\" SIZE}]=20><ESC>BF\"i")
 call HTMLmap("inoremap", ";te", "<[{INPUT TYPE=TEXT NAME=\"\" VALUE=\"\" SIZE}]=20><ESC>BF\"i")
+call HTMLmap("inoremap", ";fi", "<[{INPUT TYPE=FILE NAME=\"\" VALUE=\"\" SIZE}]=20><ESC>BF\"i")
 call HTMLmap("inoremap", ";se", "<[{SELECT NAME}]=\"\"><CR></[{SELECT}]><ESC>O")
 call HTMLmap("inoremap", ";ms", "<[{SELECT NAME=\"\" MULTIPLE}]><CR></[{SELECT}]><ESC>O")
 call HTMLmap("inoremap", ";op", "<[{OPTION}]>")
@@ -801,18 +826,17 @@ call HTMLmap("inoremap", ";re", "<[{INPUT TYPE=RESET VALUE}]=\"Reset\">")
 call HTMLmap("inoremap", ";la", "<[{LABEL FOR=\"\"></LABEL}]><C-O>F\"")
 " Visual mappings:
 call HTMLmap("vnoremap", ";fm", "<ESC>`>a<CR></[{FORM}]><C-O>`<<[{FORM ACTION}]=\"\"><CR><ESC>k0f\"l", 1)
-call HTMLmap("vnoremap", ";bu", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=BUTTON NAME=\"\" VALUE}]=\"<ESC>0f\"l")
-call HTMLmap("vnoremap", ";ch", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=CHECKBOX NAME=\"\" VALUE}]=\"<ESC>0f\"l")
-call HTMLmap("vnoremap", ";ra", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=RADIO NAME=\"\" VALUE}]=\"<ESC>0f\"l")
-call HTMLmap("vnoremap", ";hi", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=HIDDEN NAME=\"\" VALUE}]=\"<ESC>0f\"l")
-call HTMLmap("vnoremap", ";pa", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=PASSWORD NAME=\"\" VALUE}]=\"<ESC>0f\"l")
-call HTMLmap("vnoremap", ";te", "<ESC>`>a\" [{SIZE}]=20><C-O>`<<[{INPUT TYPE=TEXT NAME=\"\" VALUE}]=\"<ESC>0f\"l")
+call HTMLmap("vnoremap", ";bu", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=BUTTON NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", ";ch", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=CHECKBOX NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", ";ra", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=RADIO NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", ";hi", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=HIDDEN NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", ";te", "<ESC>`>a\" [{SIZE}]=20><C-O>`<<[{INPUT TYPE=TEXT NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
 call HTMLmap("vnoremap", ";se", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME}]=\"\"><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", ";ms", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME=\"\" MULTIPLE}]><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", ";og", "<ESC>`>a<CR></[{OPTGROUP}]><C-O>`<<[{OPTGROUP LABEL}]=\"\"><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", ";tx", "<ESC>`>a<CR></[{TEXTAREA}]><C-O>`<<[{TEXTAREA NAME=\"\" ROWS=10 COLS}]=50><CR><ESC>k0f\"l", 1)
-call HTMLmap("vnoremap", ";la", "<ESC>`>a</[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"\"><C-O>F\"")
-call HTMLmap("vnoremap", ";lA", "<ESC>`>a\"></[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"<C-O>f<")
+call HTMLmap("vnoremap", ";la", "<ESC>`>a</[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", ";lA", "<ESC>`>a\"></[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"<C-O>f<", 0)
 
 " ----------------------------------------------------------------------------
 

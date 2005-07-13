@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML macros, menus and toolbar buttons.
-		Last change: 2004 Dec 19
+		Last change: 2005 Jul 13
 		Written by Christian J. Robinson
 
 
@@ -45,22 +45,26 @@ newline.
 
 				*html-<TAB>* *html-tab* *html-CTRL-I*
 				*i_html-<TAB>* *i_html-tab* *i_html-CTRL-I*
+				*v_html-<TAB>* *v_html-tab* *v_html-CTRL-I*
 <Tab>	If you're on a closing tag the tab key jumps you after the tag.
 	Otherwise the tab key will jump you to an unfilled tag somewhere in
 	the file.  For example, if you had the tag:
 >
-         <A HREF=""></A>
+	 <A HREF=""></A>
 <
 	And you hit tab, your cursor would be placed on the second " so you
 	could insert text easily.  Next time you hit tab it would be placed on
 	the < character of </A>.  This works for tags split across lines, such
 	as:
 >
-         <TABLE>
-         </TABLE>
+	 <TABLE>
+	 </TABLE>
 <
 	I think the use of tab is acceptable because I don't like the idea of
 	hard tabs or indentation greater than one or two spaces in HTML.
+
+	Currently using this mapping in visual mode clears the visual
+	selection.
 
 					*i_;<tab>* *i_;tab* *i_;CTRL-I*
 ;<Tab>	If you want to insert a hard tab (; then the tab key).
@@ -276,9 +280,9 @@ that work in visual mode are similar).
 ;in	Inserted text (<INS></INS>).
 							*i_;js*
 ;js	<SCRIPT TYPE="text/javascript" LANGUAGE="javascript">
-         <!--
-         -->
-        </SCRIPT>
+	 <!--
+	 -->
+	</SCRIPT>
 							*i_;li*
 ;li	List item (<LI>) inside <UL> or <OL>.
 							*i_;lk* *v_;lk*
@@ -367,28 +371,42 @@ that work in visual mode are similar).
 							*i_;fm* *v_;fm*
 ;fm	Form (<FORM ACTION=""><CR></FORM>).
 							*i_;bu* *v_;bu*
-;bu	Form button (<INPUT TYPE=BUTTON NAME="" VALUE="">).
+;bu	Form button (<INPUT TYPE=BUTTON NAME="" VALUE="">).  Visual mode puts
+	the selected text VALUE="here".
 							*i_;ch* *v_;ch*
-;ch	Form checkbox (<INPUT TYPE=CHECKBOX NAME="" VALUE="">).
+;ch	Form checkbox (<INPUT TYPE=CHECKBOX NAME="" VALUE="">).  Visual mode
+	puts the selected text VALUE="here".
 							*i_;ra* *v_;ra*
-;ra	Form radiobutton (<INPUT TYPE=RADIO NAME="" VALUE="">).
+;ra	Form radiobutton (<INPUT TYPE=RADIO NAME="" VALUE="">).  Visual mode
+	puts the selected text VALUE="here".
 							*i_;hi* *v_;hi*
-;hi	Hidden form data (<INPUT TYPE=HIDDEN NAME="" VALUE="">).
-							*i_;pa* *v_;pa*
-;pa	Form password input field (<INPUT TYPE=PASSWORD NAME="" VALUE="">).
+;hi	Hidden form data (<INPUT TYPE=HIDDEN NAME="" VALUE="">).  Visual mode
+	puts the selected text VALUE="here".
+							*i_;pa*
+;pa	Form password input field (<INPUT TYPE=PASSWORD NAME="" SIZE=20>).
+	Visual mode puts the selected text VALUE="here".
 							*i_;te* *v_;te*
-;te	Form text input field (<INPUT TYPE=TEXT NAME="" VALUE="">).
+;te	Form text input field (<INPUT TYPE=TEXT NAME="" VALUE="" SIZE=20>).
+	Visual mode puts the selected text VALUE="here".
+							*i_;fi*
+;fi	Form file input field (<INPUT TYPE=FILE NAME="" VALUE="" SIZE=20>).
+	Visual mode puts the selected text VALUE="here".
 							*i_;se* *v_;se*
-;se	Form selection box (<SELECT NAME=""><CR></SELECT>).
+;se	Form selection box (<SELECT NAME=""><CR></SELECT>).  Visual mode puts
+	the selected text <SELECT NAME=""><CR>here<CR></SELECT>.
 							*i_;ms* *v_;ms*
 ;ms	Form multiple selection box (<SELECT NAME="" MULTIPLE><CR></SELECT>).
+	Visual mode puts the selected text
+	<SELECT NAME="" MULTIPLE><CR>here<CR></SELECT>.
 							*i_;op*
 ;op	Form selection option (<OPTION>).
 							*i_;og* *v_;og*
-;og	Form option group (<OPTGROUP LABEL=""><CR></OPTGROUP>).
+;og	Form option group (<OPTGROUP LABEL=""><CR></OPTGROUP>).  Visual mode
+	puts the selected text <OPTGROUP LABEL=""><CR>here<CR></OPTGROUP>.
 							*i_;tx* *v_;tx*
 ;tx	Form text input area (<TEXTAREA NAME="" ROWS=10
-        COLS=50><CR></TEXTAREA>).
+	COLS=50><CR></TEXTAREA>).  Visual mode puts the selected text
+	<TEXTAREA NAME="" ROWS=10 COLS=50><CR>here<CR></TEXTAREA>.
 							*i_;su*
 ;su	Form submit button (<INPUT TYPE=SUBMIT>).
 							*i_;re*
