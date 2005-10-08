@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: July 01, 2005
-" Version:     0.16
+" Last Change: September 14, 2005
+" Version:     0.16.2
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.92 2005/07/13 13:08:04 infynity Exp $
+" $Id: HTML.vim,v 1.94 2005/10/08 17:22:33 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -113,6 +113,8 @@ SetIfUnset html_authoremail -
 
 " ---- Functions: ------------------------------------------------------- {{{1
 
+" HTMLencodeString()  {{{2
+"
 " Encode the characters in a string into their HTML &#...; representations.
 " Arguments:
 "  1 - String:  The string to encode.
@@ -131,24 +133,29 @@ function! HTMLencodeString(string)
   return out
 endfunction
 
+" HTMLmap()  {{{2
+"
 " Define the HTML mappings with the appropriate case, plus some extra stuff:
 " Arguments:
 "  1 - String:  Which map command to run.
 "  2 - String:  LHS of the map.
 "  3 - String:  RHS of the map.
 "  4 - Integer: Optional, applies only to visual maps:
-"                0: Mapping enters insert mode.
+"                -1: Don't add any extra special code to the mapping.
+"                 0: Mapping enters insert mode.
 "               Applies only when filetype indenting is on:
-"                1: re-selects the region, moves down a line, and re-indents.
-"                2: re-selects the region and re-indents.
-"                (Don't use these two arguments for maps that enter insert
-"                mode!)
+"                 1: re-selects the region, moves down a line, and re-indents.
+"                 2: re-selects the region and re-indents.
+"                 (Don't use these two arguments for maps that enter insert
+"                 mode!)
 function! HTMLmap(cmd, map, arg, ...)
 
   let arg = s:HTMLconvertCase(a:arg)
 
   if a:cmd =~ '^v'
-    if a:0 >= 1 && a:1 >= 1
+    if a:0 >= 1 && a:1 < 0
+      execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
+    elseif a:0 >= 1 && a:1 >= 1
       execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>SM(0)<CR>gv" . arg
         \ . ":call <SID>SM(1)<CR>m':call <SID>HTMLreIndent(line(\"'<\"), line(\"'>\"), " . a:1 . ")<CR>``"
     elseif a:0 >= 1
@@ -164,6 +171,7 @@ function! HTMLmap(cmd, map, arg, ...)
 
 endfunction
 
+" s:SM()  {{{2
 " Used to make sure the 'showmatch' option is off temporarily to prevent the
 " visual mappings from causing a (visual)bell:
 " Arguments:
@@ -177,6 +185,8 @@ function! s:SM(s)
   endif
 endfunction
 
+" s:HTMLconvertCase()  {{{2
+"
 " Convert special regions in a string to the appropriate case determined by
 " g:html_tag_case
 " Arguments:
@@ -198,6 +208,8 @@ function! s:HTMLconvertCase(str)
   return str
 endfunction
 
+" s:HTMLreIndent()  {{{2
+"
 " Re-indent a region.  (Usually called by HTMLmap.)
 "  Nothing happens if filetype indenting isn't enabled.
 " Arguments:
@@ -237,6 +249,8 @@ function! s:HTMLreIndent(first, last, extraline)
   exe firstline . ',' . lastline . 'norm =='
 endfunction
 
+" HTMLnextInsertPoint()  {{{2
+"
 " Position the cursor at the next point in the file that needs data.
 " Arguments:
 "  1 - Character: The mode the function is being called from. 'n' for normal,
@@ -289,6 +303,8 @@ function! HTMLnextInsertPoint(mode)
 
 endfunction
 
+" }}}2
+
 " ----------------------------------------------------------------------------
 
 
@@ -296,7 +312,7 @@ endfunction
 
 " Make it convenient to use ; as "normal":
 call HTMLmap("inoremap", ";;", ";")
-call HTMLmap("vnoremap", ";;", ";")
+call HTMLmap("vnoremap", ";;", ";", -1)
 call HTMLmap("nnoremap", ";;", ";")
 " Allow hard tabs to be inserted:
 call HTMLmap("inoremap", ";<tab>", "<tab>")
@@ -304,7 +320,7 @@ call HTMLmap("inoremap", ";<tab>", "<tab>")
 " Tab takes us to a (hopefully) reasonable next insert point:
 call HTMLmap("inoremap", "<TAB>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
 call HTMLmap("nnoremap", "<TAB>", ":call HTMLnextInsertPoint('n')<CR>")
-call HTMLmap("vnoremap", "<TAB>", "<C-C>:call HTMLnextInsertPoint('n')<CR>")
+call HTMLmap("vnoremap", "<TAB>", "<C-C>:call HTMLnextInsertPoint('n')<CR>", -1)
 
 " Update an image tag's WIDTH & HEIGHT attributes (experimental!):
 runtime! MangleImageTag.vim 
@@ -317,28 +333,8 @@ endif
 
 
 " ---- Template Creation Stuff: ----------------------------------------- {{{1
-call HTMLmap("nnoremap", ";html", ":if (HTMLtemplate()) \\| startinsert \\| endif<CR>")
 
-" Determine whether to insert the HTML template:
-" Arguments:
-"  None
-" Return Value:
-"  0 - The cursor is not on an insert point.
-"  1 - The cursor is on an insert point.
-function! HTMLtemplate()
-  if (line('$') == 1 && getline(1) == "")
-    return s:HTMLtemplate2()
-  else
-    let YesNoOverwrite = confirm("Non-empty file.\nInsert template anyway?", "&Yes\n&No\n&Overwrite", 2, "W")
-    if (YesNoOverwrite == 1)
-      return s:HTMLtemplate2()
-    elseif (YesNoOverwrite == 3)
-      execute "1,$delete"
-      return s:HTMLtemplate2()
-    endif
-  endif
-  return 0
-endfunction
+call HTMLmap("nnoremap", ";html", ":if (HTMLtemplate()) \\| startinsert \\| endif<CR>")
 
 let s:internal_html_template=
   \"<[{HTML}]>\n" .
@@ -369,6 +365,31 @@ let s:internal_html_template=
 
 let s:internal_html_template = s:HTMLconvertCase(s:internal_html_template)
 
+" HTMLtemplate()  {{{2
+"
+" Determine whether to insert the HTML template:
+" Arguments:
+"  None
+" Return Value:
+"  0 - The cursor is not on an insert point.
+"  1 - The cursor is on an insert point.
+function! HTMLtemplate()
+  if (line('$') == 1 && getline(1) == "")
+    return s:HTMLtemplate2()
+  else
+    let YesNoOverwrite = confirm("Non-empty file.\nInsert template anyway?", "&Yes\n&No\n&Overwrite", 2, "W")
+    if (YesNoOverwrite == 1)
+      return s:HTMLtemplate2()
+    elseif (YesNoOverwrite == 3)
+      execute "1,$delete"
+      return s:HTMLtemplate2()
+    endif
+  endif
+  return 0
+endfunction  " }}}2
+
+" s:HTMLtemplate2()  {{{2
+"
 " Actually insert the HTML template:
 " Arguments:
 "  None
@@ -421,7 +442,8 @@ function! s:HTMLtemplate2()
     return 0
   endif
 
-endfunction
+endfunction  " }}}2
+
 " ----------------------------------------------------------------------------
 
 " ---- General Markup Tag Mappings: ------------------------------------- {{{1

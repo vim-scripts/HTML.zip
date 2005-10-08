@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML macros, menus and toolbar buttons.
-		Last change: 2005 Jul 13
+		Last change: 2005 Oct 08
 		Written by Christian J. Robinson
 
 
@@ -425,10 +425,11 @@ that work in visual mode are similar).
 A number of mappings have been defined to allow you to insert special
 characters into your HTML document.  These are known as characters entities.
 
-							*i_;&* *v_;&*
-;&	This mapping converts the highlighted text or the character the cursor
-	is on to its &#...; entity, where "..." is equivalent to the ASCII
-	decimal representation.  For example, "foo bar" would become
+							*n_;&* *v_;&*
+;&	This mapping converts the character under the cursor or the
+	highlighted text or the character the cursor is on to its &#...;
+	entity, where "..." is equivalent to the ASCII decimal representation.
+	For example, "foo bar" would become
 	"&#102;&#111;&#111;&#32;&#98;&#97;&#114;".
 
 
@@ -609,6 +610,10 @@ HTMLmap({maptype}, {lhs}, {rhs} [, {re-indent}])	*HTMLmap()*
 	insert mode.  If the value is 1, the visually selected area is
 	re-selected, plus one line below, and re-indented.  A value of 2 does
 	the same without moving down a line.
+	
+	The special cases of 0 means the visual mapping enters visual mode,
+	and -1 tells the function not to add any special extra code to the
+	visual mapping.
 
 HTMLnextInsertPoint({mode})				*HTMLnextInsertPoint()*
 	This is normally called by the |html-<TAB>| mapping, but it works the
@@ -626,4 +631,4 @@ SetIfUnset({variable}, {value})				*SetIfUnset()*
 	set.  A {value} of "-" makes sure the variable is set with an empty
 	string.
 
- vim:tw=78:ts=8:sw=8:ft=help:fo=tcq2:
+ vim:tw=78:ts=8:sw=8:ft=help:fo=tcq2:ai:
