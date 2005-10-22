@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML macros, menus and toolbar buttons.
-		Last change: 2005 Oct 08
+		Last change: 2005 Oct 22
 		Written by Christian J. Robinson
 
 
@@ -441,7 +441,7 @@ Ampersand (&)		&amp;		&&		*i_&&*
 Greaterthan (>)		&gt;		&>		*i_&>*
 Lessthan (<)		&lt;		&<		*i_&<*
 					*i_&<space>* *i_&space* *i_;<space>*
-Space (nonbreaking)	&nbsp;		&<space>	*i_;space*
+Space (nonbreaking)	&nbsp;		&<space>/;<space>	*i_;space*
 Quotation mark (")	&quot;		&'		*i_&'*
 Cent			&cent;		&c|		*&cbar*
 Pound			&pound;		&#		*i_&#*
@@ -462,6 +462,8 @@ Middle Dot		&middot;	&.		*i_&.*
 One Quarter		&frac14;	&14		*i_&14*
 One Half		&frac12;	&12		*i_&12*
 Three Quarters		&frac34;	&34		*i_&34*
+En dash                 &ndash;         &n-             *i_&n-*
+Em dash                 &mdash;         &m-/&--         *i_&m-* *i_&--*
 A-grave			&Agrave;	&A`		*i_&A`*
 a-grave			&agrave;	&a`		*i_&a`*
 E-grave			&Egrave;	&E`		*i_&E`*
@@ -630,5 +632,16 @@ SetIfUnset({variable}, {value})				*SetIfUnset()*
 	This function sets {variable} to {value} if the variable isn't already
 	set.  A {value} of "-" makes sure the variable is set with an empty
 	string.
+
+
+Author's notes:						*html-author-notes*
+---------------
+Supporting XHTML with this script would be complex, but possible.  However,
+since I don't write XHTML I will need help doing so.  If you'd like to help
+please contact me, my email address is at the top of the script file.
+
+I will never include mappings for certain tags, such as <BLINK></BLINK> and
+<MARQUEE></MARQUEE>.  As far as I'm concerned these tags should never have
+existed.  (I disable these "features" completely in my browser.)
 
  vim:tw=78:ts=8:sw=8:ft=help:fo=tcq2:ai:

@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: September 14, 2005
-" Version:     0.16.2
+" Last Change: October 19, 2005
+" Version:     0.17.1
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -52,11 +52,11 @@
 "
 " ---- TODO: ------------------------------------------------------------ {{{1
 " - Under Win32, make a mapping call the user's default browser instead of
-"   just ;ie?  (:silent!!start rundll32 url.dll,FileProtocolHandler <URL/File>)
+"   just ;ie? (:silent!!start rundll32 url.dll,FileProtocolHandler <URL/File>)
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.94 2005/10/08 17:22:33 infynity Exp $
+" $Id: HTML.vim,v 1.97 2005/10/22 14:44:21 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -156,14 +156,14 @@ function! HTMLmap(cmd, map, arg, ...)
     if a:0 >= 1 && a:1 < 0
       execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
     elseif a:0 >= 1 && a:1 >= 1
-      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>SM(0)<CR>gv" . arg
-        \ . ":call <SID>SM(1)<CR>m':call <SID>HTMLreIndent(line(\"'<\"), line(\"'>\"), " . a:1 . ")<CR>``"
+      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>TO(0)<CR>gv" . arg
+        \ . ":call <SID>TO(1)<CR>m':call <SID>HTMLreIndent(line(\"'<\"), line(\"'>\"), " . a:1 . ")<CR>``"
     elseif a:0 >= 1
-      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>SM(0)<CR>gv" . arg
-        \ . "<C-O>:call <SID>SM(1)<CR>"
+      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>TO(0)<CR>gv" . arg
+        \ . "<C-O>:call <SID>TO(1)<CR>"
     else
-      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>SM(0)<CR>gv" . arg
-        \ . ":call <SID>SM(1)<CR>"
+      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>TO(0)<CR>gv" . arg
+        \ . ":call <SID>TO(1)<CR>"
     endif
   else
     execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
@@ -171,17 +171,20 @@ function! HTMLmap(cmd, map, arg, ...)
 
 endfunction
 
-" s:SM()  {{{2
-" Used to make sure the 'showmatch' option is off temporarily to prevent the
-" visual mappings from causing a (visual)bell:
+" s:TO()  {{{2
+" Used to make sure the 'showmatch' and 'indentexpr' options are off
+" temporarily to prevent the visual mappings from causing a (visual)bell or
+" inserting improperly:
 " Arguments:
-"  1 - Integer: 0 - Turn 'showmatch' off.
-"               1 - Turn 'showmatch' back on, if it was on before.
-function! s:SM(s)
+"  1 - Integer: 0 - Turn options off.
+"               1 - Turn options back on, if they were on before.
+function! s:TO(s)
   if a:s == 0
-    let s:savesm=&sm | set nosm
+    let s:savesm=&sm | let &l:sm=0
+    let s:saveinde=&inde | let &l:inde=''
   else
-    let &sm=s:savesm | unlet s:savesm
+    let &l:sm=s:savesm | unlet s:savesm
+    let &l:inde=s:saveinde | unlet s:saveinde
   endif
 endfunction
 
@@ -424,7 +427,7 @@ function! s:HTMLtemplate2()
 
   " Replace the various tokens with appropriate values:
   silent! %s/\C%authorname%/\=g:html_authorname/g
-  silent! %s/\C%authoremail%/\=g:html_authoremail/g
+  silent! %s/\C%authoremail%/\=g:html_authoremail_encoded/g
   silent! %s/\C%bgcolor%/\=g:html_bgcolor/g
   silent! %s/\C%textcolor%/\=g:html_textcolor/g
   silent! %s/\C%linkcolor%/\=g:html_linkcolor/g
@@ -953,6 +956,9 @@ call HTMLmap("inoremap", "&.", "&middot;")
 call HTMLmap("inoremap", "&14", "&frac14;")
 call HTMLmap("inoremap", "&12", "&frac12;")
 call HTMLmap("inoremap", "&34", "&frac34;")
+call HTMLmap("inoremap", "&n-", "&ndash;")  " Math symbol.
+call HTMLmap("inoremap", "&m-", "&mdash;")  " Sentence break.
+call HTMLmap("inoremap", "&--", "&mdash;")  " ditto
 " ----------------------------------------------------------------------------
 
 " ---- Browser Remote Controls: ----------------------------------------- {{{1
@@ -1233,6 +1239,10 @@ endif
 let b:save_encoding=&encoding
 let &encoding='latin1'
 
+call HTMLmap("inoremap", "&n-", "&ndash;")  " Math symbol.
+call HTMLmap("inoremap", "&m-", "&mdash;")  " Sentence break.
+call HTMLmap("inoremap", "&--", "&mdash;")  " ditto
+
 nmenu HTML.Character\ Entities.Convert\ to\ Entity<tab>;\&         ;&
 vmenu HTML.Character\ Entities.Convert\ to\ Entity<tab>;\&         ;&
  menu HTML.Character\ Entities.-sep0- <nul>
@@ -1261,6 +1271,8 @@ imenu HTML.Character\ Entities.Middle\ Dot\ (·)<tab>\&\.           &.
 imenu HTML.Character\ Entities.One\ Quarter\ (¼)<tab>\&14          &14
 imenu HTML.Character\ Entities.One\ Half\ (½)<tab>\&12             &12
 imenu HTML.Character\ Entities.Three\ Quarters\ (¾)<tab>\&34       &34
+imenu HTML.Character\ Entities.En\ dash\ (-)<tab>\&n-              &n-
+imenu HTML.Character\ Entities.Em\ dash\ (--)<tab>\&m-/\&--        &m-
 imenu HTML.Character\ Entities.-sep2- <nul>
 imenu HTML.Character\ Entities.Graves.A-grave\ (À)<tab>\&A` &A`
 imenu HTML.Character\ Entities.Graves.a-grave\ (à)<tab>\&a` &a`
@@ -1347,6 +1359,8 @@ nmenu HTML.Character\ Entities.Middle\ Dot\ (·)<tab>\&\.           i&.<ESC>
 nmenu HTML.Character\ Entities.One\ Quarter\ (¼)<tab>\&14          i&14<ESC>
 nmenu HTML.Character\ Entities.One\ Half\ (½)<tab>\&12             i&12<ESC>
 nmenu HTML.Character\ Entities.Three\ Quarters\ (¾)<tab>\&34       i&34<ESC>
+nmenu HTML.Character\ Entities.En\ dash\ (-)<tab>\&n-              i&n-
+nmenu HTML.Character\ Entities.Em\ dash\ (--)<tab>\&m-/\&--        i&m-
 nmenu HTML.Character\ Entities.Graves.A-grave\ (À)<tab>\&A` i&A`<ESC>
 nmenu HTML.Character\ Entities.Graves.a-grave\ (à)<tab>\&a` i&a`<ESC>
 nmenu HTML.Character\ Entities.Graves.E-grave\ (È)<tab>\&E` i&E`<ESC>
