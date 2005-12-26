@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML macros, menus and toolbar buttons.
-		Last change: 2005 Oct 22
+		Last change: 2005 Dec 24
 		Written by Christian J. Robinson
 
 
@@ -78,7 +78,8 @@ newline.
 	template.
 
 ==============================================================================
-2. Customization variables.				*html-variables*
+2. Customization variables.		*html-variables* *html-configuration*
+					*html-customization*
 
 You can set the following global Vim variables to control some of the fields
 in the HTML template.  It is recommended you set these in your .vimrc before
@@ -173,6 +174,9 @@ is inserted and the cursor placed where you'd likely want to insert text.  In
 visual mode, the tag is wrapped around the visually selected text somehow (see
 |i_;ah|, |v_;aH| and |i_;ab| for explicit examples -- the rest of the mappings
 that work in visual mode are similar).
+
+If you run Vim 7 or later, all of the visual ;-mappings also exist as normal
+mode mappings that take a motion operator.
 
 
 							*;4*

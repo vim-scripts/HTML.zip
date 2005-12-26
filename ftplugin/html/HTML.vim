@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: October 19, 2005
-" Version:     0.17.1
+" Last Change: December 24, 2005
+" Version:     0.18
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.97 2005/10/22 14:44:21 infynity Exp $
+" $Id: HTML.vim,v 1.98 2005/12/24 07:57:13 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -169,6 +169,39 @@ function! HTMLmap(cmd, map, arg, ...)
     execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
   endif
 
+endfunction
+
+" HTMLmapo()  {{{2
+"
+" Define a map that takes an operator to its corresponding visual mode
+" mapping:
+" Arguments:
+" 1 - String:  The mapping.
+function! HTMLmapo(map)
+  if v:version < 700
+    return
+  endif
+
+  execute 'nnoremap <buffer> <silent> ' . a:map .
+    \ " :let b:htmltagaction='" . a:map . "'<CR>" .
+    \ ':set operatorfunc=<SID>HTMLwrapRange<CR>g@'
+endfunction
+
+" s:HTMLwrapRange()  {{{2
+" Function set in 'operatorfunc' for mappings that take an operator:
+function! s:HTMLwrapRange(type)
+  let sel_save = &selection
+  let &selection = "inclusive"
+
+  if a:type == 'line'
+    exe "normal `[V`]" . b:htmltagaction
+  elseif a:type == 'block'
+    exe "normal `[\<C-V>`]" . b:htmltagaction
+  else
+    exe "normal `[v`]" . b:htmltagaction
+  endif
+
+  let &selection = sel_save
 endfunction
 
 " s:TO()  {{{2
@@ -465,66 +498,95 @@ call HTMLmap("inoremap", ";ct", "<[{META HTTP-EQUIV}]=\"Content-Type\" [{CONTENT
 call HTMLmap("inoremap", ";cm", "<!--  --><ESC>Bhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";cm", "<ESC>`>a --><C-O>`<<!-- <ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';cm')
 
 "       A HREF  Anchor Hyperlink        HTML 2.0
 call HTMLmap("inoremap", ";ah", "<[{A HREF=\"\"></A}]><ESC>F\"i")
 " Visual mappings:
 call HTMLmap("vnoremap", ";ah", "<ESC>`>a</[{A}]><C-O>`<<[{A HREF}]=\"\"><C-O>F\"", 0)
 call HTMLmap("vnoremap", ";aH", "<ESC>`>a\"></[{A}]><C-O>`<<[{A HREF}]=\"<C-O>f<", 0)
+" Motion mappings:
+call HTMLmapo(';ah')
+call HTMLmapo(';aH')
 
 "       A HREF  Anchor Hyperlink, with TARGET=""
 call HTMLmap("inoremap", ";at", "<[{A HREF=\"\" TARGET=\"\"></A}]><ESC>3F\"i")
 " Visual mappings:
 call HTMLmap("vnoremap", ";at", "<ESC>`>a</[{A}]><C-O>`<<[{A HREF=\"\" TARGET}]=\"\"><C-O>3F\"", 0)
 call HTMLmap("vnoremap", ";aT", "<ESC>`>a\" [{TARGET=\"\"></A}]><C-O>`<<[{A HREF}]=\"<C-O>3f\"", 0)
+" Motion mappings:
+call HTMLmapo(';at')
+call HTMLmapo(';aT')
 
 "       A NAME  Named Anchor            HTML 2.0
 call HTMLmap("inoremap", ";an", "<[{A NAME=\"\"></A}]><ESC>F\"i")
 " Visual mappings:
 call HTMLmap("vnoremap", ";an", "<ESC>`>a</[{A}]><C-O>`<<[{A NAME}]=\"\"><C-O>F\"", 0)
 call HTMLmap("vnoremap", ";aN", "<ESC>`>a\"></[{A}]><C-O>`<<[{A NAME}]=\"<C-O>f<", 0)
+" Motion mappings:
+call HTMLmapo(';an')
+call HTMLmapo(';aN')
 
 "       ABBR  Abbreviation              HTML 4.0
 call HTMLmap("inoremap", ";ab", "<[{ABBR TITLE=\"\"></ABBR}]><ESC>F\"i")
 " Visual mappings:
 call HTMLmap("vnoremap", ";ab", "<ESC>`>a</[{ABBR}]><C-O>`<<[{ABBR TITLE}]=\"\"><C-O>F\"", 0)
 call HTMLmap("vnoremap", ";aB", "<ESC>`>a\"></[{ABBR}]><C-O>`<<[{ABBR TITLE}]=\"<C-O>f<", 0)
+" Motion mappings:
+call HTMLmapo(';ab')
+call HTMLmapo(';aB')
 
 "       ACRONYM                         HTML 4.0
 call HTMLmap("inoremap", ";ac", "<[{ACRONYM TITLE=\"\"></ACRONYM}]><ESC>F\"i")
 " Visual mappings:
 call HTMLmap("vnoremap", ";ac", "<ESC>`>a</[{ACRONYM}]><C-O>`<<[{ACRONYM TITLE}]=\"\"><C-O>F\"", 0)
 call HTMLmap("vnoremap", ";aC", "<ESC>`>a\"></[{ACRONYM}]><C-O>`<<[{ACRONYM TITLE}]=\"<C-O>f<", 0)
+" Motion mappings:
+call HTMLmapo(';ac')
+call HTMLmapo(';aC')
 
 "       ADDRESS                         HTML 2.0
 call HTMLmap("inoremap", ";ad", "<[{ADDRESS></ADDRESS}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";ad", "<ESC>`>a</[{ADDRESS}]><C-O>`<<[{ADDRESS}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';ad')
 
 "       B       Boldfaced Text          HTML 2.0
 call HTMLmap("inoremap", ";bo", "<[{B></B}]><ESC>hhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";bo", "<ESC>`>a</[{B}]><C-O>`<<[{B}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';bo')
 
 "       BASE                            HTML 2.0        HEADER
 call HTMLmap("inoremap", ";bh", "<[{BASE HREF}]=\"\"><ESC>hi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";bh", "<ESC>`>a\"><C-O>`<<[{BASE HREF}]=\"<ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';bh')
 
 "       BIG                             HTML 3.0
 call HTMLmap("inoremap", ";bi", "<[{BIG></BIG}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";bi", "<ESC>`>a</[{BIG}]><C-O>`<<[{BIG}]><ESC>")
+" Motion mapping:
+call HTMLmapo(';bi')
 
 "       BLOCKQUOTE                      HTML 2.0
 call HTMLmap("inoremap", ";bl", "<[{BLOCKQUOTE}]><CR></[{BLOCKQUOTE}]><ESC>O")
 " Visual mapping:
 call HTMLmap("vnoremap", ";bl", "<ESC>`>a<CR></[{BLOCKQUOTE}]><C-O>`<<[{BLOCKQUOTE}]><CR><ESC>", 1)
+" Motion mapping:
+call HTMLmapo(';bl')
 
 "       BODY                            HTML 2.0
 call HTMLmap("inoremap", ";bd", "<[{BODY}]><CR></[{BODY}]><ESC>O")
 " Visual mapping:
 call HTMLmap("vnoremap", ";bd", "<ESC>`>a<CR></[{BODY}]><C-O>`<<[{BODY}]><CR><ESC>", 1)
+" Motion mapping:
+call HTMLmapo(';bd')
 
 "       BR      Line break              HTML 2.0
 call HTMLmap("inoremap", ";br", "<[{BR}]>")
@@ -533,16 +595,22 @@ call HTMLmap("inoremap", ";br", "<[{BR}]>")
 call HTMLmap("inoremap", ";ce", "<[{CENTER></CENTER}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";ce", "<ESC>`>a</[{CENTER}]><C-O>`<<[{CENTER}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';ce')
 
 "       CITE                            HTML 2.0
 call HTMLmap("inoremap", ";ci", "<[{CITE></CITE}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";ci", "<ESC>`>a</[{CITE}]><C-O>`<<[{CITE}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';ci')
 
 "       CODE                            HTML 2.0
 call HTMLmap("inoremap", ";co", "<[{CODE></CODE}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";co", "<ESC>`>a</[{CODE}]><C-O>`<<[{CODE}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';co')
 
 "       DEFINITION LIST COMPONENTS      HTML 2.0
 "               DL      Definition List
@@ -553,16 +621,22 @@ call HTMLmap("inoremap", ";dl", "<[{DL}]><CR></[{DL}]><ESC>O")
 call HTMLmap("vnoremap", ";dl", "<ESC>`>a<CR></[{DL}]><C-O>`<<[{DL}]><CR><ESC>", 1)
 call HTMLmap("inoremap", ";dt", "<[{DT}]>")
 call HTMLmap("inoremap", ";dd", "<[{DD}]>")
+" Motion mapping:
+call HTMLmapo(';dl')
 
 "       DEL     Deleted Text            HTML 3.0
 call HTMLmap("inoremap", ";de", "<lt>[{DEL></DEL}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";de", "<ESC>`>a</[{DEL}]><C-O>`<<lt>[{DEL}]><ESC>")
+" Motion mapping:
+call HTMLmapo(';de')
 
 "       DFN     Defining Instance       HTML 3.0
 call HTMLmap("inoremap", ";df", "<[{DFN></DFN}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";df", "<ESC>`>a</[{DFN}]><C-O>`<<[{DFN}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';df')
 
 "       DIR     Directory List          HTML 3.0
 "imap ;di <DIR><CR></DIR><ESC>O
@@ -571,16 +645,22 @@ call HTMLmap("vnoremap", ";df", "<ESC>`>a</[{DFN}]><C-O>`<<[{DFN}]><ESC>", 2)
 call HTMLmap("inoremap", ";dv", "<[{DIV}]><CR></[{DIV}]><ESC>O")
 " Visual mapping:
 call HTMLmap("vnoremap", ";dv", "<ESC>`>a<CR></[{DIV}]><C-O>`<<[{DIV}]><CR><ESC>", 1)
+" Motion mapping:
+call HTMLmapo(';dv')
 
 "       SPAN    Delimit Arbitrary Text  HTML 4.0
 call HTMLmap("inoremap", ";sn", "<[{SPAN></SPAN}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";sn", "<ESC>`>a</[{SPAN}]><C-O>`<<[{SPAN}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';sn')
 
 "       EM      Emphasize               HTML 2.0
 call HTMLmap("inoremap", ";em", "<[{EM></EM}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";em", "<ESC>`>a</[{EM}]><C-O>`<<[{EM}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';em')
 
 "       FONT                            NETSCAPE
 call HTMLmap("inoremap", ";fo", "<[{FONT SIZE=\"\"></FONT}]><ESC>F\"i")
@@ -588,6 +668,9 @@ call HTMLmap("inoremap", ";fc", "<[{FONT COLOR=\"\"></FONT}]><ESC>F\"i")
 " Visual mappings:
 call HTMLmap("vnoremap", ";fo", "<ESC>`>a</[{FONT}]><C-O>`<<[{FONT SIZE}]=\"\"><C-O>F\"", 0)
 call HTMLmap("vnoremap", ";fc", "<ESC>`>a</[{FONT}]><C-O>`<<[{FONT COLOR}]=\"\"><C-O>F\"", 0)
+" Motion mappings:
+call HTMLmapo(';fo')
+call HTMLmapo(';fc')
 
 "       HEADERS, LEVELS 1-6             HTML 2.0
 call HTMLmap("inoremap", ";h1", "<[{H1 ALIGN=CENTER}]></[{H1}]><ESC>bhhi")
@@ -603,11 +686,20 @@ call HTMLmap("vnoremap", ";h3", "<ESC>`>a</[{H3}]><C-O>`<<[{H3 ALIGN=CENTER}]><E
 call HTMLmap("vnoremap", ";h4", "<ESC>`>a</[{H4}]><C-O>`<<[{H4 ALIGN=CENTER}]><ESC>", 2)
 call HTMLmap("vnoremap", ";h5", "<ESC>`>a</[{H5}]><C-O>`<<[{H5 ALIGN=CENTER}]><ESC>", 2)
 call HTMLmap("vnoremap", ";h6", "<ESC>`>a</[{H6}]><C-O>`<<[{H6 ALIGN=CENTER}]><ESC>", 2)
+" Motion mappings:
+call HTMLmapo(";h1")
+call HTMLmapo(";h2")
+call HTMLmapo(";h3")
+call HTMLmapo(";h4")
+call HTMLmapo(";h5")
+call HTMLmapo(";h6")
 
 "       HEAD                            HTML 2.0
 call HTMLmap("inoremap", ";he", "<[{HEAD}]><CR></[{HEAD}]><ESC>O")
 " Visual mapping:
 call HTMLmap("vnoremap", ";he", "<ESC>`>a<CR></[{HEAD}]><C-O>`<<[{HEAD}]><CR><ESC>", 1)
+" Motion mapping:
+call HTMLmapo(';he')
 
 "       HR      Horizontal Rule         HTML 2.0 W/NETSCAPISM
 call HTMLmap("inoremap", ";hr", "<[{HR WIDTH}]=\"75%\">")
@@ -616,21 +708,29 @@ call HTMLmap("inoremap", ";hr", "<[{HR WIDTH}]=\"75%\">")
 call HTMLmap("inoremap", ";ht", "<[{HTML}]><CR></[{HTML}]><ESC>O")
 " Visual mapping:
 call HTMLmap("vnoremap", ";ht", "<ESC>`>a<CR></[{HTML}]><C-O>`<<[{HTML}]><CR><ESC>", 1)
+" Motion mapping:
+call HTMLmapo(';ht')
 
 "       I       Italicized Text         HTML 2.0
 call HTMLmap("inoremap", ";it", "<[{I></I}]><ESC>hhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";it", "<ESC>`>a</[{I}]><C-O>`<<[{I}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';it')
 
 "       IMG     Image                   HTML 2.0
 call HTMLmap("inoremap", ";im", "<[{IMG SRC=\"\" ALT}]=\"\"><ESC>Bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";im", "<ESC>`>a\"><C-O>`<<[{IMG SRC=\"\" ALT}]=\"<C-O>2F\"", 0)
+" Motion mapping:
+call HTMLmapo(';im')
 
 "       INS     Inserted Text           HTML 3.0
 call HTMLmap("inoremap", ";in", "<lt>[{INS></INS}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";in", "<ESC>`>a</[{INS}]><C-O>`<<lt>[{INS}]><ESC>")
+" Motion mapping:
+call HTMLmapo(';in')
 
 "       ISINDEX Identifies Index        HTML 2.0
 call HTMLmap("inoremap", ";ii", "<[{ISINDEX}]>")
@@ -639,6 +739,8 @@ call HTMLmap("inoremap", ";ii", "<[{ISINDEX}]>")
 call HTMLmap("inoremap", ";kb", "<[{KBD></KBD}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";kb", "<ESC>`>a</[{KBD}]><C-O>`<<[{KBD}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';kb')
 
 "       LI      List Item               HTML 2.0
 call HTMLmap("inoremap", ";li", "<[{LI}]>")
@@ -647,11 +749,15 @@ call HTMLmap("inoremap", ";li", "<[{LI}]>")
 call HTMLmap("inoremap", ";lk", "<[{LINK HREF}]=\"\"><ESC>hi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";lk", "<ESC>`>a\"><C-O>`<<[{LINK HREF}]=\"<ESC>")
+" Motion mapping:
+call HTMLmapo(';lk')
 
 "       LH      List Header             HTML 2.0
 call HTMLmap("inoremap", ";lh", "<[{LH></LH}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";lh", "<ESC>`>a</[{LH}]><C-O>`<<[{LH}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';lh')
 
 "       MENU                            HTML 2.0
 "imap ;mu <MENU><CR></MENU><ESC>O
@@ -661,91 +767,128 @@ call HTMLmap("inoremap", ";me", "<[{META NAME=\"\" CONTENT}]=\"\"><ESC>Bhhi")
 " Visual mappings:
 call HTMLmap("vnoremap", ";me", "<ESC>`>a\" [{CONTENT}]=\"\"><C-O>`<<[{META NAME}]=\"<C-O>3f\"", 0)
 call HTMLmap("vnoremap", ";mE", "<ESC>`>a\"><C-O>`<<[{META NAME=\"\" CONTENT}]=\"<C-O>2F\"", 0)
+" Motion mappings:
+call HTMLmapo(';me')
+call HTMLmapo(';mE')
 
 "       OL      Ordered List            HTML 3.0
 call HTMLmap("inoremap", ";ol", "<[{OL}]><CR></[{OL}]><ESC>O")
 " Visual mapping:
 call HTMLmap("vnoremap", ";ol", "<ESC>`>a<CR></[{OL}]><C-O>`<<[{OL}]><CR><ESC>", 1)
+" Motion mapping:
+call HTMLmapo(';ol')
 
 "       P       Paragraph               HTML 3.0
 call HTMLmap("inoremap", ";pp", "<[{P}]><CR></[{P}]><ESC>O")
 " Visual mapping:
 call HTMLmap("vnoremap", ";pp", "<ESC>`>a<CR></[{P}]><C-O>`<<[{P}]><CR><ESC>", 1)
+" Motion mapping:
+call HTMLmapo(';pp')
 
 "       PRE     Preformatted Text       HTML 2.0
 call HTMLmap("inoremap", ";pr", "<[{PRE}]><CR></[{PRE}]><ESC>O")
 " Visual mapping:
 call HTMLmap("vnoremap", ";pr", "<ESC>`>a<CR></[{PRE}]><C-O>`<<[{PRE}]><CR><ESC>", 1)
+" Motion mapping:
+call HTMLmapo(';pr')
 
 "       Q       Quote                   HTML 3.0
 call HTMLmap("inoremap", ";qu", "<[{Q></Q}]><ESC>hhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";qu", "<ESC>`>a</[{Q}]><C-O>`<<[{Q}]><ESC>")
+" Motion mapping:
+call HTMLmapo(';qu')
 
 "       S       Strikethrough           HTML 3.0
 call HTMLmap("inoremap", ";sk", "<[{STRIKE></STRIKE}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";sk", "<ESC>`>a</[{STRIKE}]><C-O>`<<[{STRIKE}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';sk')
 
 "       SAMP    Sample Text             HTML 2.0
 call HTMLmap("inoremap", ";sa", "<[{SAMP></SAMP}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";sa", "<ESC>`>a</[{SAMP}]><C-O>`<<[{SAMP}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';sa')
 
 "       SMALL   Small Text              HTML 3.0
 call HTMLmap("inoremap", ";sm", "<[{SMALL></SMALL}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";sm", "<ESC>`>a</[{SMALL}]><C-O>`<<[{SMALL}]><ESC>")
+" Motion mapping:
+call HTMLmapo(';sm')
 
 "       STRONG                          HTML 2.0
 call HTMLmap("inoremap", ";st", "<[{STRONG></STRONG}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";st", "<ESC>`>a</[{STRONG}]><C-O>`<<[{STRONG}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';st')
 
 "       STYLE                           HTML 4.0        HEADER
 call HTMLmap("inoremap", ";cs", "<[{STYLE TYPE}]=\"text/css\"><CR><!--  --><CR></[{STYLE}]><ESC>k0Ela")
 " Visual mapping:
 call HTMLmap("vnoremap", ";cs", "<ESC>`>a<CR> --><CR></[{STYLE}]><C-O>`<<[{STYLE TYPE}]=\"text/css\"><CR><!--<CR><ESC>", 1)
+" Motion mapping:
+call HTMLmapo(';cs')
 
 "       Linked CSS stylesheet
 call HTMLmap("inoremap", ";ls", "<[{LINK REL}]=\"stylesheet\" [{TYPE}]=\"text/css\" [{HREF}]=\"\"><ESC>F\"i")
 " Visual mapping:
 call HTMLmap("vnoremap", ";ls", "<ESC>`>a\"><C-O>`<<[{LINK REL}]=\"stylesheet\" [{TYPE}]=\"text/css\" [{HREF}]=\"<ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';ls')
 
 "       SUB     Subscript               HTML 3.0
 call HTMLmap("inoremap", ";sb", "<[{SUB></SUB}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";sb", "<ESC>`>a</[{SUB}]><C-O>`<<[{SUB}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';sb')
 
 "       SUP     Superscript             HTML 3.0
 call HTMLmap("inoremap", ";sp", "<[{SUP></SUP}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";sp", "<ESC>`>a</[{SUP}]><C-O>`<<[{SUP}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';sp')
 
 "       TITLE                           HTML 2.0        HEADER
 call HTMLmap("inoremap", ";ti", "<[{TITLE></TITLE}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";ti", "<ESC>`>a</[{TITLE}]><C-O>`<<[{TITLE}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';ti')
 
 "       TT      Teletype Text (monospaced)      HTML 2.0
 call HTMLmap("inoremap", ";tt", "<[{TT></TT}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";tt", "<ESC>`>a</[{TT}]><C-O>`<<[{TT}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';tt')
 
 "       U       Underlined Text         HTML 2.0
 call HTMLmap("inoremap", ";un", "<[{U></U}]><ESC>hhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";un", "<ESC>`>a</[{U}]><C-O>`<<[{U}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';un')
 
 "       UL      Unordered List          HTML 2.0
 call HTMLmap("inoremap", ";ul", "<[{UL}]><CR></[{UL}]><ESC>O")
 " Visual mapping:
 call HTMLmap("vnoremap", ";ul", "<ESC>`>a<CR></[{UL}]><C-O>`<<[{UL}]><CR><ESC>", 1)
+" Motion mapping:
+call HTMLmapo(';ul')
 
 "       VAR     Variable                HTML 3.0
 call HTMLmap("inoremap", ";va", "<[{VAR></VAR}]><ESC>bhhi")
 " Visual mapping:
 call HTMLmap("vnoremap", ";va", "<ESC>`>a</[{VAR}]><C-O>`<<[{VAR}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';va')
 
 "       JavaScript
 call HTMLmap("inoremap", ";js", "<[{SCRIPT TYPE}]=\"text/javascript\" [{LANGUAGE}]=\"javascript\"><CR><!--<CR>// --><CR></[{SCRIPT}]><ESC>kO")
@@ -765,6 +908,12 @@ call HTMLmap("vnoremap", ";ta", "<ESC>`>a<CR></[{TABLE}]><C-O>`<<[{TABLE}]><CR><
 call HTMLmap("vnoremap", ";tr", "<ESC>`>a<CR></[{TR}]><C-O>`<<[{TR}]><CR><ESC>", 1)
 call HTMLmap("vnoremap", ";td", "<ESC>`>a<CR></[{TD}]><C-O>`<<[{TD}]><CR><ESC>", 1)
 call HTMLmap("vnoremap", ";th", "<ESC>`>a</[{TH}]><C-O>`<<[{TH}]><ESC>", 2)
+" Motion mappings:
+call HTMLmapo(";ca")
+call HTMLmapo(";ta")
+call HTMLmapo(";tr")
+call HTMLmapo(";td")
+call HTMLmapo(";th")
 
 " Interactively generate a table of Rows x Columns:
 call HTMLmap("nnoremap", ";ta", ":call HTMLgenerateTable()<CR>")
@@ -826,11 +975,17 @@ call HTMLmap("inoremap", ";nf", "<[{NOFRAMES}]><CR></[{NOFRAMES}]><ESC>O")
 call HTMLmap("vnoremap", ";fs", "<ESC>`>a<CR></[{FRAMESET}]><C-O>`<<[{FRAMESET ROWS=\"\" COLS}]=\"\"><CR><ESC>k0f\"l")
 call HTMLmap("vnoremap", ";fr", "<ESC>`>a\"><C-O>`<<[{FRAME SRC=\"<ESC>")
 call HTMLmap("vnoremap", ";nf", "<ESC>`>a<CR></[{NOFRAMES}]><C-O>`<<[{NOFRAMES}]><CR><ESC>", 1)
+" Motion mappings:
+call HTMLmapo(";fs")
+call HTMLmapo(";fr")
+call HTMLmapo(";nf")
 
 "       IFRAME  Inline Frame            HTML 4.0
 call HTMLmap("inoremap", ";if", "<[{IFRAME SRC}]=\"\"><CR></[{IFRAME}]><ESC>Bblli")
 " Visual mapping:
 call HTMLmap("vnoremap", ";if", "<ESC>`>a<CR></[{IFRAME}]><C-O>`<<[{IFRAME SRC}]=\"\"><CR><ESC>k0f\"l")
+" Motion mapping:
+call HTMLmapo(';if')
 
 " Forms stuff:
 call HTMLmap("inoremap", ";fm", "<[{FORM ACTION}]=\"\"><CR></[{FORM}]><ESC>k0f\"li")
@@ -862,6 +1017,19 @@ call HTMLmap("vnoremap", ";og", "<ESC>`>a<CR></[{OPTGROUP}]><C-O>`<<[{OPTGROUP L
 call HTMLmap("vnoremap", ";tx", "<ESC>`>a<CR></[{TEXTAREA}]><C-O>`<<[{TEXTAREA NAME=\"\" ROWS=10 COLS}]=50><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", ";la", "<ESC>`>a</[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"\"><C-O>F\"", 0)
 call HTMLmap("vnoremap", ";lA", "<ESC>`>a\"></[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"<C-O>f<", 0)
+" Motion mappings:
+call HTMLmapo(";fm")
+call HTMLmapo(";bu")
+call HTMLmapo(";ch")
+call HTMLmapo(";ra")
+call HTMLmapo(";hi")
+call HTMLmapo(";te")
+call HTMLmapo(";se")
+call HTMLmapo(";ms")
+call HTMLmapo(";og")
+call HTMLmapo(";tx")
+call HTMLmapo(";la")
+call HTMLmapo(";lA")
 
 " ----------------------------------------------------------------------------
 
@@ -872,6 +1040,7 @@ call HTMLmap("vnoremap", ";lA", "<ESC>`>a\"></[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"
 " HTML entities:
 call HTMLmap("nnoremap", ";&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
 call HTMLmap("vnoremap", ";&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
+call HTMLmapo(';&')
 
 call HTMLmap("inoremap", "&&", "&amp;")
 call HTMLmap("inoremap", "&cO", "&copy;")
