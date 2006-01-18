@@ -3,7 +3,7 @@
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
 " Last Change: December 24, 2005
-" Version:     0.18
+" Version:     0.19
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.98 2005/12/24 07:57:13 infynity Exp $
+" $Id: HTML.vim,v 1.101 2006/01/18 17:25:48 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -83,12 +83,16 @@ setlocal matchpairs+=<:>
 "  0 - The variable already existed.
 "  1 - The variable didn't exist and was set.
 function! SetIfUnset(var,val)
-  execute "let varisset = exists(\"g:" . a:var . "\")"
+  let var=a:var
+  if var !~? '^\w:'
+    let var = 'g:' . var
+  endif
+  execute "let varisset = exists(\"" . var . "\")"
   if (varisset == 0)
     if (a:val == "-")
-      execute "let g:" . a:var . "= \"\""
+      execute "let " . var . "= \"\""
     else
-      execute "let g:" . a:var . "= a:val"
+      execute "let " . var . "= a:val"
     endif
     return 1
   endif
@@ -103,6 +107,7 @@ SetIfUnset html_linkcolor   #0000EE
 SetIfUnset html_alinkcolor  #FF0000
 SetIfUnset html_vlinkcolor  #990066
 SetIfUnset html_tag_case    uppercase
+call SetIfUnset('b:html_tag_case', g:html_tag_case)
 " No way to know sensible defaults here so just make sure the
 " variables are set:
 SetIfUnset html_authorname  -
@@ -224,21 +229,21 @@ endfunction
 " s:HTMLconvertCase()  {{{2
 "
 " Convert special regions in a string to the appropriate case determined by
-" g:html_tag_case
+" b:html_tag_case
 " Arguments:
 "  1 - String: The string with the regions to convert surrounded by [{...}].
 " Return Value:
 "  The converted string.
 function! s:HTMLconvertCase(str)
-  if (! exists('g:html_tag_case')) || g:html_tag_case =~? 'u\(pper\(case\)\?\)\?' || g:html_tag_case == ''
+  if (! exists('b:html_tag_case')) || b:html_tag_case =~? 'u\(pper\(case\)\?\)\?' || b:html_tag_case == ''
     let str = substitute(a:str, '\[{\(.\{-}\)}\]', '\U\1', 'g')
-  elseif g:html_tag_case =~? 'l\(ower\(case\)\?\)\?'
+  elseif b:html_tag_case =~? 'l\(ower\(case\)\?\)\?'
     let str = substitute(a:str, '\[{\(.\{-}\)}\]', '\L\1', 'g')
   else
     echohl WarningMsg
-    echomsg "g:html_tag_case = '" . g:html_tag_case . "' invalid, overriding to 'upppercase'."
+    echomsg "b:html_tag_case = '" . b:html_tag_case . "' invalid, overriding to 'upppercase'."
     echohl None
-    let g:html_tag_case = 'uppercase'
+    let b:html_tag_case = 'uppercase'
     let str = s:HTMLconvertCase(a:str)
   endif
   return str
@@ -337,6 +342,53 @@ function! HTMLnextInsertPoint(mode)
 
   let v:errmsg = saveerrmsg
 
+endfunction
+
+" s:tag()  {{{2
+" 
+" Causes certain tags (such as bold, italic, underline) to be closed then
+" opened rather than opened then closed where appropriate, if syntax
+" highlighting is on.
+"
+" Arguments:
+"  1 - String: The tag name.
+"  2 - Character: The mode: 
+"                  'i' - Insert mode
+"                  'v' - Visual mode
+" Return value:
+"  The string to be executed to insert the tag.
+let s:HTMLtags{'i'}{'i'}{'o'} = "<[{I></I}]>\<ESC>hhhi"
+let s:HTMLtags{'i'}{'i'}{'c'} = "<[{/I><I}]>\<ESC>hhi"
+let s:HTMLtags{'i'}{'v'}{'o'} = "`>a</[{I}]>\<C-O>`<<[{I}]>"
+let s:HTMLtags{'i'}{'v'}{'c'} = "`>a<[{I}]>\<C-O>`<</[{I}]>"
+let s:HTMLtags{'b'}{'i'}{'o'} = "<[{B></B}]>\<ESC>hhhi"
+let s:HTMLtags{'b'}{'i'}{'c'} = "<[{/B><B}]>\<ESC>hhi"
+let s:HTMLtags{'b'}{'v'}{'o'} = "`>a</[{B}]>\<C-O>`<<[{B}]>"
+let s:HTMLtags{'b'}{'v'}{'c'} = "`>a<[{B}]>\<C-O>`<</[{B}]>"
+let s:HTMLtags{'u'}{'i'}{'o'} = "<[{U></U}]>\<ESC>hhhi"
+let s:HTMLtags{'u'}{'i'}{'c'} = "<[{/U><U}]>\<ESC>hhi"
+let s:HTMLtags{'u'}{'v'}{'o'} = "`>a</[{U}]>\<C-O>`<<[{U}]>"
+let s:HTMLtags{'u'}{'v'}{'c'} = "`>a<[{U}]>\<C-O>`<</[{U}]>"
+let s:HTMLtags{'comment'}{'i'}{'o'} = "<!--  -->\<ESC>Bhi"
+let s:HTMLtags{'comment'}{'i'}{'c'} = " --><!-- \<ESC>Bhi"
+let s:HTMLtags{'comment'}{'v'}{'o'} = "`>a -->\<C-O>`<<!-- "
+let s:HTMLtags{'comment'}{'v'}{'c'} = "`>a<!-- \<C-O>`< -->"
+let s:HTMLtags{'strong'}{'i'}{'o'} = "<[{STRONG></STRONG}]>\<ESC>bhhi"
+let s:HTMLtags{'strong'}{'i'}{'c'} = "<[{/STRONG><STRONG}]>\<ESC>bhi"
+let s:HTMLtags{'strong'}{'v'}{'o'} = "`>a</[{STRONG}]>\<C-O>`<<[{STRONG}]>"
+let s:HTMLtags{'strong'}{'v'}{'c'} = "`>a<[{STRONG}]>\<C-O>`<</[{STRONG}]>"
+function! s:tag(tag, mode)
+  let attr=synIDattr(synID(line("."), col(".") - 1, 1), "name")
+  if ( a:tag == 'i' && attr =~? 'italic' )
+        \ || ( a:tag == 'b' && attr =~? 'bold' )
+        \ || ( a:tag == 'strong' && attr =~? 'bold' )
+        \ || ( a:tag == 'u' && attr =~? 'underline' )
+        \ || ( a:tag == 'comment' && attr =~? 'comment' )
+    let ret=s:HTMLconvertCase(s:HTMLtags{a:tag}{a:mode}{'c'})
+  else
+    let ret=s:HTMLconvertCase(s:HTMLtags{a:tag}{a:mode}{'o'})
+  endif
+  return ret
 endfunction
 
 " }}}2
@@ -495,9 +547,9 @@ call HTMLmap("nnoremap", ";4", ":call append(0, '<!DOCTYPE HTML PUBLIC \"-//W3C/
 call HTMLmap("inoremap", ";ct", "<[{META HTTP-EQUIV}]=\"Content-Type\" [{CONTENT}]=\"text/html; charset=iso-8859-1\">")
 
 "       Comment Tag
-call HTMLmap("inoremap", ";cm", "<!--  --><ESC>Bhi")
+call HTMLmap("inoremap", ";cm", "<C-R>=<SID>tag('comment','i')<CR>")
 " Visual mapping:
-call HTMLmap("vnoremap", ";cm", "<ESC>`>a --><C-O>`<<!-- <ESC>", 2)
+call HTMLmap("vnoremap", ";cm", "<C-C>:execute \"normal \" . <SID>tag('comment','v')<CR>", 2)
 " Motion mapping:
 call HTMLmapo(';cm')
 
@@ -554,9 +606,9 @@ call HTMLmap("vnoremap", ";ad", "<ESC>`>a</[{ADDRESS}]><C-O>`<<[{ADDRESS}]><ESC>
 call HTMLmapo(';ad')
 
 "       B       Boldfaced Text          HTML 2.0
-call HTMLmap("inoremap", ";bo", "<[{B></B}]><ESC>hhhi")
+call HTMLmap("inoremap", ";bo", "<C-R>=<SID>tag('b','i')<CR>")
 " Visual mapping:
-call HTMLmap("vnoremap", ";bo", "<ESC>`>a</[{B}]><C-O>`<<[{B}]><ESC>", 2)
+call HTMLmap("vnoremap", ";bo", "<C-C>:execute \"normal \" . <SID>tag('b','v')<CR>", 2)
 " Motion mapping:
 call HTMLmapo(';bo')
 
@@ -712,9 +764,9 @@ call HTMLmap("vnoremap", ";ht", "<ESC>`>a<CR></[{HTML}]><C-O>`<<[{HTML}]><CR><ES
 call HTMLmapo(';ht')
 
 "       I       Italicized Text         HTML 2.0
-call HTMLmap("inoremap", ";it", "<[{I></I}]><ESC>hhhi")
+call HTMLmap("inoremap", ";it", "<C-R>=<SID>tag('i','i')<CR>")
 " Visual mapping:
-call HTMLmap("vnoremap", ";it", "<ESC>`>a</[{I}]><C-O>`<<[{I}]><ESC>", 2)
+call HTMLmap("vnoremap", ";it", "<C-C>:execute \"normal \" . <SID>tag('i','v')<CR>", 2)
 " Motion mapping:
 call HTMLmapo(';it')
 
@@ -821,9 +873,9 @@ call HTMLmap("vnoremap", ";sm", "<ESC>`>a</[{SMALL}]><C-O>`<<[{SMALL}]><ESC>")
 call HTMLmapo(';sm')
 
 "       STRONG                          HTML 2.0
-call HTMLmap("inoremap", ";st", "<[{STRONG></STRONG}]><ESC>bhhi")
+call HTMLmap("inoremap", ";st", "<C-R>=<SID>tag('strong','i')<CR>")
 " Visual mapping:
-call HTMLmap("vnoremap", ";st", "<ESC>`>a</[{STRONG}]><C-O>`<<[{STRONG}]><ESC>", 2)
+call HTMLmap("vnoremap", ";st", "<C-C>:execute \"normal \" . <SID>tag('strong','v')<CR>", 2)
 " Motion mapping:
 call HTMLmapo(';st')
 
@@ -870,9 +922,9 @@ call HTMLmap("vnoremap", ";tt", "<ESC>`>a</[{TT}]><C-O>`<<[{TT}]><ESC>", 2)
 call HTMLmapo(';tt')
 
 "       U       Underlined Text         HTML 2.0
-call HTMLmap("inoremap", ";un", "<[{U></U}]><ESC>hhhi")
+call HTMLmap("inoremap", ";un", "<C-R>=<SID>tag('u','i')<CR>")
 " Visual mapping:
-call HTMLmap("vnoremap", ";un", "<ESC>`>a</[{U}]><C-O>`<<[{U}]><ESC>", 2)
+call HTMLmap("vnoremap", ";un", "<C-C>:execute \"normal \" . <SID>tag('u','v')<CR>", 2)
 " Motion mapping:
 call HTMLmapo(';un')
 
@@ -916,7 +968,7 @@ call HTMLmapo(";td")
 call HTMLmapo(";th")
 
 " Interactively generate a table of Rows x Columns:
-call HTMLmap("nnoremap", ";ta", ":call HTMLgenerateTable()<CR>")
+call HTMLmap("nnoremap", ";tA", ":call HTMLgenerateTable()<CR>")
 
 function! HTMLgenerateTable()
     let byteoffset = line2byte(line(".")) + col(".") - 1
@@ -1040,7 +1092,6 @@ call HTMLmapo(";lA")
 " HTML entities:
 call HTMLmap("nnoremap", ";&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
 call HTMLmap("vnoremap", ";&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
-call HTMLmapo(';&')
 
 call HTMLmap("inoremap", "&&", "&amp;")
 call HTMLmap("inoremap", "&cO", "&copy;")

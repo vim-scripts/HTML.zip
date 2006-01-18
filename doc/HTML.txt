@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML macros, menus and toolbar buttons.
-		Last change: 2005 Dec 24
+		Last change: 2006 Jan 18
 		Written by Christian J. Robinson
 
 
@@ -35,6 +35,13 @@ below works in normal, insert mode and visual mode.
 
 In the descriptions of the mappings I often use <CR> to mean a literal
 newline.
+
+							*html-smart-tag*
+Noted tags are "smart" -- if syntax highlighting is enabled it can be used to
+detect whether to close then open a tag instead of open then close the tag.
+For example, if you're in italicized text and type ;it, it will insert </I><I>
+instead of <I></I>.  (This can't be done on most tags due to its dependence on
+the syntax highlighting.)
 
 							*;;* *i_;;* *v_;;*
 ;;	The mappings start with ; or &, aside from the tab mapping.  I have
@@ -187,7 +194,7 @@ mode mappings that take a motion operator.
 ;ct	Insert <META HTTP-EQUIV="Content-Type" CONTENT="text/html;
 	charset=iso-8859-1"> at the current cursor position.
 							*i_;cm* *v_;cm*
-;cm	Comment tag (<!-- -->).
+;cm	Comment tag (<!-- -->).  (|html-smart-tag|)
 							*i_;ah* *v_;ah*
 ;ah	Anchor hyperlink (<A HREF=""></A>).  Visual mode puts the visually
 	selected text <A HREF="">here</A> and positions the cursor on the
@@ -216,7 +223,7 @@ mode mappings that take a motion operator.
 							*i_;ad* *v_;ad*
 ;ad	Address (<ADDRESS></ADDRESS>).
 							*i_;bo* *v_;bo*
-;bo	Boldfaced Text (<B></B>).
+;bo	Boldfaced Text (<B></B>).  (|html-smart-tag|)
 							*i_;bh* *v_;bh*
 ;bh	Base URL (<BASE HREF="">).
 							*i_;bi* *v_;bi*
@@ -275,7 +282,7 @@ mode mappings that take a motion operator.
 							*i_;ii*
 ;ii	Identifies index (<ISINDEX>).
 							*i_;it*
-;it	Italicized text (<I></I>).
+;it	Italicized text (<I></I>).  (|html-smart-tag|)
 							*i_;im* *v_;im*
 ;im	Image (<IMG SRC="" ALT="").  Places the cursor on the second " of the
 	SRC="".  In visual mode it puts the visually selected text <IMG SRC=""
@@ -328,7 +335,7 @@ mode mappings that take a motion operator.
 							*i_;sa* *v_;sa*
 ;sa	Sample text (<SAMP></SAMP>).
 							*i_;st* *v_;st*
-;st	Strong text (<STRONG></STRONG>).
+;st	Strong text (<STRONG></STRONG>).  (|html-smart-tag|)
 							*i_;cs* *v_;cs*
 ;cs	CSS Style (<STYLE TYPE="text/css"><CR><!--  --><CR></STYLE>).
 							*i_;ls* *v_;ls*
@@ -343,14 +350,16 @@ mode mappings that take a motion operator.
 							*i_;tt* *v_;tt*
 ;tt	Teletype Text (monospaced) (<TT></TT>).
 							*i_;un* *v_;un*
-;un	Underlined text (<U></U>).
+;un	Underlined text (<U></U>).  (|html-smart-tag|)
 							*i_;ul* *v_;ul*
 ;ul	Unordered list (<UL><CR></UL>).
 
 							*html-table*
-							*;ta* *i_;ta* *v_;ta*
-;ta	Table (<TABLE><CR></TABLE>).  In normal mode, you will be
-	interactively prompted for the table rows, columns, and border width.
+							*i_;ta* *v_;ta*
+;ta	Table (<TABLE><CR></TABLE>).
+							*;tA*
+;tA	Interactive table; you will be interactively prompted for the table
+	rows, columns, and border width.
 							*i_;ca* *v_;ca*
 ;ca	Caption (<CAPTION></CAPTION>).
 							*i_;tr* *v_;tr*
