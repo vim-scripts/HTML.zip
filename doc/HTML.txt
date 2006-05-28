@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML macros, menus and toolbar buttons.
-		Last change: 2006 Jan 18
+		Last change: 2006 Mar 19
 		Written by Christian J. Robinson
 
 
@@ -273,10 +273,20 @@ mode mappings that take a motion operator.
 							*i_;h6* *v_;h6*
 ;h1 through ;h6
 	Headers, levels 1-6 (<H_></H_>).
+							*i_;H1* *v_;H1*
+							*i_;H2* *v_;H2*
+							*i_;H3* *v_;H3*
+							*i_;H4* *v_;H4*
+							*i_;H5* *v_;H5*
+							*i_;H6* *v_;H6*
+;H1 through ;H6
+	Headers, levels 1-6, centered (<H_ ALIGN=CENTER></H_>).
 							*i_;he* *v_;he*
 ;he	Head (<HEAD><CR></HEAD>).
 							*i_;hr*
 ;hr	Horizontal rule (<HR>).
+							*i_;Hr*
+;Hr	Horizontal rule (<HR WIDTH="75%">).
 							*i_;ht* *v_;ht*
 ;ht	HTML document (<HTML><CR></HTML>).
 							*i_;ii*
@@ -556,6 +566,13 @@ For Unix:
 The following mappings are only defined if you have properly installed the
 browser_launcher.vim script, available with installation instructions here:
 http://www.infynity.spodzone.com/vim/HTML/
+								*;ff*
+;mo	Make Firefox view the current file, starting Firefox if it's not
+	running.
+								*;nff*
+;nmo	Same as ;ff, but start a new browser window.
+								*;tff*
+;tmo	Same as ;nff, but open a new tab.
 								*;mo*
 ;mo	Make Mozilla view the current file, starting Mozilla if it's not
 	running.
@@ -629,6 +646,11 @@ HTMLmap({maptype}, {lhs}, {rhs} [, {re-indent}])	*HTMLmap()*
 	The special cases of 0 means the visual mapping enters visual mode,
 	and -1 tells the function not to add any special extra code to the
 	visual mapping.
+
+HTMLmapo({map}, {insert})					*HTMLmapo()*
+	Creates an operator-pending mapping wrapper for {map} that calls the
+	visual mapping by the same name.  {insert} is a boolean value (0 or 1)
+	that indicates whether to end in insert mode.
 
 HTMLnextInsertPoint({mode})				*HTMLnextInsertPoint()*
 	This is normally called by the |html-<TAB>| mapping, but it works the

@@ -3,10 +3,9 @@
 " Vim script to launch/control browsers.
 "
 " Currently supported browsers:
-"  - Mozilla  (remote [new window / new tab] / launch)
-"  - Netscape (remote [new window] / launch)
-"     The remote control for either of these will probably default to
-"     mozilla if both are running.
+"  - Firefox  (remote [new window / new tab] / launch)  {1]
+"  - Mozilla  (remote [new window / new tab] / launch)  {1]
+"  - Netscape (remote [new window] / launch)            {1]
 "  - Opera    (remote [new window / new tab] / launch)
 "  - Lynx     (Under the current TTY if not running the GUI, or a new xterm
 "              window if DISPLAY is set.)
@@ -21,10 +20,19 @@
 "  isn't available may be undesirable.
 "
 "  Note: Various browsers such as galeon, nautilus, phoenix, &c use the
-"  same HTML rendering engine as mozilla, so supporting them isn't as
-"  important.
+"  same HTML rendering engine as mozilla/firefox, so supporting them isn't
+"  as important.
 "   
-"  The code is a mess.  Oh well.
+"
+"  BUGS:
+"  * [1] The remote control for firefox/mozilla/netscape will probably
+"    default to mozilla if more than one is running.
+"
+"  * Since the commands to start the browsers are run in the backgorund
+"    there's no way to actually get v:shell_error, so execution errors
+"    aren't actually seen.
+"
+"  * The code is a mess.  Oh well.
 "
 "--------------------------------------------------------------------------
 
@@ -33,23 +41,65 @@ if exists("*LaunchBrowser")
 	finish
 endif
 
+let s:BrowsersExist = ''
+let s:FirefoxPath = system("which firefox")
+if v:shell_error == 0
+	let s:BrowsersExist = s:BrowsersExist . 'f'
+else
+	unlet s:FirefoxPath
+endif
+let s:MozillaPath = system("which mozilla")
+if v:shell_error == 0
+	let s:BrowsersExist = s:BrowsersExist . 'm'
+else
+	unlet s:MozillaPath
+endif
+let s:NetscapePath = system("which netscape")
+if v:shell_error == 0
+	let s:BrowsersExist = s:BrowsersExist . 'n'
+else
+	unlet s:NetscapePath
+endif
+let s:OperaPath = system("which opera")
+if v:shell_error == 0
+	let s:BrowsersExist = s:BrowsersExist . 'o'
+else
+	unlet s:OperaPath
+endif
+let s:LynxPath = system("which lynx")
+if v:shell_error == 0
+	let s:BrowsersExist = s:BrowsersExist . 'l'
+else
+	unlet s:LynxPath
+endif
+
 let s:NetscapeRemoteCmd = system("which netscape-remote")
 if v:shell_error != 0
-	let s:NetscapeRemoteCmd = system("which netscape")
-endif
-if v:shell_error != 0
-	let s:NetscapeRemoteCmd = system("which mozilla")
+	if exists('s:FirefoxPath')
+		let s:NetscapeRemoteCmd = s:FirefoxPath
+	elseif exists('s:MozillaPath')
+		let s:NetscapeRemoteCmd = s:MozillaPath
+	elseif exists('s:NetscapeRemoteCmd')
+		let s:NetscapeRemoteCmd = s:NetscapePath
+	else
+		"echohl ErrorMsg
+		"echomsg "Can't set up remote-control preview code.\n(netscape-remote/firefox/mozilla/netscape not installed?)"
+		"echohl None
+		"finish
+		let s:NetscapeRemoteCmd = 'false'
+	endif
 endif
 let s:NetscapeRemoteCmd = substitute(s:NetscapeRemoteCmd, "\n$", "", "")
 
 
 " Usage:
-"  :call LaunchBrowser([0123],[012])
+"  :call LaunchBrowser([nolmf],[012])
 "    The first argument is which browser to launch:
-"      0 - Netscape
-"      1 - Opera
-"      2 - Lynx
-"      3 - Mozilla
+"      f - Firefox
+"      m - Mozilla
+"      n - Netscape
+"      o - Opera
+"      l - Lynx
 "    The second argument is whether to launch a new window:
 "      0 - No
 "      1 - Yes
@@ -57,21 +107,42 @@ let s:NetscapeRemoteCmd = substitute(s:NetscapeRemoteCmd, "\n$", "", "")
 "                   open a new tab)
 "
 " Return value:
-"  0 - Failure (No browser was launched/controlled.)
-"  1 - Success
-function! LaunchBrowser(which,new)
+"  1 - Failure (No browser was launched/controlled.)
+"  0 - Success
+"
+" A special case of no arguments returns a character list of what browsers
+" were found.
+function! LaunchBrowser(...)
+
+	if a:0 == 0
+		return s:BrowsersExist
+	elseif a:0 == 2
+		let which = a:1
+		let new = a:2
+	else
+		echohl ErrorMsg
+		echomsg "E119: Wrong number of arguments for function: LaunchBrowser"
+		echohl None
+		return 1
+	endif
 
 	let file = expand("%:p")
 
-	if ((! strlen($DISPLAY)) || a:which == 2 )
+	if ((! strlen($DISPLAY)) || which ==? 'l' )
+
+		if s:BrowsersExist !~? 'l'
+			echohl ErrorMsg | echomsg "Lynx isn't found in $PATH." | echohl None
+			return 1
+		endif
+
 		echohl Todo | echo "Launching lynx..." | echohl None
 
-		if (has("gui_running") || a:new) && strlen($DISPLAY)
+		if (has("gui_running") || new) && strlen($DISPLAY)
 			call system("xterm -T Lynx -e lynx " . file . " &")
 
 			if shell_error
 				echohl ErrorMsg | echo "Unable to launch lynx in an xterm." | echohl None
-				return 0
+				return 1
 			endif
 		else
 			sleep 1
@@ -79,30 +150,36 @@ function! LaunchBrowser(which,new)
 
 			if shell_error
 				echohl ErrorMsg | echo "Unable to launch lynx." | echohl None
-				return 0
+				return 1
 			endif
 		endif
 
-		return 1
+		return 0
 	endif
 
 
-	if (a:which == 1)
-		if a:new == 2
+	if (which ==? 'o')
+
+		if s:BrowsersExist !~? 'o'
+			echohl ErrorMsg | echomsg "Opera isn't found in $PATH." | echohl None
+			return 1
+		endif
+
+		if new == 2
 			echohl Todo | echo "Opening new Opera tab..." | echohl None
 			call system("sh -c \"trap '' HUP; opera -remote 'openURL(file://" . file . ",new-page)' &\"")
 
 			if shell_error
 				echohl ErrorMsg | echo "Unable to issue remote command." | echohl None
-				return 0
+				return 1
 			endif
-		elseif a:new
+		elseif new
 			echohl Todo | echo "Opening new Opera window..." | echohl None
 			call system("sh -c \"trap '' HUP; opera -remote 'openURL(file://" . file . ",new-window)' &\"")
 
 			if shell_error
 				echohl ErrorMsg | echo "Unable to issue remote command." | echohl None
-				return 0
+				return 1
 			endif
 		else
 			echohl Todo | echo "Sending remote command to Opera..." | echohl None
@@ -110,14 +187,19 @@ function! LaunchBrowser(which,new)
 
 			if shell_error
 				echohl ErrorMsg | echo "Unable to issue remote command." | echohl None
-				return 0
+				return 1
 			endif
 		endif
 
-		return 1
+		return 0
 	endif
 
-	let windows = system("xwininfo -root -children | egrep \"[Nn]etscape|[Mm]ozilla\"; return 0")
+	let windows = system("xwininfo -root -children | egrep \"[Ff]irefox|[Nn]etscape|[Mm]ozilla\"; return 0")
+	if windows =~? 'firefox'
+		let FirefoxRunning = 1
+	else
+		let FirefoxRunning = 0
+	endif
 	if windows =~? 'mozilla'
 		let MozillaRunning = 1
 	else
@@ -129,31 +211,83 @@ function! LaunchBrowser(which,new)
 		let NetscapeRunning = 0
 	endif
 
-	if (a:which == 3)
+	if (which ==? 'f')
+
+		if s:BrowsersExist !~? 'f'
+			echohl ErrorMsg | echomsg "Firefox isn't found in $PATH." | echohl None
+			return 1
+		endif
+
+		if ! FirefoxRunning
+			echohl Todo | echo "Launching firefox, please wait..." | echohl None
+			call system("sh -c \"trap '' HUP; firefox " . file . " &\"")
+
+			if shell_error
+				echohl ErrorMsg | echo "Unable to launch firefox." | echohl None
+				return 1
+			endif
+		else
+			if new == 2
+				echohl Todo | echo "Firefox is running, opening new tab..." | echohl None
+				call system(s:NetscapeRemoteCmd . " -remote \"openURL(file://" . file . ",new-tab)\"")
+
+				if shell_error
+					echohl ErrorMsg | echo "Unable to issue remote command." | echohl None
+					return 1
+				endif
+			elseif new
+				echohl Todo | echo "Firefox is running, opening new window..." | echohl None
+				call system(s:NetscapeRemoteCmd . " -remote \"openURL(file://" . file . ",new-window)\"")
+
+				if shell_error
+					echohl ErrorMsg | echo "Unable to issue remote command." | echohl None
+					return 1
+				endif
+			else
+				echohl Todo | echo "Firefox is running, issuing remote command..." | echohl None
+				call system(s:NetscapeRemoteCmd . " -remote \"openURL(file://" . file . ")\"")
+
+				if shell_error
+					echohl ErrorMsg | echo "Unable to issue remote command." | echohl None
+					return 1
+				endif
+			endif
+		endif
+
+		return 0
+	endif
+
+	if (which ==? 'm')
+
+		if s:BrowsersExist !~? 'm'
+			echohl ErrorMsg | echomsg "Mozilla isn't found in $PATH." | echohl None
+			return 1
+		endif
+
 		if ! MozillaRunning
 			echohl Todo | echo "Launching mozilla, please wait..." | echohl None
 			call system("sh -c \"trap '' HUP; mozilla " . file . " &\"")
 
 			if shell_error
 				echohl ErrorMsg | echo "Unable to launch mozilla." | echohl None
-				return 0
+				return 1
 			endif
 		else
-			if a:new == 2
+			if new == 2
 				echohl Todo | echo "Mozilla is running, opening new tab..." | echohl None
 				call system(s:NetscapeRemoteCmd . " -remote \"openURL(file://" . file . ",new-tab)\"")
 
 				if shell_error
 					echohl ErrorMsg | echo "Unable to issue remote command." | echohl None
-					return 0
+					return 1
 				endif
-			elseif a:new
+			elseif new
 				echohl Todo | echo "Mozilla is running, opening new window..." | echohl None
 				call system(s:NetscapeRemoteCmd . " -remote \"openURL(file://" . file . ",new-window)\"")
 
 				if shell_error
 					echohl ErrorMsg | echo "Unable to issue remote command." | echohl None
-					return 0
+					return 1
 				endif
 			else
 				echohl Todo | echo "Mozilla is running, issuing remote command..." | echohl None
@@ -161,31 +295,37 @@ function! LaunchBrowser(which,new)
 
 				if shell_error
 					echohl ErrorMsg | echo "Unable to issue remote command." | echohl None
-					return 0
+					return 1
 				endif
 			endif
 		endif
 
-		return 1
+		return 0
 	endif
 
-	if (a:which == 0)
+	if (which ==? 'n')
+
+		if s:BrowsersExist !~? 'n'
+			echohl ErrorMsg | echomsg "Netscape isn't found in $PATH." | echohl None
+			return 1
+		endif
+
 		if ! NetscapeRunning
 			echohl Todo | echo "Launching netscape, please wait..." | echohl None
 			call system("sh -c \"trap '' HUP; netscape " . file . " &\"")
 
 			if shell_error
 				echohl ErrorMsg | echo "Unable to launch netscape." | echohl None
-				return 0
+				return 1
 			endif
 		else
-			if a:new
+			if new
 				echohl Todo | echo "Netscape is running, opening new window..." | echohl None
 				call system(s:NetscapeRemoteCmd . " -remote \"openURL(file://" . file . ",new-window)\"")
 
 				if shell_error
 					echohl ErrorMsg | echo "Unable to issue remote command." | echohl None
-					return 0
+					return 1
 				endif
 			else
 				echohl Todo | echo "Netscape is running, issuing remote command..." | echohl None
@@ -193,15 +333,16 @@ function! LaunchBrowser(which,new)
 
 				if shell_error
 					echohl ErrorMsg | echo "Unable to issue remote command." | echohl None
-					return 0
+					return 1
 				endif
 			endif
 		endif
-		return 1
+
+		return 0
 	endif
 
 	echohl ErrorMsg | echo "Unknown browser ID." | echohl None
-	return 0
+	return 1
 endfunction
 
 " vim: set ts=2 sw=2 ai nu tw=75 fo=croq2:
