@@ -1,13 +1,15 @@
-*HTML.txt*	Set of HTML macros, menus and toolbar buttons.
-		Last change: 2006 Mar 19
+*HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
+		Last change: 2006 Sep 29
 		Written by Christian J. Robinson
 
 
 						*HTML.vim* *HTML-macros*
-Set of HTML macros, menus, and toolbar buttons to make editing HTML files
-easier.  The original Copyright should probably go to Doug Renze, though most
-of his efforts have been modified in this implementation.  All the changes are
-Copyright Christian J. Robinson under the terms of the GNU GPL.
+						*XHTML-macros*
+This is a set of HTML/XHTML macros, menus, and toolbar buttons to make editing
+HTML files easier.  The original Copyright should probably go to Doug Renze,
+although nearly all of his efforts have been modified in this implementation.
+All the changes are Copyright Christian J. Robinson under the terms of the GNU
+GPL version 2 or later.
 
 
 ------------------------------------------------------------------------------
@@ -39,23 +41,23 @@ newline.
 							*html-smart-tag*
 Noted tags are "smart" -- if syntax highlighting is enabled it can be used to
 detect whether to close then open a tag instead of open then close the tag.
-For example, if you're in italicized text and type ;it, it will insert </I><I>
-instead of <I></I>.  (This can't be done on most tags due to its dependence on
-the syntax highlighting.)
+For example, if your cursor is in italicized text and type ;it, it will insert
+</I><I> instead of <I></I>.  (This can't be done on most tags due to its
+dependence on the syntax highlighting.)
 
 							*;;* *i_;;* *v_;;*
 ;;	The mappings start with ; or &, aside from the tab mapping.  I have
 	mapped ;; to insert a single ; character in insert mode, and behave
 	like a single ; in normal mode.  There is no mapping to get a literal
-	& since it's not valid in HTML.  Use CTRL-V & if you need to get a
+	& since it is not valid in HTML.  Use CTRL-V & if you need to get a
 	literal &.
 
 				*html-<TAB>* *html-tab* *html-CTRL-I*
 				*i_html-<TAB>* *i_html-tab* *i_html-CTRL-I*
 				*v_html-<TAB>* *v_html-tab* *v_html-CTRL-I*
-<Tab>	If you're on a closing tag the tab key jumps you after the tag.
-	Otherwise the tab key will jump you to an unfilled tag somewhere in
-	the file.  For example, if you had the tag:
+<Tab>	If your cursor is on a closing tag the tab key jumps you after the
+	tag.  Otherwise the tab key will jump you to an unfilled tag somewhere
+	in the file.  For example, if you had the tag:
 >
 	 <A HREF=""></A>
 <
@@ -67,8 +69,8 @@ the syntax highlighting.)
 	 <TABLE>
 	 </TABLE>
 <
-	I think the use of tab is acceptable because I don't like the idea of
-	hard tabs or indentation greater than one or two spaces in HTML.
+	I think the use of tab is acceptable because I don not like the idea
+	of hard tabs or indentation greater than one or two spaces in HTML.
 
 	Currently using this mapping in visual mode clears the visual
 	selection.
@@ -88,26 +90,35 @@ the syntax highlighting.)
 2. Customization variables.		*html-variables* *html-configuration*
 					*html-customization*
 
-You can set the following global Vim variables to control some of the fields
-in the HTML template.  It is recommended you set these in your .vimrc before
-the macros are sourced.
 
-*g:html_tag_case*
+You can set the following global Vim variables to control the behavior of the
+macros.  It is recommended you set these in your .vimrc before the file is
+sourced.
+
+*g:do_xhtml_mappings* *b:do_xhtml_mappings*
+Set this to a nonzero value if you prefer XHTML compatible tags to be defined.
+Setting this forces |b:html_tag_case| to "lowercase". This is automatic if you
+are already editing a file that Vim detects as XHTML.  This variable must be
+set before HTML.vim is sourced.  You can also set this on a per-buffer basis
+by using b:do_xhtml_mappings instead.
+
+*g:html_tag_case* *b:html_tag_case*
 This variable can be set to "l" / "lower" / "lowercase" or "u" / "upper" /
 "uppercase" to determine the case of the text in the HTML tags.  This variable
-must be set before HTML.vim is sourced.  The default is "uppercase".
+must be set before HTML.vim is sourced.  The default is "uppercase".  You can
+also set this on a per-buffer basis by using b:html_tag_case instead.
 
 *g:no_html_toolbar*
-Set this variable if you don't want this plugin to modify the Vim toolbar and
-add "T" to 'guioptions'.  The contents of the variable don't matter, as long
-as it's set.  e.g.: >
+Set this variable if you don not want this plugin to modify the Vim toolbar and
+add "T" to 'guioptions'.  The contents of the variable do not matter, as long
+as it is set.  e.g.: >
 	:let g:no_html_toolbar = 'yes'
 
 *g:html_template*
 Set this to the location of your template file to be used by the ;html
 mapping.  If unset, a basic internal template will be used.
 
-See |html-template-tokens| for special tokens you can use in this file.
+See |html-template-tokens| for special tokens you can use within the template.
 
 *g:html_authorname* *g:html_authoremail*
 Within the internal template, html_authorname is inserted inside
@@ -124,8 +135,8 @@ The default for these variables are empty strings.
 
 *g:html_authoremail_encoded*
 This variable will be set using |HTMLencodeString()| if your
-|g:html_authoremail| variable is set.  (Do not set this yourself, it will be
-overwritten when the template macro is used.)
+|g:html_authoremail| variable is set.  (Do not set this variable yourself, it
+will be overwritten when the template macro is used.)
 
 *g:html_bgcolor* *g:html_textcolor* *g:html_linkcolor*
 *g:html_alinkcolor* *g:html_vlinkcolor*
@@ -141,9 +152,9 @@ These control the <BODY> tag in the internal template.  They default to: >
 
 When you define a template file with the |g:html_template| variable, special
 tokens within the template will automatically replaced with their
-corresponding variables:
+corresponding variable value:
 
-Token:		Variable: ~
+Token:		 Variable: ~
 %authorname%	|g:html_authorname|
 %authoremail%	|g:html_authoremail_encoded|
 %bgcolor%	|g:html_bgcolor|
@@ -151,7 +162,7 @@ Token:		Variable: ~
 %linkcolor%	|g:html_linkcolor|
 %alinkcolor%	|g:html_alinkcolor|
 %vlinkcolor%	|g:html_vlinkcolor|
-%date%		strftime("%B %d, %Y")  (e.g.: March 16, 2004)
+%date%		 strftime("%B %d, %Y")  (e.g.: March 16, 2004)
 
 So if you had the template: >
  <HTML>
@@ -163,7 +174,7 @@ So if you had the template: >
   </BODY>
  </HTML>
 <
-You'd get: >
+You would get: >
  <HTML>
   <HEAD>
    <META NAME="Author" CONTENT="John Smith">
@@ -177,19 +188,26 @@ You'd get: >
 3. Mappings for normal <> tags.				*html-tags*
 
 Most of these mappings are insert or visual mappings.  In insert mode the tag
-is inserted and the cursor placed where you'd likely want to insert text.  In
-visual mode, the tag is wrapped around the visually selected text somehow (see
-|i_;ah|, |v_;aH| and |i_;ab| for explicit examples -- the rest of the mappings
-that work in visual mode are similar).
+is inserted and the cursor placed where you wouldd likely want to insert text.
+In visual mode, the tag is wrapped around the visually selected text somehow
+(see |i_;ah|, |v_;aH| and |i_;ab| for explicit examples -- the rest of the
+mappings that work in visual mode are similar).
 
-If you run Vim 7 or later, all of the visual ;-mappings also exist as normal
-mode mappings that take a motion operator.
+If you run Vim 7 or later, all of the visual ;-mappings also function as
+normal mode mappings that take a motion operator.
+
+If you are editing an XHTML file (see |g:do_xhtml_mappings|) the tags will be
+compatible with XHTML.
 
 
 							*;4*
-;4	Insert <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+;4	Inserts >
+	<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 	 "http://www.w3.org/TR/html4/loose.dtd">
-	at the top of the file.
+<	at the top of the file.  If you're editing XHTML, it will be >
+	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+	 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<
 							*i_;ct*
 ;ct	Insert <META HTTP-EQUIV="Content-Type" CONTENT="text/html;
 	charset=iso-8859-1"> at the current cursor position.
@@ -304,12 +322,12 @@ mode mappings that take a motion operator.
 	 <!--
 	 -->
 	</SCRIPT>
-							*i_;li*
-;li	List item (<LI>) inside <UL> or <OL>.
+							*i_;li* *v_;li*
+;li	List item (<LI></LI>) inside <UL> or <OL>.
 							*i_;lk* *v_;lk*
 ;lk	Link, inside the header (<LINK HREF="">).
-							*i_;lh*
-;lh	List header (<LH>) inside <UL> or <OL>.
+							*i_;lh* *v_;lh*
+;lh	List header (<LH></LH>) inside <UL> or <OL>.
 							*i_;me* *v_;me*
 ;me	Meta information (<META NAME="" CONTENT="").  Places the cursor on the
 	second " of NAME="".  Visual mode puts the visually selected text
@@ -332,6 +350,10 @@ mode mappings that take a motion operator.
 ;ol	Ordered (numbered) list (<OL><CR></OL>).
 							*i_;pp* *v_;pp*
 ;pp	Paragraph (<P><CR></P>).
+							*i_;/p*
+;/p	Like above, but inserts </P><CR><CR><P><CR>. This is intended to be
+	used when your cursor is between <P> and </P> in insert mode and want
+	to start a new paragraph without having to move the cursor.
 							*i_;pr* *v_;pr*
 ;pr	Preformatted text (<PRE><CR></PRE>).
 							*i_;qu* *v_;qu*
@@ -347,7 +369,7 @@ mode mappings that take a motion operator.
 							*i_;st* *v_;st*
 ;st	Strong text (<STRONG></STRONG>).  (|html-smart-tag|)
 							*i_;cs* *v_;cs*
-;cs	CSS Style (<STYLE TYPE="text/css"><CR><!--  --><CR></STYLE>).
+;cs	CSS Style (<STYLE TYPE="text/css"><CR><!--<CR><CR>--><CR></STYLE>).
 							*i_;ls* *v_;ls*
 ;ls	Linked CSS stylesheet (<LINK REL="stylesheet" TYPE="text/css"
 	HREF="">).
@@ -385,7 +407,7 @@ mode mappings that take a motion operator.
 							*i_;fr* *v_;fr*
 ;fr	Frame source (<FRAME SRC="">).
 							*i_;nf* *v_;nf*
-;nf	Text to display if for a browser that can't display frames
+;nf	Text to display if for a browser that can not display frames
 	(<NOFRAMES><CR></NOFRAMES>).
 							*i_;if* *v_;if*
 ;if	Inline frame (<IFRAME SRC=""><CR></IFRAME>).
@@ -450,13 +472,12 @@ characters into your HTML document.  These are known as characters entities.
 
 							*n_;&* *v_;&*
 ;&	This mapping converts the character under the cursor or the
-	highlighted text or the character the cursor is on to its &#...;
-	entity, where "..." is equivalent to the ASCII decimal representation.
-	For example, "foo bar" would become
+	highlighted text to its &#...; entity, where "..." is equivalent to
+	the ASCII decimal representation.  For example, "foo bar" would become
 	"&#102;&#111;&#111;&#32;&#98;&#97;&#114;".
 
 
-The following mappings work insert mode only.
+The following mappings work in insert mode only.
 
 Name:			HTML:		Macro:              ~
 --------------------------------------------------------------------
@@ -487,6 +508,7 @@ One Half		&frac12;	&12		*i_&12*
 Three Quarters		&frac34;	&34		*i_&34*
 En dash                 &ndash;         &n-             *i_&n-*
 Em dash                 &mdash;         &m-/&--         *i_&m-* *i_&--*
+Ellipsis                &hellip;        &3.             *i_&3.*
 A-grave			&Agrave;	&A`		*i_&A`*
 a-grave			&agrave;	&a`		*i_&a`*
 E-grave			&Egrave;	&E`		*i_&E`*
@@ -558,7 +580,7 @@ For Windows:
 
 	(Currently I do not have access to a Windows machine running anything
 	but Internet Explorer, so controls for other browsers under Windows
-	don't exist yet.)
+	do not exist yet.)
 
 
 For Unix:
@@ -567,21 +589,21 @@ The following mappings are only defined if you have properly installed the
 browser_launcher.vim script, available with installation instructions here:
 http://www.infynity.spodzone.com/vim/HTML/
 								*;ff*
-;mo	Make Firefox view the current file, starting Firefox if it's not
+;mo	Make Firefox view the current file, starting Firefox if it is not
 	running.
 								*;nff*
 ;nmo	Same as ;ff, but start a new browser window.
 								*;tff*
 ;tmo	Same as ;nff, but open a new tab.
 								*;mo*
-;mo	Make Mozilla view the current file, starting Mozilla if it's not
+;mo	Make Mozilla view the current file, starting Mozilla if it is not
 	running.
 								*;nmo*
 ;nmo	Same as ;mo, but start a new browser window.
 								*;tmo*
 ;tmo	Same as ;nmo, but open a new tab.
 								*;ns*
-;ns	Make Netscape view the current file, starting Netscape if it's not
+;ns	Make Netscape view the current file, starting Netscape if it is not
 	running.
 								*;nns*
 ;nns	Same as ;ns, but start a new browser window.
@@ -590,16 +612,16 @@ Note: If both Mozilla and Netscape are running, these mappings may behave
 somewhat unexpectedly, due to the fact that both Mozilla and Netscape use
 the same remote protocol IDs.
 								*;oa*
-;oa	Make Opera view the current file, starting Opera if it's not running.
+;oa	Make Opera view the current file, starting Opera if it is not running.
 								*;noa*
 ;noa	Same as ;oa, but start a new browser window.
 								*;toa*
 ;toa	Same as ;noa, but open a new tab.
 								*;ly*
-;ly	Use lynx to view your document.  This behaves like ;nly if you're in
+;ly	Use lynx to view your document.  This behaves like ;nly if you are in
 	the Vim GUI.
 								*;nly*
-;nly	Same as ;ly, but in a new xterm.  This behaves like ;ly if there's no
+;nly	Same as ;ly, but in a new xterm.  This behaves like ;ly if there is no
 	DISPLAY environmental variable.
 
 
@@ -664,19 +686,15 @@ HTMLtemplate()						*HTMLtemplate()*
 	the same if you call it any other way.
 
 SetIfUnset({variable}, {value})				*SetIfUnset()*
-	This function sets {variable} to {value} if the variable isn't already
-	set.  A {value} of "-" makes sure the variable is set with an empty
-	string.
+	This function sets {variable} to {value} if the variable is not
+	already set.  A {value} of "-" makes sure the variable is set with an
+	empty string.
 
 
 Author's notes:						*html-author-notes*
 ---------------
-Supporting XHTML with this script would be complex, but possible.  However,
-since I don't write XHTML I will need help doing so.  If you'd like to help
-please contact me, my email address is at the top of the script file.
-
 I will never include mappings for certain tags, such as <BLINK></BLINK> and
-<MARQUEE></MARQUEE>.  As far as I'm concerned these tags should never have
+<MARQUEE></MARQUEE>.  As far as I am concerned these tags should never have
 existed.  (I disable these "features" completely in my browser.)
 
  vim:tw=78:ts=8:sw=8:ft=help:fo=tcq2:ai:

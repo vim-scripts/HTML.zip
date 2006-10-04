@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: May 20, 2006
-" Version:     0.20.4
+" Last Change: September 29, 2006
+" Version:     0.21
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.108 2006/05/20 06:53:57 infynity Exp $
+" $Id: HTML.vim,v 1.114 2006/09/30 02:17:51 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -113,6 +113,16 @@ call SetIfUnset('b:html_tag_case', g:html_tag_case)
 SetIfUnset html_authorname  -
 SetIfUnset html_authoremail -
 
+"call input(&filetype)
+if &filetype ==? "xhtml" || (exists('g:do_xhtml_mappings') && g:do_xhtml_mappings != 0)
+  let b:do_xhtml_mappings = 1
+else
+  let b:do_xhtml_mappings = 0
+endif
+
+if b:do_xhtml_mappings != 0
+  let b:html_tag_case = 'lowercase'
+endif
 " ----------------------------------------------------------------------------
 
 
@@ -156,6 +166,9 @@ endfunction
 function! HTMLmap(cmd, map, arg, ...)
 
   let arg = s:HTMLconvertCase(a:arg)
+  if b:do_xhtml_mappings == 0
+    let arg = substitute(arg, ' />', '>', 'g')
+  endif
 
   if a:cmd =~ '^v'
     if a:0 >= 1 && a:1 < 0
@@ -182,6 +195,7 @@ endfunction
 " mapping:
 " Arguments:
 " 1 - String:  The mapping.
+" 2 - Boolean: Whether to enter insert mode after the mapping has executed.
 function! HTMLmapo(map, insert)
   if v:version < 700
     return
@@ -437,30 +451,38 @@ let s:internal_html_template=
   \"<[{HTML}]>\n" .
   \" <[{HEAD}]>\n\n" .
   \"  <[{TITLE></TITLE}]>\n\n" .
-  \"  <[{META NAME}]=\"Generator\" [{CONTENT}]=\"vim (Vi IMproved editor; http://www.vim.org/)\">\n" .
-  \"  <[{META NAME}]=\"Author\" [{CONTENT}]=\"%authorname%\">\n" .
-  \"  <[{META NAME}]=\"Copyright\" [{CONTENT}]=\"Copyright (C) %date% %authorname%\">\n" .
-  \"  <[{LINK REV}]=\"made\" [{HREF}]=\"mailto:%authoremail%\">\n\n" .
+  \"  <[{META NAME}]=\"Generator\" [{CONTENT}]=\"vim (Vi IMproved editor; http://www.vim.org/)\" />\n" .
+  \"  <[{META NAME}]=\"Author\" [{CONTENT}]=\"%authorname%\" />\n" .
+  \"  <[{META NAME}]=\"Copyright\" [{CONTENT}]=\"Copyright (C) %date% %authorname%\" />\n" .
+  \"  <[{LINK REV}]=\"made\" [{HREF}]=\"mailto:%authoremail%\" />\n\n" .
   \" </[{HEAD}]>\n" .
   \" <[{BODY BGCOLOR}]=\"%bgcolor%\"" .
     \" [{TEXT}]=\"%textcolor%\"" .
     \" [{LINK}]=\"%linkcolor%\"" .
     \" [{ALINK}]=\"%alinkcolor%\"" .
     \" [{VLINK}]=\"%vlinkcolor%\">\n\n" .
-  \"  <[{H1 ALIGN=CENTER></H1}]>\n\n" .
+  \"  <[{H1 ALIGN=\"CENTER\"></H1}]>\n\n" .
   \"  <[{P}]>\n" .
   \"  </[{P}]>\n\n" .
-  \"  <[{HR WIDTH}]=\"75%\">\n\n" .
+  \"  <[{HR WIDTH}]=\"75%\" />\n\n" .
   \"  <[{P}]>\n" .
   \"  Last Modified: <[{I}]>%date%</[{I}]>\n" .
   \"  </[{P}]>\n\n" .
   \"  <[{ADDRESS}]>\n" .
-  \"   <[{A HREF}]=\"mailto:%authoremail%\">%authorname%&lt;%authoremail%&gt;</[{A}]>\n" .
+  \"   <[{A HREF}]=\"mailto:%authoremail%\">%authorname% &lt;%authoremail%&gt;</[{A}]>\n" .
   \"  </[{ADDRESS}]>\n" .
   \" </[{BODY}]>\n" .
   \"</[{HTML}]>"
 
-let s:internal_html_template = s:HTMLconvertCase(s:internal_html_template)
+let b:internal_html_template = s:HTMLconvertCase(s:internal_html_template)
+
+if b:do_xhtml_mappings != 0
+  let b:internal_html_template = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n" .
+        \ " \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n" .
+        \ b:internal_html_template
+else
+  let b:internal_html_template = substitute(b:internal_html_template, ' />', '>', 'g')
+endif
 
 " HTMLtemplate()  {{{2
 "
@@ -502,7 +524,7 @@ function! s:HTMLtemplate2()
   endif
 
   if (! exists('g:html_template')) || g:html_template == ""
-      0put =s:internal_html_template
+      0put =b:internal_html_template
   else
     if filereadable(expand(g:html_template))
       execute "0read " . g:html_template
@@ -549,11 +571,14 @@ endfunction  " }}}2
 "call HTMLmap("nnoremap", ";4", "1GO<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\"><ESC>``")
 
 "       SGML Doctype Command -- Transitional (Looser)
-"call HTMLmap("nnoremap", ";4", "\m'1GO<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"<CR> \"http://www.w3.org/TR/html4/loose.dtd\"><ESC>``")
-call HTMLmap("nnoremap", ";4", ":call append(0, '<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/html4/loose.dtd\">')<CR>")
+if b:do_xhtml_mappings == 0
+  call HTMLmap("nnoremap", ";4", ":call append(0, '<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/html4/loose.dtd\">')<CR>")
+else
+  call HTMLmap("nnoremap", ";4", ":call append(0, '<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">')<CR>")
+endif
 
 "       Content Type META tag
-call HTMLmap("inoremap", ";ct", "<[{META HTTP-EQUIV}]=\"Content-Type\" [{CONTENT}]=\"text/html; charset=iso-8859-1\">")
+call HTMLmap("inoremap", ";ct", "<[{META HTTP-EQUIV}]=\"Content-Type\" [{CONTENT}]=\"text/html; charset=iso-8859-1\" />")
 
 "       Comment Tag
 call HTMLmap("inoremap", ";cm", "<C-R>=<SID>tag('comment','i')<CR>")
@@ -622,9 +647,9 @@ call HTMLmap("vnoremap", ";bo", "<C-C>:execute \"normal \" . <SID>tag('b','v')<C
 call HTMLmapo(';bo', 0)
 
 "       BASE                            HTML 2.0        HEADER
-call HTMLmap("inoremap", ";bh", "<[{BASE HREF}]=\"\"><ESC>hi")
+call HTMLmap("inoremap", ";bh", "<[{BASE HREF}]=\"\" /><ESC>F\"i")
 " Visual mapping:
-call HTMLmap("vnoremap", ";bh", "<ESC>`>a\"><C-O>`<<[{BASE HREF}]=\"<ESC>", 2)
+call HTMLmap("vnoremap", ";bh", "<ESC>`>a\" /><C-O>`<<[{BASE HREF}]=\"<ESC>", 2)
 " Motion mapping:
 call HTMLmapo(';bh', 0)
 
@@ -650,7 +675,7 @@ call HTMLmap("vnoremap", ";bd", "<ESC>`>a<CR></[{BODY}]><C-O>`<<[{BODY}]><CR><ES
 call HTMLmapo(';bd', 0)
 
 "       BR      Line break              HTML 2.0
-call HTMLmap("inoremap", ";br", "<[{BR}]>")
+call HTMLmap("inoremap", ";br", "<[{BR}] />")
 
 "       CENTER                          NETSCAPE
 call HTMLmap("inoremap", ";ce", "<[{CENTER></CENTER}]><ESC>bhhi")
@@ -680,8 +705,8 @@ call HTMLmapo(';co', 0)
 call HTMLmap("inoremap", ";dl", "<[{DL}]><CR></[{DL}]><ESC>O")
 " Visual mappings:
 call HTMLmap("vnoremap", ";dl", "<ESC>`>a<CR></[{DL}]><C-O>`<<[{DL}]><CR><ESC>", 1)
-call HTMLmap("inoremap", ";dt", "<[{DT}]>")
-call HTMLmap("inoremap", ";dd", "<[{DD}]>")
+call HTMLmap("inoremap", ";dt", "<[{DT}] />")
+call HTMLmap("inoremap", ";dd", "<[{DD}] />")
 " Motion mapping:
 call HTMLmapo(';dl', 0)
 
@@ -740,12 +765,12 @@ call HTMLmap("inoremap", ";h3", "<[{H3}]></[{H3}]><ESC>bhhi")
 call HTMLmap("inoremap", ";h4", "<[{H4}]></[{H4}]><ESC>bhhi")
 call HTMLmap("inoremap", ";h5", "<[{H5}]></[{H5}]><ESC>bhhi")
 call HTMLmap("inoremap", ";h6", "<[{H6}]></[{H6}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H1", "<[{H1 ALIGN=CENTER}]></[{H1}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H2", "<[{H2 ALIGN=CENTER}]></[{H2}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H3", "<[{H3 ALIGN=CENTER}]></[{H3}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H4", "<[{H4 ALIGN=CENTER}]></[{H4}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H5", "<[{H5 ALIGN=CENTER}]></[{H5}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H6", "<[{H6 ALIGN=CENTER}]></[{H6}]><ESC>bhhi")
+call HTMLmap("inoremap", ";H1", "<[{H1 ALIGN=\"CENTER}]\"></[{H1}]><ESC>bhhi")
+call HTMLmap("inoremap", ";H2", "<[{H2 ALIGN=\"CENTER}]\"></[{H2}]><ESC>bhhi")
+call HTMLmap("inoremap", ";H3", "<[{H3 ALIGN=\"CENTER}]\"></[{H3}]><ESC>bhhi")
+call HTMLmap("inoremap", ";H4", "<[{H4 ALIGN=\"CENTER}]\"></[{H4}]><ESC>bhhi")
+call HTMLmap("inoremap", ";H5", "<[{H5 ALIGN=\"CENTER}]\"></[{H5}]><ESC>bhhi")
+call HTMLmap("inoremap", ";H6", "<[{H6 ALIGN=\"CENTER}]\"></[{H6}]><ESC>bhhi")
 " Visual mappings:
 call HTMLmap("vnoremap", ";h1", "<ESC>`>a</[{H1}]><C-O>`<<[{H1}]><ESC>", 2)
 call HTMLmap("vnoremap", ";h2", "<ESC>`>a</[{H2}]><C-O>`<<[{H2}]><ESC>", 2)
@@ -753,12 +778,12 @@ call HTMLmap("vnoremap", ";h3", "<ESC>`>a</[{H3}]><C-O>`<<[{H3}]><ESC>", 2)
 call HTMLmap("vnoremap", ";h4", "<ESC>`>a</[{H4}]><C-O>`<<[{H4}]><ESC>", 2)
 call HTMLmap("vnoremap", ";h5", "<ESC>`>a</[{H5}]><C-O>`<<[{H5}]><ESC>", 2)
 call HTMLmap("vnoremap", ";h6", "<ESC>`>a</[{H6}]><C-O>`<<[{H6}]><ESC>", 2)
-call HTMLmap("vnoremap", ";H1", "<ESC>`>a</[{H1}]><C-O>`<<[{H1 ALIGN=CENTER}]><ESC>", 2)
-call HTMLmap("vnoremap", ";H2", "<ESC>`>a</[{H2}]><C-O>`<<[{H2 ALIGN=CENTER}]><ESC>", 2)
-call HTMLmap("vnoremap", ";H3", "<ESC>`>a</[{H3}]><C-O>`<<[{H3 ALIGN=CENTER}]><ESC>", 2)
-call HTMLmap("vnoremap", ";H4", "<ESC>`>a</[{H4}]><C-O>`<<[{H4 ALIGN=CENTER}]><ESC>", 2)
-call HTMLmap("vnoremap", ";H5", "<ESC>`>a</[{H5}]><C-O>`<<[{H5 ALIGN=CENTER}]><ESC>", 2)
-call HTMLmap("vnoremap", ";H6", "<ESC>`>a</[{H6}]><C-O>`<<[{H6 ALIGN=CENTER}]><ESC>", 2)
+call HTMLmap("vnoremap", ";H1", "<ESC>`>a</[{H1}]><C-O>`<<[{H1 ALIGN=\"CENTER}]\"><ESC>", 2)
+call HTMLmap("vnoremap", ";H2", "<ESC>`>a</[{H2}]><C-O>`<<[{H2 ALIGN=\"CENTER}]\"><ESC>", 2)
+call HTMLmap("vnoremap", ";H3", "<ESC>`>a</[{H3}]><C-O>`<<[{H3 ALIGN=\"CENTER}]\"><ESC>", 2)
+call HTMLmap("vnoremap", ";H4", "<ESC>`>a</[{H4}]><C-O>`<<[{H4 ALIGN=\"CENTER}]\"><ESC>", 2)
+call HTMLmap("vnoremap", ";H5", "<ESC>`>a</[{H5}]><C-O>`<<[{H5 ALIGN=\"CENTER}]\"><ESC>", 2)
+call HTMLmap("vnoremap", ";H6", "<ESC>`>a</[{H6}]><C-O>`<<[{H6 ALIGN=\"CENTER}]\"><ESC>", 2)
 " Motion mappings:
 call HTMLmapo(";h1", 0)
 call HTMLmapo(";h2", 0)
@@ -781,9 +806,9 @@ call HTMLmap("vnoremap", ";he", "<ESC>`>a<CR></[{HEAD}]><C-O>`<<[{HEAD}]><CR><ES
 call HTMLmapo(';he', 0)
 
 "       HR      Horizontal Rule         HTML 2.0 W/NETSCAPISM
-call HTMLmap("inoremap", ";hr", "<[{HR}]>")
+call HTMLmap("inoremap", ";hr", "<[{HR}] />")
 "       HR      Horizontal Rule         HTML 2.0 W/NETSCAPISM
-call HTMLmap("inoremap", ";Hr", "<[{HR WIDTH}]=\"75%\">")
+call HTMLmap("inoremap", ";Hr", "<[{HR WIDTH}]=\"75%\" />")
 
 "       HTML                            HTML 3.0
 call HTMLmap("inoremap", ";ht", "<[{HTML}]><CR></[{HTML}]><ESC>O")
@@ -800,9 +825,9 @@ call HTMLmap("vnoremap", ";it", "<C-C>:execute \"normal \" . <SID>tag('i','v')<C
 call HTMLmapo(';it', 0)
 
 "       IMG     Image                   HTML 2.0
-call HTMLmap("inoremap", ";im", "<[{IMG SRC=\"\" ALT}]=\"\"><ESC>Bhhi")
+call HTMLmap("inoremap", ";im", "<[{IMG SRC=\"\" ALT}]=\"\" /><ESC>F\"i")
 " Visual mapping:
-call HTMLmap("vnoremap", ";im", "<ESC>`>a\"><C-O>`<<[{IMG SRC=\"\" ALT}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", ";im", "<ESC>`>a\" /><C-O>`<<[{IMG SRC=\"\" ALT}]=\"<C-O>2F\"", 0)
 " Motion mapping:
 call HTMLmapo(';im', 1)
 
@@ -814,7 +839,7 @@ call HTMLmap("vnoremap", ";in", "<ESC>`>a</[{INS}]><C-O>`<<lt>[{INS}]><ESC>")
 call HTMLmapo(';in', 0)
 
 "       ISINDEX Identifies Index        HTML 2.0
-call HTMLmap("inoremap", ";ii", "<[{ISINDEX}]>")
+call HTMLmap("inoremap", ";ii", "<[{ISINDEX}] />")
 
 "       KBD     Keyboard Text           HTML 2.0
 call HTMLmap("inoremap", ";kb", "<[{KBD></KBD}]><ESC>bhhi")
@@ -824,12 +849,16 @@ call HTMLmap("vnoremap", ";kb", "<ESC>`>a</[{KBD}]><C-O>`<<[{KBD}]><ESC>", 2)
 call HTMLmapo(';kb', 0)
 
 "       LI      List Item               HTML 2.0
-call HTMLmap("inoremap", ";li", "<[{LI}]>")
+call HTMLmap("inoremap", ";li", "<[{LI}]></[{LI}]><ESC>bhhi")
+" Visual mapping:
+call HTMLmap("vnoremap", ";li", "<ESC>`>a</[{LI}]><C-O>`<<[{LI}]><ESC>", 2)
+" Motion mapping:
+call HTMLmapo(';li', 0)
 
 "       LINK                            HTML 2.0        HEADER
-call HTMLmap("inoremap", ";lk", "<[{LINK HREF}]=\"\"><ESC>hi")
+call HTMLmap("inoremap", ";lk", "<[{LINK HREF}]=\"\" /><ESC>F\"i")
 " Visual mapping:
-call HTMLmap("vnoremap", ";lk", "<ESC>`>a\"><C-O>`<<[{LINK HREF}]=\"<ESC>")
+call HTMLmap("vnoremap", ";lk", "<ESC>`>a\" /><C-O>`<<[{LINK HREF}]=\"<ESC>")
 " Motion mapping:
 call HTMLmapo(';lk', 0)
 
@@ -844,10 +873,10 @@ call HTMLmapo(';lh', 0)
 "imap ;mu <MENU><CR></MENU><ESC>O
 
 "       META    Meta Information        HTML 2.0        HEADER
-call HTMLmap("inoremap", ";me", "<[{META NAME=\"\" CONTENT}]=\"\"><ESC>Bhhi")
+call HTMLmap("inoremap", ";me", "<[{META NAME=\"\" CONTENT}]=\"\" /><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";me", "<ESC>`>a\" [{CONTENT}]=\"\"><C-O>`<<[{META NAME}]=\"<C-O>3f\"", 0)
-call HTMLmap("vnoremap", ";mE", "<ESC>`>a\"><C-O>`<<[{META NAME=\"\" CONTENT}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", ";me", "<ESC>`>a\" [{CONTENT}]=\"\" /><C-O>`<<[{META NAME}]=\"<C-O>3f\"", 0)
+call HTMLmap("vnoremap", ";mE", "<ESC>`>a\" /><C-O>`<<[{META NAME=\"\" CONTENT}]=\"<C-O>2F\"", 0)
 " Motion mappings:
 call HTMLmapo(';me', 1)
 call HTMLmapo(';mE', 1)
@@ -865,6 +894,9 @@ call HTMLmap("inoremap", ";pp", "<[{P}]><CR></[{P}]><ESC>O")
 call HTMLmap("vnoremap", ";pp", "<ESC>`>a<CR></[{P}]><C-O>`<<[{P}]><CR><ESC>", 1)
 " Motion mapping:
 call HTMLmapo(';pp', 0)
+" A special mapping... If you're between <P> and </P> this will insert the
+" close tag and then the open tag in insert mode:
+call HTMLmap("inoremap", ";/p", "</[{P}]><CR><CR><[{P}]><CR>")
 
 "       PRE     Preformatted Text       HTML 2.0
 call HTMLmap("inoremap", ";pr", "<[{PRE}]><CR></[{PRE}]><ESC>O")
@@ -909,7 +941,7 @@ call HTMLmap("vnoremap", ";st", "<C-C>:execute \"normal \" . <SID>tag('strong','
 call HTMLmapo(';st', 0)
 
 "       STYLE                           HTML 4.0        HEADER
-call HTMLmap("inoremap", ";cs", "<[{STYLE TYPE}]=\"text/css\"><CR><!--  --><CR></[{STYLE}]><ESC>k0Ela")
+call HTMLmap("inoremap", ";cs", "<[{STYLE TYPE}]=\"text/css\"><CR><!--<CR>--><CR></[{STYLE}]><ESC>kO")
 " Visual mapping:
 call HTMLmap("vnoremap", ";cs", "<ESC>`>a<CR> --><CR></[{STYLE}]><C-O>`<<[{STYLE TYPE}]=\"text/css\"><CR><!--<CR><ESC>", 1)
 " Motion mapping:
@@ -975,7 +1007,10 @@ call HTMLmapo(';va', 0)
 call HTMLmap("inoremap", ";js", "<[{SCRIPT TYPE}]=\"text/javascript\" [{LANGUAGE}]=\"javascript\"><CR><!--<CR>// --><CR></[{SCRIPT}]><ESC>kO")
 
 "       EMBED
-call HTMLmap("inoremap", ";eb", "<[{EMBED SRC=\"\" WIDTH=\"\" HEIGHT}]=\"\"><CR><[{NOEMBED></NOEMBED}]><ESC>k0f\"li")
+call HTMLmap("inoremap", ";eb", "<[{EMBED SRC=\"\" WIDTH=\"\" HEIGHT}]=\"\" /><CR><[{NOEMBED></NOEMBED}]><ESC>k0f\"li")
+
+"       OBJECT
+call HTMLmap("inoremap", ";ob", "<[{OBJECT DATA=\"\" WIDTH=\"\" HEIGHT}]=\"\"><CR></[{OBJECT}]><ESC>k0f\"li")
 
 " Table stuff:
 call HTMLmap("inoremap", ";ca", "<[{CAPTION></CAPTION}]><ESC>bhhi")
@@ -1050,11 +1085,11 @@ endfunction
 
 " Frames stuff:
 call HTMLmap("inoremap", ";fs", "<[{FRAMESET ROWS=\"\" COLS}]=\"\"><CR></[{FRAMESET}]><ESC>BBhhi")
-call HTMLmap("inoremap", ";fr", "<[{FRAME SRC}]=\"\"><ESC>hi")
+call HTMLmap("inoremap", ";fr", "<[{FRAME SRC}]=\"\" /><ESC>F\"i")
 call HTMLmap("inoremap", ";nf", "<[{NOFRAMES}]><CR></[{NOFRAMES}]><ESC>O")
 " Visual mappings:
 call HTMLmap("vnoremap", ";fs", "<ESC>`>a<CR></[{FRAMESET}]><C-O>`<<[{FRAMESET ROWS=\"\" COLS}]=\"\"><CR><ESC>k0f\"l")
-call HTMLmap("vnoremap", ";fr", "<ESC>`>a\"><C-O>`<<[{FRAME SRC=\"<ESC>")
+call HTMLmap("vnoremap", ";fr", "<ESC>`>a\" /><C-O>`<<[{FRAME SRC=\"<ESC>")
 call HTMLmap("vnoremap", ";nf", "<ESC>`>a<CR></[{NOFRAMES}]><C-O>`<<[{NOFRAMES}]><CR><ESC>", 1)
 " Motion mappings:
 call HTMLmapo(";fs", 0)
@@ -1070,32 +1105,32 @@ call HTMLmapo(';if', 0)
 
 " Forms stuff:
 call HTMLmap("inoremap", ";fm", "<[{FORM ACTION}]=\"\"><CR></[{FORM}]><ESC>k0f\"li")
-call HTMLmap("inoremap", ";bu", "<[{INPUT TYPE=BUTTON NAME=\"\" VALUE}]=\"\"><ESC>BF\"i")
-call HTMLmap("inoremap", ";ch", "<[{INPUT TYPE=CHECKBOX NAME=\"\" VALUE}]=\"\"><ESC>BF\"i")
-call HTMLmap("inoremap", ";ra", "<[{INPUT TYPE=RADIO NAME=\"\" VALUE}]=\"\"><ESC>BF\"i")
-call HTMLmap("inoremap", ";hi", "<[{INPUT TYPE=HIDDEN NAME=\"\" VALUE}]=\"\"><ESC>BF\"i")
-call HTMLmap("inoremap", ";pa", "<[{INPUT TYPE=PASSWORD NAME=\"\" SIZE}]=20><ESC>BF\"i")
-call HTMLmap("inoremap", ";te", "<[{INPUT TYPE=TEXT NAME=\"\" VALUE=\"\" SIZE}]=20><ESC>BF\"i")
-call HTMLmap("inoremap", ";fi", "<[{INPUT TYPE=FILE NAME=\"\" VALUE=\"\" SIZE}]=20><ESC>BF\"i")
+call HTMLmap("inoremap", ";bu", "<[{INPUT TYPE=\"BUTTON\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
+call HTMLmap("inoremap", ";ch", "<[{INPUT TYPE=\"CHECKBOX\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
+call HTMLmap("inoremap", ";ra", "<[{INPUT TYPE=\"RADIO\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
+call HTMLmap("inoremap", ";hi", "<[{INPUT TYPE=\"HIDDEN\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
+call HTMLmap("inoremap", ";pa", "<[{INPUT TYPE=\"PASSWORD\" NAME=\"\" SIZE}]=20 /><ESC>F\"i")
+call HTMLmap("inoremap", ";te", "<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE=\"\" SIZE}]=20 /><ESC>3F\"i")
+call HTMLmap("inoremap", ";fi", "<[{INPUT TYPE=\"FILE\" NAME=\"\" VALUE=\"\" SIZE}]=20 /><ESC>3F\"i")
 call HTMLmap("inoremap", ";se", "<[{SELECT NAME}]=\"\"><CR></[{SELECT}]><ESC>O")
 call HTMLmap("inoremap", ";ms", "<[{SELECT NAME=\"\" MULTIPLE}]><CR></[{SELECT}]><ESC>O")
-call HTMLmap("inoremap", ";op", "<[{OPTION}]>")
+call HTMLmap("inoremap", ";op", "<[{OPTION}] />")
 call HTMLmap("inoremap", ";og", "<[{OPTGROUP LABEL}]=\"\"><CR></[{OPTGROUP}]><ESC>k0f\"li")
-call HTMLmap("inoremap", ";tx", "<[{TEXTAREA NAME=\"\" ROWS=10 COLS}]=50><CR></[{TEXTAREA}]><ESC>k0f\"li")
-call HTMLmap("inoremap", ";su", "<[{INPUT TYPE=SUBMIT VALUE}]=\"Submit\">")
-call HTMLmap("inoremap", ";re", "<[{INPUT TYPE=RESET VALUE}]=\"Reset\">")
+call HTMLmap("inoremap", ";tx", "<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR></[{TEXTAREA}]><ESC>k0f\"li")
+call HTMLmap("inoremap", ";su", "<[{INPUT TYPE=\"SUBMIT\" VALUE}]=\"Submit\" />")
+call HTMLmap("inoremap", ";re", "<[{INPUT TYPE=\"RESET\" VALUE}]=\"Reset\" />")
 call HTMLmap("inoremap", ";la", "<[{LABEL FOR=\"\"></LABEL}]><C-O>F\"")
 " Visual mappings:
 call HTMLmap("vnoremap", ";fm", "<ESC>`>a<CR></[{FORM}]><C-O>`<<[{FORM ACTION}]=\"\"><CR><ESC>k0f\"l", 1)
-call HTMLmap("vnoremap", ";bu", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=BUTTON NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
-call HTMLmap("vnoremap", ";ch", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=CHECKBOX NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
-call HTMLmap("vnoremap", ";ra", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=RADIO NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
-call HTMLmap("vnoremap", ";hi", "<ESC>`>a\"><C-O>`<<[{INPUT TYPE=HIDDEN NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
-call HTMLmap("vnoremap", ";te", "<ESC>`>a\" [{SIZE}]=20><C-O>`<<[{INPUT TYPE=TEXT NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", ";bu", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"BUTTON\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", ";ch", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"CHECKBOX\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", ";ra", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"RADIO\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", ";hi", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"HIDDEN\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", ";te", "<ESC>`>a\" [{SIZE}]=\"20\" /><C-O>`<<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
 call HTMLmap("vnoremap", ";se", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME}]=\"\"><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", ";ms", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME=\"\" MULTIPLE}]><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", ";og", "<ESC>`>a<CR></[{OPTGROUP}]><C-O>`<<[{OPTGROUP LABEL}]=\"\"><CR><ESC>k0f\"l", 1)
-call HTMLmap("vnoremap", ";tx", "<ESC>`>a<CR></[{TEXTAREA}]><C-O>`<<[{TEXTAREA NAME=\"\" ROWS=10 COLS}]=50><CR><ESC>k0f\"l", 1)
+call HTMLmap("vnoremap", ";tx", "<ESC>`>a<CR></[{TEXTAREA}]><C-O>`<<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", ";la", "<ESC>`>a</[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"\"><C-O>F\"", 0)
 call HTMLmap("vnoremap", ";lA", "<ESC>`>a\"></[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"<C-O>f<", 0)
 " Motion mappings:
@@ -1208,6 +1243,7 @@ call HTMLmap("inoremap", "&34", "&frac34;")
 call HTMLmap("inoremap", "&n-", "&ndash;")  " Math symbol.
 call HTMLmap("inoremap", "&m-", "&mdash;")  " Sentence break.
 call HTMLmap("inoremap", "&--", "&mdash;")  " ditto
+call HTMLmap("inoremap", "&3.", "&hellip;")
 " ----------------------------------------------------------------------------
 
 " ---- Browser Remote Controls: ----------------------------------------- {{{1
@@ -1276,7 +1312,7 @@ if ! has("gui_running")
   execute 'autocmd GUIEnter * source ' . expand('<sfile>:p')
   augroup END
 elseif exists("did_html_menus")
-  if &filetype ==? "html"
+  if &filetype ==? "html" || &filetype ==? "xhtml"
     amenu enable HTML
     amenu enable HTML.*
     amenu enable ToolBar.*
@@ -1461,7 +1497,7 @@ endif  " (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") [...
 augroup HTML_menu_autos
 au!
 autocmd BufLeave,BufWinLeave *
- \ if &filetype ==? "html" |
+ \ if &filetype ==? "html" || &filetype ==? "xhtml" |
    \ amenu disable HTML |
    \ amenu disable HTML.* |
    \ if exists('g:did_html_toolbar') |
@@ -1477,7 +1513,7 @@ autocmd BufLeave,BufWinLeave *
    \ endif |
  \ endif
 autocmd BufEnter,BufWinEnter *
- \ if &filetype ==? "html" |
+ \ if &filetype ==? "html" || &filetype ==? "xhtml" |
    \ amenu enable HTML |
    \ amenu enable HTML.* |
    \ amenu enable ToolBar.* |
@@ -1524,10 +1560,6 @@ endif
 let b:save_encoding=&encoding
 let &encoding='latin1'
 
-call HTMLmap("inoremap", "&n-", "&ndash;")  " Math symbol.
-call HTMLmap("inoremap", "&m-", "&mdash;")  " Sentence break.
-call HTMLmap("inoremap", "&--", "&mdash;")  " ditto
-
 nmenu HTML.Character\ Entities.Convert\ to\ Entity<tab>;\&         ;&
 vmenu HTML.Character\ Entities.Convert\ to\ Entity<tab>;\&         ;&
  menu HTML.Character\ Entities.-sep0- <nul>
@@ -1558,6 +1590,7 @@ imenu HTML.Character\ Entities.One\ Half\ (½)<tab>\&12             &12
 imenu HTML.Character\ Entities.Three\ Quarters\ (¾)<tab>\&34       &34
 imenu HTML.Character\ Entities.En\ dash\ (-)<tab>\&n-              &n-
 imenu HTML.Character\ Entities.Em\ dash\ (--)<tab>\&m-/\&--        &m-
+imenu HTML.Character\ Entities.Ellipsis\ (\.\.\.)<tab>\&3\.        &3.
 imenu HTML.Character\ Entities.-sep2- <nul>
 imenu HTML.Character\ Entities.Graves.A-grave\ (À)<tab>\&A` &A`
 imenu HTML.Character\ Entities.Graves.a-grave\ (à)<tab>\&a` &a`
@@ -1646,6 +1679,7 @@ nmenu HTML.Character\ Entities.One\ Half\ (½)<tab>\&12             i&12<ESC>
 nmenu HTML.Character\ Entities.Three\ Quarters\ (¾)<tab>\&34       i&34<ESC>
 nmenu HTML.Character\ Entities.En\ dash\ (-)<tab>\&n-              i&n-
 nmenu HTML.Character\ Entities.Em\ dash\ (--)<tab>\&m-/\&--        i&m-
+nmenu HTML.Character\ Entities.Ellipsis\ (\.\.\.)<tab>\&3\.        i&3.
 nmenu HTML.Character\ Entities.Graves.A-grave\ (À)<tab>\&A` i&A`<ESC>
 nmenu HTML.Character\ Entities.Graves.a-grave\ (à)<tab>\&a` i&a`<ESC>
 nmenu HTML.Character\ Entities.Graves.E-grave\ (È)<tab>\&E` i&E`<ESC>

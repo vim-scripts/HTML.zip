@@ -22,8 +22,17 @@
 " Place - Suite 330, Boston, MA 02111-1307, USA.
 "
 " RCS info: ---------------------------------------------------------------{{{
-" $Id: MangleImageTag.vim,v 1.3 2005/05/19 18:31:31 infynity Exp $
+" $Id: MangleImageTag.vim,v 1.6 2006/09/22 06:25:14 infynity Exp $
 " $Log: MangleImageTag.vim,v $
+" Revision 1.6  2006/09/22 06:25:14  infynity
+" Search for the image file in the current directory and the buffer's directory.
+"
+" Revision 1.5  2006/06/09 07:56:08  infynity
+" Was resetting 'autoindent' globally, switch it to locally.
+"
+" Revision 1.4  2006/06/08 04:16:17  infynity
+" Temporarily reset 'autoindent' (required for Vim7)
+"
 " Revision 1.3  2005/05/19 18:31:31  infynity
 " SizeGif was returning width as height and vice-versa.
 "
@@ -96,6 +105,18 @@ function! MangleImageTag() "{{{1
 		return
 	endif
 
+	if ! filereadable(src)
+		if filereadable(expand("%:p:h") . '/' . src)
+			let src = expand("%:p:h") . '/' . src
+		else
+			echohl ErrorMsg
+			echomsg "Can't find image file: " . src
+			echohl None
+
+			return
+		endif
+	endif
+
 	let size = s:ImageSize(src)
 	if size == ''
 		return
@@ -124,7 +145,13 @@ function! MangleImageTag() "{{{1
 	endif
 
 	let line = savestart . tag . saveend
+
+	let saveautoindent=&autoindent
+	let &l:autoindent=0
+
 	silent exe 'normal :' . start_linenr . ',' . end_linenr . "change\n" . line . "\n."
+
+	let &l:autoindent=saveautoindent
 endfunction
 
 function! s:ImageSize(image) "{{{1
