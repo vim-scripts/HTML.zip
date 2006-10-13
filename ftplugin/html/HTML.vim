@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: September 29, 2006
-" Version:     0.21
+" Last Change: October 10, 2006
+" Version:     0.21.2
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.114 2006/09/30 02:17:51 infynity Exp $
+" $Id: HTML.vim,v 1.116 2006/10/10 15:45:39 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -343,7 +343,7 @@ function! HTMLnextInsertPoint(mode)
 
   " Running the search twice is inefficient, but it squelches error
   " messages and the second search puts my cursor where it's needed...
-  if search("<\\([^ <>]\\+\\)[^<>]*>\\(\\n *\\)\\{0,2}<\\/\\1>\\|<[^<>]*\"\"[^<>]*>","w") == 0
+  if search("<\\([^ <>]\\+\\)\\_[^<>]*>\\(\\n *\\)\\{0,2}<\\/\\1>\\|<\\_[^<>]*\"\"\\_[^<>]*>","w") == 0
     if byteoffset == -1
       go 1
     else
@@ -351,7 +351,7 @@ function! HTMLnextInsertPoint(mode)
     endif
   else
     normal 0
-    exe 'silent normal! /<\([^ <>]\+\)[^<>]*>\(\n *\)\{0,2}<\/\1>\|<[^<>]*""[^<>]*>/;/>\(\n *\)\{0,2}<\|""/e' . "\<CR>"
+    exe 'silent normal! /<\([^ <>]\+\)\_[^<>]*>\(\n *\)\{0,2}<\/\1>\|<\_[^<>]*""\_[^<>]*>/;/>\(\n *\)\{0,2}<\|""/e' . "\<CR>"
 
     " Since matching open/close tags that spans lines is possible, it
     " might be necessary to position the cursor on a blank line:
@@ -825,7 +825,7 @@ call HTMLmap("vnoremap", ";it", "<C-C>:execute \"normal \" . <SID>tag('i','v')<C
 call HTMLmapo(';it', 0)
 
 "       IMG     Image                   HTML 2.0
-call HTMLmap("inoremap", ";im", "<[{IMG SRC=\"\" ALT}]=\"\" /><ESC>F\"i")
+call HTMLmap("inoremap", ";im", "<[{IMG SRC=\"\" ALT}]=\"\" /><ESC>3F\"i")
 " Visual mapping:
 call HTMLmap("vnoremap", ";im", "<ESC>`>a\" /><C-O>`<<[{IMG SRC=\"\" ALT}]=\"<C-O>2F\"", 0)
 " Motion mapping:
