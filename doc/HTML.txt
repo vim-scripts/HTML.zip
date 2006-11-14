@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2006 Sep 29
+		Last change: 2006 Nov 12
 		Written by Christian J. Robinson
 
 
@@ -50,7 +50,8 @@ dependence on the syntax highlighting.)
 	mapped ;; to insert a single ; character in insert mode, and behave
 	like a single ; in normal mode.  There is no mapping to get a literal
 	& since it is not valid in HTML.  Use CTRL-V & if you need to get a
-	literal &.
+	literal &.  (This mapping is undefined if |g:html_map_leader| is not
+	set to ';'.)
 
 				*html-<TAB>* *html-tab* *html-CTRL-I*
 				*i_html-<TAB>* *i_html-tab* *i_html-CTRL-I*
@@ -77,11 +78,13 @@ dependence on the syntax highlighting.)
 
 					*i_;<tab>* *i_;tab* *i_;CTRL-I*
 ;<Tab>	If you want to insert a hard tab (; then the tab key).
+	(See |g:html_map_leader|)
 
 								*;html*
 ;html	The ;html macro inserts a basic template at the top of the file.  If
 	you already have text in the file, you are asked if you want to
 	replace it or add the template anyway.
+	(See |g:html_map_leader|)
 
 	See |g:html_template| for information on how to customize your
 	template.
@@ -107,6 +110,13 @@ This variable can be set to "l" / "lower" / "lowercase" or "u" / "upper" /
 "uppercase" to determine the case of the text in the HTML tags.  This variable
 must be set before HTML.vim is sourced.  The default is "uppercase".  You can
 also set this on a per-buffer basis by using b:html_tag_case instead.
+
+*g:html_map_leader*
+This variable can be set to the character you want for the leader of the
+mappings defined under |html-tags|, the default being ';'.  There is no way to
+modify the mappings for the character entity mappings, which are prefixed with
+'&'.  You can set this to your |mapleader| or |maplocalleader|.  e.g.: >
+	:let g:html_map_leader = g:maplocalleader
 
 *g:no_html_toolbar*
 Set this variable if you don not want this plugin to modify the Vim toolbar and
@@ -140,7 +150,8 @@ will be overwritten when the template macro is used.)
 
 *g:html_bgcolor* *g:html_textcolor* *g:html_linkcolor*
 *g:html_alinkcolor* *g:html_vlinkcolor*
-These control the <BODY> tag in the internal template.  They default to: >
+These control the <BODY> tag in the internal template and can also be used as
+|html-tokens| in the user defined template.  They default to: >
 	:let g:html_bgcolor     = '#FFFFFF'
 	:let g:html_textcolor   = '#000000'
 	:let g:html_linkcolor   = '#0000EE'
@@ -199,6 +210,9 @@ normal mode mappings that take a motion operator.
 If you are editing an XHTML file (see |g:do_xhtml_mappings|) the tags will be
 compatible with XHTML.
 
+Note that you can change the leader character for these mappings from ';' to
+another character of your preference.  See |g:html_map_leader|.
+
 
 							*;4*
 ;4	Inserts >
@@ -211,6 +225,8 @@ compatible with XHTML.
 							*i_;ct*
 ;ct	Insert <META HTTP-EQUIV="Content-Type" CONTENT="text/html;
 	charset=iso-8859-1"> at the current cursor position.
+	TODO: Make the charset value based on the current
+	'encoding'/'fileencoding' (see |html-author-notes|).
 							*i_;cm* *v_;cm*
 ;cm	Comment tag (<!-- -->).  (|html-smart-tag|)
 							*i_;ah* *v_;ah*
@@ -336,14 +352,14 @@ compatible with XHTML.
 							*v_;mE*
 ;mE	Same as ;me, but puts the visually selected text <META NAME=""
 	CONTENT="here"> and places the cursor on the second " of NAME="".
-							*i_;mi* *v_;mi*
-;mi	Automatically update the WIDTH and HEIGHT attributes of an <IMG> tag.
+							*n_;mi* *i_;mi*
+;mi	Automatically add or update the WIDTH and HEIGHT attributes of an
+	<IMG> tag.
 
-	(Warning, this is experimental! Currently the computed size can be
-	incorrect sometimes due to a quirk in how VimL represents newlines and
-	NULs in strings.)
+	Warning: Currently the computed size can be incorrect sometimes due to
+	a quirk in how VimL represents newlines and NULs in strings.
 
-	This mapping is only defined If MangleImageTag.vim is installed,
+	This mapping is only defined if MangleImageTag.vim is installed,
 	available with installation instructions here:
 	http://www.infynity.spodzone.com/vim/HTML/
 							*i_;ol* *v_;ol*
@@ -696,5 +712,10 @@ Author's notes:						*html-author-notes*
 I will never include mappings for certain tags, such as <BLINK></BLINK> and
 <MARQUEE></MARQUEE>.  As far as I am concerned these tags should never have
 existed.  (I disable these "features" completely in my browser.)
+
+I would like to make the |;ct| mapping's charset value based on the 'encoding'
+option or the buffer's 'fileencoding' option if it's set.  Unfortunately I
+need a good translation table from the possible values that Vim uses to the
+valid values for the Content-Type HTTP header.
 
  vim:tw=78:ts=8:sw=8:ft=help:fo=tcq2:ai:

@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: October 10, 2006
-" Version:     0.21.2
+" Last Change: November 13, 2006
+" Version:     0.22.1
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.116 2006/10/10 15:45:39 infynity Exp $
+" $Id: HTML.vim,v 1.119 2006/11/13 22:58:53 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -107,6 +107,7 @@ SetIfUnset html_linkcolor   #0000EE
 SetIfUnset html_alinkcolor  #FF0000
 SetIfUnset html_vlinkcolor  #990066
 SetIfUnset html_tag_case    uppercase
+SetIfUnset html_map_leader  ;
 call SetIfUnset('b:html_tag_case', g:html_tag_case)
 " No way to know sensible defaults here so just make sure the
 " variables are set:
@@ -170,21 +171,23 @@ function! HTMLmap(cmd, map, arg, ...)
     let arg = substitute(arg, ' />', '>', 'g')
   endif
 
+  let map = substitute(a:map, "^<lead>", g:html_map_leader, '')
+
   if a:cmd =~ '^v'
     if a:0 >= 1 && a:1 < 0
-      execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
+      execute a:cmd . " <buffer> <silent> " . map . " " . arg
     elseif a:0 >= 1 && a:1 >= 1
-      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>TO(0)<CR>gv" . arg
+      execute a:cmd . " <buffer> <silent> " . map . " <C-C>:call <SID>TO(0)<CR>gv" . arg
         \ . ":call <SID>TO(1)<CR>m':call <SID>HTMLreIndent(line(\"'<\"), line(\"'>\"), " . a:1 . ")<CR>``"
     elseif a:0 >= 1
-      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>TO(0)<CR>gv" . arg
+      execute a:cmd . " <buffer> <silent> " . map . " <C-C>:call <SID>TO(0)<CR>gv" . arg
         \ . "<C-O>:call <SID>TO(1)<CR>"
     else
-      execute a:cmd . " <buffer> <silent> " . a:map . " <C-C>:call <SID>TO(0)<CR>gv" . arg
+      execute a:cmd . " <buffer> <silent> " . map . " <C-C>:call <SID>TO(0)<CR>gv" . arg
         \ . ":call <SID>TO(1)<CR>"
     endif
   else
-    execute a:cmd . " <buffer> <silent> " . a:map . " " . arg
+    execute a:cmd . " <buffer> <silent> " . map . " " . arg
   endif
 
 endfunction
@@ -201,10 +204,12 @@ function! HTMLmapo(map, insert)
     return
   endif
 
-  execute 'nnoremap <buffer> <silent> ' . a:map .
-    \ " :let b:htmltagaction='" . a:map . "'<CR>" .
-    \ ":let b:htmltaginsert=" . a:insert . "<CR>" .
-    \ ':set operatorfunc=<SID>HTMLwrapRange<CR>g@'
+  let map = substitute(a:map, "^<lead>", g:html_map_leader, '')
+
+  execute 'nnoremap <buffer> <silent> ' . map
+    \ . " :let b:htmltagaction='" . map . "'<CR>"
+    \ . ":let b:htmltaginsert=" . a:insert . "<CR>"
+    \ . ':set operatorfunc=<SID>HTMLwrapRange<CR>g@'
 endfunction
 
 " s:HTMLwrapRange()  {{{2
@@ -422,11 +427,13 @@ endfunction
 " ---- Misc. Mappings: -------------------------------------------------- {{{1
 
 " Make it convenient to use ; as "normal":
-call HTMLmap("inoremap", ";;", ";")
-call HTMLmap("vnoremap", ";;", ";", -1)
-call HTMLmap("nnoremap", ";;", ";")
+if g:html_map_leader == ';'
+  call HTMLmap("inoremap", ";;", ";")
+  call HTMLmap("vnoremap", ";;", ";", -1)
+  call HTMLmap("nnoremap", ";;", ";")
+endif
 " Allow hard tabs to be inserted:
-call HTMLmap("inoremap", ";<tab>", "<tab>")
+call HTMLmap("inoremap", "<lead><tab>", "<tab>")
 
 " Tab takes us to a (hopefully) reasonable next insert point:
 call HTMLmap("inoremap", "<TAB>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
@@ -436,8 +443,8 @@ call HTMLmap("vnoremap", "<TAB>", "<C-C>:call HTMLnextInsertPoint('n')<CR>", -1)
 " Update an image tag's WIDTH & HEIGHT attributes (experimental!):
 runtime! MangleImageTag.vim 
 if exists("*MangleImageTag")
-  call HTMLmap("nnoremap", ";mi", ":call MangleImageTag()<CR>")
-  call HTMLmap("inoremap", ";mi", "<C-O>:call MangleImageTag()<CR>")
+  call HTMLmap("nnoremap", "<lead>mi", ":call MangleImageTag()<CR>")
+  call HTMLmap("inoremap", "<lead>mi", "<C-O>:call MangleImageTag()<CR>")
 endif
 
 " ----------------------------------------------------------------------------
@@ -445,7 +452,7 @@ endif
 
 " ---- Template Creation Stuff: ----------------------------------------- {{{1
 
-call HTMLmap("nnoremap", ";html", ":if (HTMLtemplate()) \\| startinsert \\| endif<CR>")
+call HTMLmap("nnoremap", "<lead>html", ":if (HTMLtemplate()) \\| startinsert \\| endif<CR>")
 
 let s:internal_html_template=
   \"<[{HTML}]>\n" .
@@ -568,471 +575,471 @@ endfunction  " }}}2
 " ---- General Markup Tag Mappings: ------------------------------------- {{{1
 
 "       SGML Doctype Command
-"call HTMLmap("nnoremap", ";4", "1GO<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\"><ESC>``")
+"call HTMLmap("nnoremap", "<lead>4", "1GO<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\"><ESC>``")
 
 "       SGML Doctype Command -- Transitional (Looser)
 if b:do_xhtml_mappings == 0
-  call HTMLmap("nnoremap", ";4", ":call append(0, '<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/html4/loose.dtd\">')<CR>")
+  call HTMLmap("nnoremap", "<lead>4", ":call append(0, '<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/html4/loose.dtd\">')<CR>")
 else
-  call HTMLmap("nnoremap", ";4", ":call append(0, '<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">')<CR>")
+  call HTMLmap("nnoremap", "<lead>4", ":call append(0, '<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">')<CR>")
 endif
 
 "       Content Type META tag
-call HTMLmap("inoremap", ";ct", "<[{META HTTP-EQUIV}]=\"Content-Type\" [{CONTENT}]=\"text/html; charset=iso-8859-1\" />")
+call HTMLmap("inoremap", "<lead>ct", "<[{META HTTP-EQUIV}]=\"Content-Type\" [{CONTENT}]=\"text/html; charset=iso-8859-1\" />")
 
 "       Comment Tag
-call HTMLmap("inoremap", ";cm", "<C-R>=<SID>tag('comment','i')<CR>")
+call HTMLmap("inoremap", "<lead>cm", "<C-R>=<SID>tag('comment','i')<CR>")
 " Visual mapping:
-call HTMLmap("vnoremap", ";cm", "<C-C>:execute \"normal \" . <SID>tag('comment','v')<CR>", 2)
+call HTMLmap("vnoremap", "<lead>cm", "<C-C>:execute \"normal \" . <SID>tag('comment','v')<CR>", 2)
 " Motion mapping:
-call HTMLmapo(';cm', 0)
+call HTMLmapo('<lead>cm', 0)
 
 "       A HREF  Anchor Hyperlink        HTML 2.0
-call HTMLmap("inoremap", ";ah", "<[{A HREF=\"\"></A}]><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>ah", "<[{A HREF=\"\"></A}]><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";ah", "<ESC>`>a</[{A}]><C-O>`<<[{A HREF}]=\"\"><C-O>F\"", 0)
-call HTMLmap("vnoremap", ";aH", "<ESC>`>a\"></[{A}]><C-O>`<<[{A HREF}]=\"<C-O>f<", 0)
+call HTMLmap("vnoremap", "<lead>ah", "<ESC>`>a</[{A}]><C-O>`<<[{A HREF}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", "<lead>aH", "<ESC>`>a\"></[{A}]><C-O>`<<[{A HREF}]=\"<C-O>f<", 0)
 " Motion mappings:
-call HTMLmapo(';ah', 1)
-call HTMLmapo(';aH', 1)
+call HTMLmapo('<lead>ah', 1)
+call HTMLmapo('<lead>aH', 1)
 
 "       A HREF  Anchor Hyperlink, with TARGET=""
-call HTMLmap("inoremap", ";at", "<[{A HREF=\"\" TARGET=\"\"></A}]><ESC>3F\"i")
+call HTMLmap("inoremap", "<lead>at", "<[{A HREF=\"\" TARGET=\"\"></A}]><ESC>3F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";at", "<ESC>`>a</[{A}]><C-O>`<<[{A HREF=\"\" TARGET}]=\"\"><C-O>3F\"", 0)
-call HTMLmap("vnoremap", ";aT", "<ESC>`>a\" [{TARGET=\"\"></A}]><C-O>`<<[{A HREF}]=\"<C-O>3f\"", 0)
+call HTMLmap("vnoremap", "<lead>at", "<ESC>`>a</[{A}]><C-O>`<<[{A HREF=\"\" TARGET}]=\"\"><C-O>3F\"", 0)
+call HTMLmap("vnoremap", "<lead>aT", "<ESC>`>a\" [{TARGET=\"\"></A}]><C-O>`<<[{A HREF}]=\"<C-O>3f\"", 0)
 " Motion mappings:
-call HTMLmapo(';at', 1)
-call HTMLmapo(';aT', 1)
+call HTMLmapo('<lead>at', 1)
+call HTMLmapo('<lead>aT', 1)
 
 "       A NAME  Named Anchor            HTML 2.0
-call HTMLmap("inoremap", ";an", "<[{A NAME=\"\"></A}]><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>an", "<[{A NAME=\"\"></A}]><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";an", "<ESC>`>a</[{A}]><C-O>`<<[{A NAME}]=\"\"><C-O>F\"", 0)
-call HTMLmap("vnoremap", ";aN", "<ESC>`>a\"></[{A}]><C-O>`<<[{A NAME}]=\"<C-O>f<", 0)
+call HTMLmap("vnoremap", "<lead>an", "<ESC>`>a</[{A}]><C-O>`<<[{A NAME}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", "<lead>aN", "<ESC>`>a\"></[{A}]><C-O>`<<[{A NAME}]=\"<C-O>f<", 0)
 " Motion mappings:
-call HTMLmapo(';an', 1)
-call HTMLmapo(';aN', 1)
+call HTMLmapo('<lead>an', 1)
+call HTMLmapo('<lead>aN', 1)
 
 "       ABBR  Abbreviation              HTML 4.0
-call HTMLmap("inoremap", ";ab", "<[{ABBR TITLE=\"\"></ABBR}]><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>ab", "<[{ABBR TITLE=\"\"></ABBR}]><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";ab", "<ESC>`>a</[{ABBR}]><C-O>`<<[{ABBR TITLE}]=\"\"><C-O>F\"", 0)
-call HTMLmap("vnoremap", ";aB", "<ESC>`>a\"></[{ABBR}]><C-O>`<<[{ABBR TITLE}]=\"<C-O>f<", 0)
+call HTMLmap("vnoremap", "<lead>ab", "<ESC>`>a</[{ABBR}]><C-O>`<<[{ABBR TITLE}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", "<lead>aB", "<ESC>`>a\"></[{ABBR}]><C-O>`<<[{ABBR TITLE}]=\"<C-O>f<", 0)
 " Motion mappings:
-call HTMLmapo(';ab', 1)
-call HTMLmapo(';aB', 1)
+call HTMLmapo('<lead>ab', 1)
+call HTMLmapo('<lead>aB', 1)
 
 "       ACRONYM                         HTML 4.0
-call HTMLmap("inoremap", ";ac", "<[{ACRONYM TITLE=\"\"></ACRONYM}]><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>ac", "<[{ACRONYM TITLE=\"\"></ACRONYM}]><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";ac", "<ESC>`>a</[{ACRONYM}]><C-O>`<<[{ACRONYM TITLE}]=\"\"><C-O>F\"", 0)
-call HTMLmap("vnoremap", ";aC", "<ESC>`>a\"></[{ACRONYM}]><C-O>`<<[{ACRONYM TITLE}]=\"<C-O>f<", 0)
+call HTMLmap("vnoremap", "<lead>ac", "<ESC>`>a</[{ACRONYM}]><C-O>`<<[{ACRONYM TITLE}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", "<lead>aC", "<ESC>`>a\"></[{ACRONYM}]><C-O>`<<[{ACRONYM TITLE}]=\"<C-O>f<", 0)
 " Motion mappings:
-call HTMLmapo(';ac', 1)
-call HTMLmapo(';aC', 1)
+call HTMLmapo('<lead>ac', 1)
+call HTMLmapo('<lead>aC', 1)
 
 "       ADDRESS                         HTML 2.0
-call HTMLmap("inoremap", ";ad", "<[{ADDRESS></ADDRESS}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>ad", "<[{ADDRESS></ADDRESS}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";ad", "<ESC>`>a</[{ADDRESS}]><C-O>`<<[{ADDRESS}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>ad", "<ESC>`>a</[{ADDRESS}]><C-O>`<<[{ADDRESS}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';ad', 0)
+call HTMLmapo('<lead>ad', 0)
 
 "       B       Boldfaced Text          HTML 2.0
-call HTMLmap("inoremap", ";bo", "<C-R>=<SID>tag('b','i')<CR>")
+call HTMLmap("inoremap", "<lead>bo", "<C-R>=<SID>tag('b','i')<CR>")
 " Visual mapping:
-call HTMLmap("vnoremap", ";bo", "<C-C>:execute \"normal \" . <SID>tag('b','v')<CR>", 2)
+call HTMLmap("vnoremap", "<lead>bo", "<C-C>:execute \"normal \" . <SID>tag('b','v')<CR>", 2)
 " Motion mapping:
-call HTMLmapo(';bo', 0)
+call HTMLmapo('<lead>bo', 0)
 
 "       BASE                            HTML 2.0        HEADER
-call HTMLmap("inoremap", ";bh", "<[{BASE HREF}]=\"\" /><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>bh", "<[{BASE HREF}]=\"\" /><ESC>F\"i")
 " Visual mapping:
-call HTMLmap("vnoremap", ";bh", "<ESC>`>a\" /><C-O>`<<[{BASE HREF}]=\"<ESC>", 2)
+call HTMLmap("vnoremap", "<lead>bh", "<ESC>`>a\" /><C-O>`<<[{BASE HREF}]=\"<ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';bh', 0)
+call HTMLmapo('<lead>bh', 0)
 
 "       BIG                             HTML 3.0
-call HTMLmap("inoremap", ";bi", "<[{BIG></BIG}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>bi", "<[{BIG></BIG}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";bi", "<ESC>`>a</[{BIG}]><C-O>`<<[{BIG}]><ESC>")
+call HTMLmap("vnoremap", "<lead>bi", "<ESC>`>a</[{BIG}]><C-O>`<<[{BIG}]><ESC>")
 " Motion mapping:
-call HTMLmapo(';bi', 0)
+call HTMLmapo('<lead>bi', 0)
 
 "       BLOCKQUOTE                      HTML 2.0
-call HTMLmap("inoremap", ";bl", "<[{BLOCKQUOTE}]><CR></[{BLOCKQUOTE}]><ESC>O")
+call HTMLmap("inoremap", "<lead>bl", "<[{BLOCKQUOTE}]><CR></[{BLOCKQUOTE}]><ESC>O")
 " Visual mapping:
-call HTMLmap("vnoremap", ";bl", "<ESC>`>a<CR></[{BLOCKQUOTE}]><C-O>`<<[{BLOCKQUOTE}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>bl", "<ESC>`>a<CR></[{BLOCKQUOTE}]><C-O>`<<[{BLOCKQUOTE}]><CR><ESC>", 1)
 " Motion mapping:
-call HTMLmapo(';bl', 0)
+call HTMLmapo('<lead>bl', 0)
 
 "       BODY                            HTML 2.0
-call HTMLmap("inoremap", ";bd", "<[{BODY}]><CR></[{BODY}]><ESC>O")
+call HTMLmap("inoremap", "<lead>bd", "<[{BODY}]><CR></[{BODY}]><ESC>O")
 " Visual mapping:
-call HTMLmap("vnoremap", ";bd", "<ESC>`>a<CR></[{BODY}]><C-O>`<<[{BODY}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>bd", "<ESC>`>a<CR></[{BODY}]><C-O>`<<[{BODY}]><CR><ESC>", 1)
 " Motion mapping:
-call HTMLmapo(';bd', 0)
+call HTMLmapo('<lead>bd', 0)
 
 "       BR      Line break              HTML 2.0
-call HTMLmap("inoremap", ";br", "<[{BR}] />")
+call HTMLmap("inoremap", "<lead>br", "<[{BR}] />")
 
 "       CENTER                          NETSCAPE
-call HTMLmap("inoremap", ";ce", "<[{CENTER></CENTER}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>ce", "<[{CENTER></CENTER}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";ce", "<ESC>`>a</[{CENTER}]><C-O>`<<[{CENTER}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>ce", "<ESC>`>a</[{CENTER}]><C-O>`<<[{CENTER}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';ce', 0)
+call HTMLmapo('<lead>ce', 0)
 
 "       CITE                            HTML 2.0
-call HTMLmap("inoremap", ";ci", "<[{CITE></CITE}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>ci", "<[{CITE></CITE}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";ci", "<ESC>`>a</[{CITE}]><C-O>`<<[{CITE}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>ci", "<ESC>`>a</[{CITE}]><C-O>`<<[{CITE}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';ci', 0)
+call HTMLmapo('<lead>ci', 0)
 
 "       CODE                            HTML 2.0
-call HTMLmap("inoremap", ";co", "<[{CODE></CODE}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>co", "<[{CODE></CODE}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";co", "<ESC>`>a</[{CODE}]><C-O>`<<[{CODE}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>co", "<ESC>`>a</[{CODE}]><C-O>`<<[{CODE}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';co', 0)
+call HTMLmapo('<lead>co', 0)
 
 "       DEFINITION LIST COMPONENTS      HTML 2.0
 "               DL      Definition List
 "               DT      Definition Term
 "               DD      Definition Body
-call HTMLmap("inoremap", ";dl", "<[{DL}]><CR></[{DL}]><ESC>O")
+call HTMLmap("inoremap", "<lead>dl", "<[{DL}]><CR></[{DL}]><ESC>O")
 " Visual mappings:
-call HTMLmap("vnoremap", ";dl", "<ESC>`>a<CR></[{DL}]><C-O>`<<[{DL}]><CR><ESC>", 1)
-call HTMLmap("inoremap", ";dt", "<[{DT}] />")
-call HTMLmap("inoremap", ";dd", "<[{DD}] />")
+call HTMLmap("vnoremap", "<lead>dl", "<ESC>`>a<CR></[{DL}]><C-O>`<<[{DL}]><CR><ESC>", 1)
+call HTMLmap("inoremap", "<lead>dt", "<[{DT}] />")
+call HTMLmap("inoremap", "<lead>dd", "<[{DD}] />")
 " Motion mapping:
-call HTMLmapo(';dl', 0)
+call HTMLmapo('<lead>dl', 0)
 
 "       DEL     Deleted Text            HTML 3.0
-call HTMLmap("inoremap", ";de", "<lt>[{DEL></DEL}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>de", "<lt>[{DEL></DEL}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";de", "<ESC>`>a</[{DEL}]><C-O>`<<lt>[{DEL}]><ESC>")
+call HTMLmap("vnoremap", "<lead>de", "<ESC>`>a</[{DEL}]><C-O>`<<lt>[{DEL}]><ESC>")
 " Motion mapping:
-call HTMLmapo(';de', 0)
+call HTMLmapo('<lead>de', 0)
 
 "       DFN     Defining Instance       HTML 3.0
-call HTMLmap("inoremap", ";df", "<[{DFN></DFN}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>df", "<[{DFN></DFN}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";df", "<ESC>`>a</[{DFN}]><C-O>`<<[{DFN}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>df", "<ESC>`>a</[{DFN}]><C-O>`<<[{DFN}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';df', 0)
+call HTMLmapo('<lead>df', 0)
 
 "       DIR     Directory List          HTML 3.0
 "imap ;di <DIR><CR></DIR><ESC>O
 
 "       DIV     Document Division       HTML 3.0
-call HTMLmap("inoremap", ";dv", "<[{DIV}]><CR></[{DIV}]><ESC>O")
+call HTMLmap("inoremap", "<lead>dv", "<[{DIV}]><CR></[{DIV}]><ESC>O")
 " Visual mapping:
-call HTMLmap("vnoremap", ";dv", "<ESC>`>a<CR></[{DIV}]><C-O>`<<[{DIV}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>dv", "<ESC>`>a<CR></[{DIV}]><C-O>`<<[{DIV}]><CR><ESC>", 1)
 " Motion mapping:
-call HTMLmapo(';dv', 0)
+call HTMLmapo('<lead>dv', 0)
 
 "       SPAN    Delimit Arbitrary Text  HTML 4.0
-call HTMLmap("inoremap", ";sn", "<[{SPAN></SPAN}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>sn", "<[{SPAN></SPAN}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";sn", "<ESC>`>a</[{SPAN}]><C-O>`<<[{SPAN}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>sn", "<ESC>`>a</[{SPAN}]><C-O>`<<[{SPAN}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';sn', 0)
+call HTMLmapo('<lead>sn', 0)
 
 "       EM      Emphasize               HTML 2.0
-call HTMLmap("inoremap", ";em", "<[{EM></EM}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>em", "<[{EM></EM}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";em", "<ESC>`>a</[{EM}]><C-O>`<<[{EM}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>em", "<ESC>`>a</[{EM}]><C-O>`<<[{EM}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';em', 0)
+call HTMLmapo('<lead>em', 0)
 
 "       FONT                            NETSCAPE
-call HTMLmap("inoremap", ";fo", "<[{FONT SIZE=\"\"></FONT}]><ESC>F\"i")
-call HTMLmap("inoremap", ";fc", "<[{FONT COLOR=\"\"></FONT}]><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>fo", "<[{FONT SIZE=\"\"></FONT}]><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>fc", "<[{FONT COLOR=\"\"></FONT}]><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";fo", "<ESC>`>a</[{FONT}]><C-O>`<<[{FONT SIZE}]=\"\"><C-O>F\"", 0)
-call HTMLmap("vnoremap", ";fc", "<ESC>`>a</[{FONT}]><C-O>`<<[{FONT COLOR}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", "<lead>fo", "<ESC>`>a</[{FONT}]><C-O>`<<[{FONT SIZE}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", "<lead>fc", "<ESC>`>a</[{FONT}]><C-O>`<<[{FONT COLOR}]=\"\"><C-O>F\"", 0)
 " Motion mappings:
-call HTMLmapo(';fo', 1)
-call HTMLmapo(';fc', 1)
+call HTMLmapo('<lead>fo', 1)
+call HTMLmapo('<lead>fc', 1)
 
 "       HEADERS, LEVELS 1-6             HTML 2.0
-call HTMLmap("inoremap", ";h1", "<[{H1}]></[{H1}]><ESC>bhhi")
-call HTMLmap("inoremap", ";h2", "<[{H2}]></[{H2}]><ESC>bhhi")
-call HTMLmap("inoremap", ";h3", "<[{H3}]></[{H3}]><ESC>bhhi")
-call HTMLmap("inoremap", ";h4", "<[{H4}]></[{H4}]><ESC>bhhi")
-call HTMLmap("inoremap", ";h5", "<[{H5}]></[{H5}]><ESC>bhhi")
-call HTMLmap("inoremap", ";h6", "<[{H6}]></[{H6}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H1", "<[{H1 ALIGN=\"CENTER}]\"></[{H1}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H2", "<[{H2 ALIGN=\"CENTER}]\"></[{H2}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H3", "<[{H3 ALIGN=\"CENTER}]\"></[{H3}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H4", "<[{H4 ALIGN=\"CENTER}]\"></[{H4}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H5", "<[{H5 ALIGN=\"CENTER}]\"></[{H5}]><ESC>bhhi")
-call HTMLmap("inoremap", ";H6", "<[{H6 ALIGN=\"CENTER}]\"></[{H6}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>h1", "<[{H1}]></[{H1}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>h2", "<[{H2}]></[{H2}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>h3", "<[{H3}]></[{H3}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>h4", "<[{H4}]></[{H4}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>h5", "<[{H5}]></[{H5}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>h6", "<[{H6}]></[{H6}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>H1", "<[{H1 ALIGN=\"CENTER}]\"></[{H1}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>H2", "<[{H2 ALIGN=\"CENTER}]\"></[{H2}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>H3", "<[{H3 ALIGN=\"CENTER}]\"></[{H3}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>H4", "<[{H4 ALIGN=\"CENTER}]\"></[{H4}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>H5", "<[{H5 ALIGN=\"CENTER}]\"></[{H5}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>H6", "<[{H6 ALIGN=\"CENTER}]\"></[{H6}]><ESC>bhhi")
 " Visual mappings:
-call HTMLmap("vnoremap", ";h1", "<ESC>`>a</[{H1}]><C-O>`<<[{H1}]><ESC>", 2)
-call HTMLmap("vnoremap", ";h2", "<ESC>`>a</[{H2}]><C-O>`<<[{H2}]><ESC>", 2)
-call HTMLmap("vnoremap", ";h3", "<ESC>`>a</[{H3}]><C-O>`<<[{H3}]><ESC>", 2)
-call HTMLmap("vnoremap", ";h4", "<ESC>`>a</[{H4}]><C-O>`<<[{H4}]><ESC>", 2)
-call HTMLmap("vnoremap", ";h5", "<ESC>`>a</[{H5}]><C-O>`<<[{H5}]><ESC>", 2)
-call HTMLmap("vnoremap", ";h6", "<ESC>`>a</[{H6}]><C-O>`<<[{H6}]><ESC>", 2)
-call HTMLmap("vnoremap", ";H1", "<ESC>`>a</[{H1}]><C-O>`<<[{H1 ALIGN=\"CENTER}]\"><ESC>", 2)
-call HTMLmap("vnoremap", ";H2", "<ESC>`>a</[{H2}]><C-O>`<<[{H2 ALIGN=\"CENTER}]\"><ESC>", 2)
-call HTMLmap("vnoremap", ";H3", "<ESC>`>a</[{H3}]><C-O>`<<[{H3 ALIGN=\"CENTER}]\"><ESC>", 2)
-call HTMLmap("vnoremap", ";H4", "<ESC>`>a</[{H4}]><C-O>`<<[{H4 ALIGN=\"CENTER}]\"><ESC>", 2)
-call HTMLmap("vnoremap", ";H5", "<ESC>`>a</[{H5}]><C-O>`<<[{H5 ALIGN=\"CENTER}]\"><ESC>", 2)
-call HTMLmap("vnoremap", ";H6", "<ESC>`>a</[{H6}]><C-O>`<<[{H6 ALIGN=\"CENTER}]\"><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>h1", "<ESC>`>a</[{H1}]><C-O>`<<[{H1}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>h2", "<ESC>`>a</[{H2}]><C-O>`<<[{H2}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>h3", "<ESC>`>a</[{H3}]><C-O>`<<[{H3}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>h4", "<ESC>`>a</[{H4}]><C-O>`<<[{H4}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>h5", "<ESC>`>a</[{H5}]><C-O>`<<[{H5}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>h6", "<ESC>`>a</[{H6}]><C-O>`<<[{H6}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>H1", "<ESC>`>a</[{H1}]><C-O>`<<[{H1 ALIGN=\"CENTER}]\"><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>H2", "<ESC>`>a</[{H2}]><C-O>`<<[{H2 ALIGN=\"CENTER}]\"><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>H3", "<ESC>`>a</[{H3}]><C-O>`<<[{H3 ALIGN=\"CENTER}]\"><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>H4", "<ESC>`>a</[{H4}]><C-O>`<<[{H4 ALIGN=\"CENTER}]\"><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>H5", "<ESC>`>a</[{H5}]><C-O>`<<[{H5 ALIGN=\"CENTER}]\"><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>H6", "<ESC>`>a</[{H6}]><C-O>`<<[{H6 ALIGN=\"CENTER}]\"><ESC>", 2)
 " Motion mappings:
-call HTMLmapo(";h1", 0)
-call HTMLmapo(";h2", 0)
-call HTMLmapo(";h3", 0)
-call HTMLmapo(";h4", 0)
-call HTMLmapo(";h5", 0)
-call HTMLmapo(";h6", 0)
-call HTMLmapo(";H1", 0)
-call HTMLmapo(";H2", 0)
-call HTMLmapo(";H3", 0)
-call HTMLmapo(";H4", 0)
-call HTMLmapo(";H5", 0)
-call HTMLmapo(";H6", 0)
+call HTMLmapo("<lead>h1", 0)
+call HTMLmapo("<lead>h2", 0)
+call HTMLmapo("<lead>h3", 0)
+call HTMLmapo("<lead>h4", 0)
+call HTMLmapo("<lead>h5", 0)
+call HTMLmapo("<lead>h6", 0)
+call HTMLmapo("<lead>H1", 0)
+call HTMLmapo("<lead>H2", 0)
+call HTMLmapo("<lead>H3", 0)
+call HTMLmapo("<lead>H4", 0)
+call HTMLmapo("<lead>H5", 0)
+call HTMLmapo("<lead>H6", 0)
 
 "       HEAD                            HTML 2.0
-call HTMLmap("inoremap", ";he", "<[{HEAD}]><CR></[{HEAD}]><ESC>O")
+call HTMLmap("inoremap", "<lead>he", "<[{HEAD}]><CR></[{HEAD}]><ESC>O")
 " Visual mapping:
-call HTMLmap("vnoremap", ";he", "<ESC>`>a<CR></[{HEAD}]><C-O>`<<[{HEAD}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>he", "<ESC>`>a<CR></[{HEAD}]><C-O>`<<[{HEAD}]><CR><ESC>", 1)
 " Motion mapping:
-call HTMLmapo(';he', 0)
+call HTMLmapo('<lead>he', 0)
 
 "       HR      Horizontal Rule         HTML 2.0 W/NETSCAPISM
-call HTMLmap("inoremap", ";hr", "<[{HR}] />")
+call HTMLmap("inoremap", "<lead>hr", "<[{HR}] />")
 "       HR      Horizontal Rule         HTML 2.0 W/NETSCAPISM
-call HTMLmap("inoremap", ";Hr", "<[{HR WIDTH}]=\"75%\" />")
+call HTMLmap("inoremap", "<lead>Hr", "<[{HR WIDTH}]=\"75%\" />")
 
 "       HTML                            HTML 3.0
-call HTMLmap("inoremap", ";ht", "<[{HTML}]><CR></[{HTML}]><ESC>O")
+call HTMLmap("inoremap", "<lead>ht", "<[{HTML}]><CR></[{HTML}]><ESC>O")
 " Visual mapping:
-call HTMLmap("vnoremap", ";ht", "<ESC>`>a<CR></[{HTML}]><C-O>`<<[{HTML}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>ht", "<ESC>`>a<CR></[{HTML}]><C-O>`<<[{HTML}]><CR><ESC>", 1)
 " Motion mapping:
-call HTMLmapo(';ht', 0)
+call HTMLmapo('<lead>ht', 0)
 
 "       I       Italicized Text         HTML 2.0
-call HTMLmap("inoremap", ";it", "<C-R>=<SID>tag('i','i')<CR>")
+call HTMLmap("inoremap", "<lead>it", "<C-R>=<SID>tag('i','i')<CR>")
 " Visual mapping:
-call HTMLmap("vnoremap", ";it", "<C-C>:execute \"normal \" . <SID>tag('i','v')<CR>", 2)
+call HTMLmap("vnoremap", "<lead>it", "<C-C>:execute \"normal \" . <SID>tag('i','v')<CR>", 2)
 " Motion mapping:
-call HTMLmapo(';it', 0)
+call HTMLmapo('<lead>it', 0)
 
 "       IMG     Image                   HTML 2.0
-call HTMLmap("inoremap", ";im", "<[{IMG SRC=\"\" ALT}]=\"\" /><ESC>3F\"i")
+call HTMLmap("inoremap", "<lead>im", "<[{IMG SRC=\"\" ALT}]=\"\" /><ESC>3F\"i")
 " Visual mapping:
-call HTMLmap("vnoremap", ";im", "<ESC>`>a\" /><C-O>`<<[{IMG SRC=\"\" ALT}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", "<lead>im", "<ESC>`>a\" /><C-O>`<<[{IMG SRC=\"\" ALT}]=\"<C-O>2F\"", 0)
 " Motion mapping:
-call HTMLmapo(';im', 1)
+call HTMLmapo('<lead>im', 1)
 
 "       INS     Inserted Text           HTML 3.0
-call HTMLmap("inoremap", ";in", "<lt>[{INS></INS}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>in", "<lt>[{INS></INS}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";in", "<ESC>`>a</[{INS}]><C-O>`<<lt>[{INS}]><ESC>")
+call HTMLmap("vnoremap", "<lead>in", "<ESC>`>a</[{INS}]><C-O>`<<lt>[{INS}]><ESC>")
 " Motion mapping:
-call HTMLmapo(';in', 0)
+call HTMLmapo('<lead>in', 0)
 
 "       ISINDEX Identifies Index        HTML 2.0
-call HTMLmap("inoremap", ";ii", "<[{ISINDEX}] />")
+call HTMLmap("inoremap", "<lead>ii", "<[{ISINDEX}] />")
 
 "       KBD     Keyboard Text           HTML 2.0
-call HTMLmap("inoremap", ";kb", "<[{KBD></KBD}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>kb", "<[{KBD></KBD}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";kb", "<ESC>`>a</[{KBD}]><C-O>`<<[{KBD}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>kb", "<ESC>`>a</[{KBD}]><C-O>`<<[{KBD}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';kb', 0)
+call HTMLmapo('<lead>kb', 0)
 
 "       LI      List Item               HTML 2.0
-call HTMLmap("inoremap", ";li", "<[{LI}]></[{LI}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>li", "<[{LI}]></[{LI}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";li", "<ESC>`>a</[{LI}]><C-O>`<<[{LI}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>li", "<ESC>`>a</[{LI}]><C-O>`<<[{LI}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';li', 0)
+call HTMLmapo('<lead>li', 0)
 
 "       LINK                            HTML 2.0        HEADER
-call HTMLmap("inoremap", ";lk", "<[{LINK HREF}]=\"\" /><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>lk", "<[{LINK HREF}]=\"\" /><ESC>F\"i")
 " Visual mapping:
-call HTMLmap("vnoremap", ";lk", "<ESC>`>a\" /><C-O>`<<[{LINK HREF}]=\"<ESC>")
+call HTMLmap("vnoremap", "<lead>lk", "<ESC>`>a\" /><C-O>`<<[{LINK HREF}]=\"<ESC>")
 " Motion mapping:
-call HTMLmapo(';lk', 0)
+call HTMLmapo('<lead>lk', 0)
 
 "       LH      List Header             HTML 2.0
-call HTMLmap("inoremap", ";lh", "<[{LH></LH}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>lh", "<[{LH></LH}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";lh", "<ESC>`>a</[{LH}]><C-O>`<<[{LH}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>lh", "<ESC>`>a</[{LH}]><C-O>`<<[{LH}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';lh', 0)
+call HTMLmapo('<lead>lh', 0)
 
 "       MENU                            HTML 2.0
 "imap ;mu <MENU><CR></MENU><ESC>O
 
 "       META    Meta Information        HTML 2.0        HEADER
-call HTMLmap("inoremap", ";me", "<[{META NAME=\"\" CONTENT}]=\"\" /><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>me", "<[{META NAME=\"\" CONTENT}]=\"\" /><ESC>F\"i")
 " Visual mappings:
-call HTMLmap("vnoremap", ";me", "<ESC>`>a\" [{CONTENT}]=\"\" /><C-O>`<<[{META NAME}]=\"<C-O>3f\"", 0)
-call HTMLmap("vnoremap", ";mE", "<ESC>`>a\" /><C-O>`<<[{META NAME=\"\" CONTENT}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", "<lead>me", "<ESC>`>a\" [{CONTENT}]=\"\" /><C-O>`<<[{META NAME}]=\"<C-O>3f\"", 0)
+call HTMLmap("vnoremap", "<lead>mE", "<ESC>`>a\" /><C-O>`<<[{META NAME=\"\" CONTENT}]=\"<C-O>2F\"", 0)
 " Motion mappings:
-call HTMLmapo(';me', 1)
-call HTMLmapo(';mE', 1)
+call HTMLmapo('<lead>me', 1)
+call HTMLmapo('<lead>mE', 1)
 
 "       OL      Ordered List            HTML 3.0
-call HTMLmap("inoremap", ";ol", "<[{OL}]><CR></[{OL}]><ESC>O")
+call HTMLmap("inoremap", "<lead>ol", "<[{OL}]><CR></[{OL}]><ESC>O")
 " Visual mapping:
-call HTMLmap("vnoremap", ";ol", "<ESC>`>a<CR></[{OL}]><C-O>`<<[{OL}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>ol", "<ESC>`>a<CR></[{OL}]><C-O>`<<[{OL}]><CR><ESC>", 1)
 " Motion mapping:
-call HTMLmapo(';ol', 0)
+call HTMLmapo('<lead>ol', 0)
 
 "       P       Paragraph               HTML 3.0
-call HTMLmap("inoremap", ";pp", "<[{P}]><CR></[{P}]><ESC>O")
+call HTMLmap("inoremap", "<lead>pp", "<[{P}]><CR></[{P}]><ESC>O")
 " Visual mapping:
-call HTMLmap("vnoremap", ";pp", "<ESC>`>a<CR></[{P}]><C-O>`<<[{P}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>pp", "<ESC>`>a<CR></[{P}]><C-O>`<<[{P}]><CR><ESC>", 1)
 " Motion mapping:
-call HTMLmapo(';pp', 0)
+call HTMLmapo('<lead>pp', 0)
 " A special mapping... If you're between <P> and </P> this will insert the
 " close tag and then the open tag in insert mode:
-call HTMLmap("inoremap", ";/p", "</[{P}]><CR><CR><[{P}]><CR>")
+call HTMLmap("inoremap", "<lead>/p", "</[{P}]><CR><CR><[{P}]><CR>")
 
 "       PRE     Preformatted Text       HTML 2.0
-call HTMLmap("inoremap", ";pr", "<[{PRE}]><CR></[{PRE}]><ESC>O")
+call HTMLmap("inoremap", "<lead>pr", "<[{PRE}]><CR></[{PRE}]><ESC>O")
 " Visual mapping:
-call HTMLmap("vnoremap", ";pr", "<ESC>`>a<CR></[{PRE}]><C-O>`<<[{PRE}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>pr", "<ESC>`>a<CR></[{PRE}]><C-O>`<<[{PRE}]><CR><ESC>", 1)
 " Motion mapping:
-call HTMLmapo(';pr', 0)
+call HTMLmapo('<lead>pr', 0)
 
 "       Q       Quote                   HTML 3.0
-call HTMLmap("inoremap", ";qu", "<[{Q></Q}]><ESC>hhhi")
+call HTMLmap("inoremap", "<lead>qu", "<[{Q></Q}]><ESC>hhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";qu", "<ESC>`>a</[{Q}]><C-O>`<<[{Q}]><ESC>")
+call HTMLmap("vnoremap", "<lead>qu", "<ESC>`>a</[{Q}]><C-O>`<<[{Q}]><ESC>")
 " Motion mapping:
-call HTMLmapo(';qu', 0)
+call HTMLmapo('<lead>qu', 0)
 
 "       S       Strikethrough           HTML 3.0
-call HTMLmap("inoremap", ";sk", "<[{STRIKE></STRIKE}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>sk", "<[{STRIKE></STRIKE}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";sk", "<ESC>`>a</[{STRIKE}]><C-O>`<<[{STRIKE}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>sk", "<ESC>`>a</[{STRIKE}]><C-O>`<<[{STRIKE}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';sk', 0)
+call HTMLmapo('<lead>sk', 0)
 
 "       SAMP    Sample Text             HTML 2.0
-call HTMLmap("inoremap", ";sa", "<[{SAMP></SAMP}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>sa", "<[{SAMP></SAMP}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";sa", "<ESC>`>a</[{SAMP}]><C-O>`<<[{SAMP}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>sa", "<ESC>`>a</[{SAMP}]><C-O>`<<[{SAMP}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';sa', 0)
+call HTMLmapo('<lead>sa', 0)
 
 "       SMALL   Small Text              HTML 3.0
-call HTMLmap("inoremap", ";sm", "<[{SMALL></SMALL}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>sm", "<[{SMALL></SMALL}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";sm", "<ESC>`>a</[{SMALL}]><C-O>`<<[{SMALL}]><ESC>")
+call HTMLmap("vnoremap", "<lead>sm", "<ESC>`>a</[{SMALL}]><C-O>`<<[{SMALL}]><ESC>")
 " Motion mapping:
-call HTMLmapo(';sm', 0)
+call HTMLmapo('<lead>sm', 0)
 
 "       STRONG                          HTML 2.0
-call HTMLmap("inoremap", ";st", "<C-R>=<SID>tag('strong','i')<CR>")
+call HTMLmap("inoremap", "<lead>st", "<C-R>=<SID>tag('strong','i')<CR>")
 " Visual mapping:
-call HTMLmap("vnoremap", ";st", "<C-C>:execute \"normal \" . <SID>tag('strong','v')<CR>", 2)
+call HTMLmap("vnoremap", "<lead>st", "<C-C>:execute \"normal \" . <SID>tag('strong','v')<CR>", 2)
 " Motion mapping:
-call HTMLmapo(';st', 0)
+call HTMLmapo('<lead>st', 0)
 
 "       STYLE                           HTML 4.0        HEADER
-call HTMLmap("inoremap", ";cs", "<[{STYLE TYPE}]=\"text/css\"><CR><!--<CR>--><CR></[{STYLE}]><ESC>kO")
+call HTMLmap("inoremap", "<lead>cs", "<[{STYLE TYPE}]=\"text/css\"><CR><!--<CR>--><CR></[{STYLE}]><ESC>kO")
 " Visual mapping:
-call HTMLmap("vnoremap", ";cs", "<ESC>`>a<CR> --><CR></[{STYLE}]><C-O>`<<[{STYLE TYPE}]=\"text/css\"><CR><!--<CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>cs", "<ESC>`>a<CR> --><CR></[{STYLE}]><C-O>`<<[{STYLE TYPE}]=\"text/css\"><CR><!--<CR><ESC>", 1)
 " Motion mapping:
-call HTMLmapo(';cs', 0)
+call HTMLmapo('<lead>cs', 0)
 
 "       Linked CSS stylesheet
-call HTMLmap("inoremap", ";ls", "<[{LINK REL}]=\"stylesheet\" [{TYPE}]=\"text/css\" [{HREF}]=\"\"><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>ls", "<[{LINK REL}]=\"stylesheet\" [{TYPE}]=\"text/css\" [{HREF}]=\"\"><ESC>F\"i")
 " Visual mapping:
-call HTMLmap("vnoremap", ";ls", "<ESC>`>a\"><C-O>`<<[{LINK REL}]=\"stylesheet\" [{TYPE}]=\"text/css\" [{HREF}]=\"<ESC>", 2)
+call HTMLmap("vnoremap", "<lead>ls", "<ESC>`>a\"><C-O>`<<[{LINK REL}]=\"stylesheet\" [{TYPE}]=\"text/css\" [{HREF}]=\"<ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';ls', 0)
+call HTMLmapo('<lead>ls', 0)
 
 "       SUB     Subscript               HTML 3.0
-call HTMLmap("inoremap", ";sb", "<[{SUB></SUB}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>sb", "<[{SUB></SUB}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";sb", "<ESC>`>a</[{SUB}]><C-O>`<<[{SUB}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>sb", "<ESC>`>a</[{SUB}]><C-O>`<<[{SUB}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';sb', 0)
+call HTMLmapo('<lead>sb', 0)
 
 "       SUP     Superscript             HTML 3.0
-call HTMLmap("inoremap", ";sp", "<[{SUP></SUP}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>sp", "<[{SUP></SUP}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";sp", "<ESC>`>a</[{SUP}]><C-O>`<<[{SUP}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>sp", "<ESC>`>a</[{SUP}]><C-O>`<<[{SUP}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';sp', 0)
+call HTMLmapo('<lead>sp', 0)
 
 "       TITLE                           HTML 2.0        HEADER
-call HTMLmap("inoremap", ";ti", "<[{TITLE></TITLE}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>ti", "<[{TITLE></TITLE}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";ti", "<ESC>`>a</[{TITLE}]><C-O>`<<[{TITLE}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>ti", "<ESC>`>a</[{TITLE}]><C-O>`<<[{TITLE}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';ti', 0)
+call HTMLmapo('<lead>ti', 0)
 
 "       TT      Teletype Text (monospaced)      HTML 2.0
-call HTMLmap("inoremap", ";tt", "<[{TT></TT}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>tt", "<[{TT></TT}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";tt", "<ESC>`>a</[{TT}]><C-O>`<<[{TT}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>tt", "<ESC>`>a</[{TT}]><C-O>`<<[{TT}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';tt', 0)
+call HTMLmapo('<lead>tt', 0)
 
 "       U       Underlined Text         HTML 2.0
-call HTMLmap("inoremap", ";un", "<C-R>=<SID>tag('u','i')<CR>")
+call HTMLmap("inoremap", "<lead>un", "<C-R>=<SID>tag('u','i')<CR>")
 " Visual mapping:
-call HTMLmap("vnoremap", ";un", "<C-C>:execute \"normal \" . <SID>tag('u','v')<CR>", 2)
+call HTMLmap("vnoremap", "<lead>un", "<C-C>:execute \"normal \" . <SID>tag('u','v')<CR>", 2)
 " Motion mapping:
-call HTMLmapo(';un', 0)
+call HTMLmapo('<lead>un', 0)
 
 "       UL      Unordered List          HTML 2.0
-call HTMLmap("inoremap", ";ul", "<[{UL}]><CR></[{UL}]><ESC>O")
+call HTMLmap("inoremap", "<lead>ul", "<[{UL}]><CR></[{UL}]><ESC>O")
 " Visual mapping:
-call HTMLmap("vnoremap", ";ul", "<ESC>`>a<CR></[{UL}]><C-O>`<<[{UL}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>ul", "<ESC>`>a<CR></[{UL}]><C-O>`<<[{UL}]><CR><ESC>", 1)
 " Motion mapping:
-call HTMLmapo(';ul', 0)
+call HTMLmapo('<lead>ul', 0)
 
 "       VAR     Variable                HTML 3.0
-call HTMLmap("inoremap", ";va", "<[{VAR></VAR}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>va", "<[{VAR></VAR}]><ESC>bhhi")
 " Visual mapping:
-call HTMLmap("vnoremap", ";va", "<ESC>`>a</[{VAR}]><C-O>`<<[{VAR}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>va", "<ESC>`>a</[{VAR}]><C-O>`<<[{VAR}]><ESC>", 2)
 " Motion mapping:
-call HTMLmapo(';va', 0)
+call HTMLmapo('<lead>va', 0)
 
 "       JavaScript
-call HTMLmap("inoremap", ";js", "<[{SCRIPT TYPE}]=\"text/javascript\" [{LANGUAGE}]=\"javascript\"><CR><!--<CR>// --><CR></[{SCRIPT}]><ESC>kO")
+call HTMLmap("inoremap", "<lead>js", "<[{SCRIPT TYPE}]=\"text/javascript\" [{LANGUAGE}]=\"javascript\"><CR><!--<CR>// --><CR></[{SCRIPT}]><ESC>kO")
 
 "       EMBED
-call HTMLmap("inoremap", ";eb", "<[{EMBED SRC=\"\" WIDTH=\"\" HEIGHT}]=\"\" /><CR><[{NOEMBED></NOEMBED}]><ESC>k0f\"li")
+call HTMLmap("inoremap", "<lead>eb", "<[{EMBED SRC=\"\" WIDTH=\"\" HEIGHT}]=\"\" /><CR><[{NOEMBED></NOEMBED}]><ESC>k0f\"li")
 
 "       OBJECT
-call HTMLmap("inoremap", ";ob", "<[{OBJECT DATA=\"\" WIDTH=\"\" HEIGHT}]=\"\"><CR></[{OBJECT}]><ESC>k0f\"li")
+call HTMLmap("inoremap", "<lead>ob", "<[{OBJECT DATA=\"\" WIDTH=\"\" HEIGHT}]=\"\"><CR></[{OBJECT}]><ESC>k0f\"li")
 
 " Table stuff:
-call HTMLmap("inoremap", ";ca", "<[{CAPTION></CAPTION}]><ESC>bhhi")
-call HTMLmap("inoremap", ";ta", "<[{TABLE}]><CR></[{TABLE}]><ESC>O")
-call HTMLmap("inoremap", ";tr", "<[{TR}]><CR></[{TR}]><ESC>O")
-call HTMLmap("inoremap", ";td", "<[{TD}]><CR></[{TD}]><ESC>O")
-call HTMLmap("inoremap", ";th", "<[{TH></TH}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>ca", "<[{CAPTION></CAPTION}]><ESC>bhhi")
+call HTMLmap("inoremap", "<lead>ta", "<[{TABLE}]><CR></[{TABLE}]><ESC>O")
+call HTMLmap("inoremap", "<lead>tr", "<[{TR}]><CR></[{TR}]><ESC>O")
+call HTMLmap("inoremap", "<lead>td", "<[{TD}]><CR></[{TD}]><ESC>O")
+call HTMLmap("inoremap", "<lead>th", "<[{TH></TH}]><ESC>bhhi")
 " Visual mappings:
-call HTMLmap("vnoremap", ";ca", "<ESC>`>a<CR></[{CAPTION}]><C-O>`<<[{CAPTION}]><CR><ESC>", 1)
-call HTMLmap("vnoremap", ";ta", "<ESC>`>a<CR></[{TABLE}]><C-O>`<<[{TABLE}]><CR><ESC>", 1)
-call HTMLmap("vnoremap", ";tr", "<ESC>`>a<CR></[{TR}]><C-O>`<<[{TR}]><CR><ESC>", 1)
-call HTMLmap("vnoremap", ";td", "<ESC>`>a<CR></[{TD}]><C-O>`<<[{TD}]><CR><ESC>", 1)
-call HTMLmap("vnoremap", ";th", "<ESC>`>a</[{TH}]><C-O>`<<[{TH}]><ESC>", 2)
+call HTMLmap("vnoremap", "<lead>ca", "<ESC>`>a<CR></[{CAPTION}]><C-O>`<<[{CAPTION}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>ta", "<ESC>`>a<CR></[{TABLE}]><C-O>`<<[{TABLE}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>tr", "<ESC>`>a<CR></[{TR}]><C-O>`<<[{TR}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>td", "<ESC>`>a<CR></[{TD}]><C-O>`<<[{TD}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>th", "<ESC>`>a</[{TH}]><C-O>`<<[{TH}]><ESC>", 2)
 " Motion mappings:
-call HTMLmapo(";ca", 0)
-call HTMLmapo(";ta", 0)
-call HTMLmapo(";tr", 0)
-call HTMLmapo(";td", 0)
-call HTMLmapo(";th", 0)
+call HTMLmapo("<lead>ca", 0)
+call HTMLmapo("<lead>ta", 0)
+call HTMLmapo("<lead>tr", 0)
+call HTMLmapo("<lead>td", 0)
+call HTMLmapo("<lead>th", 0)
 
 " Interactively generate a table of Rows x Columns:
-call HTMLmap("nnoremap", ";tA", ":call HTMLgenerateTable()<CR>")
+call HTMLmap("nnoremap", "<lead>tA", ":call HTMLgenerateTable()<CR>")
 
 function! HTMLgenerateTable()
     let byteoffset = line2byte(line(".")) + col(".") - 1
@@ -1084,68 +1091,68 @@ function! HTMLgenerateTable()
 endfunction
 
 " Frames stuff:
-call HTMLmap("inoremap", ";fs", "<[{FRAMESET ROWS=\"\" COLS}]=\"\"><CR></[{FRAMESET}]><ESC>BBhhi")
-call HTMLmap("inoremap", ";fr", "<[{FRAME SRC}]=\"\" /><ESC>F\"i")
-call HTMLmap("inoremap", ";nf", "<[{NOFRAMES}]><CR></[{NOFRAMES}]><ESC>O")
+call HTMLmap("inoremap", "<lead>fs", "<[{FRAMESET ROWS=\"\" COLS}]=\"\"><CR></[{FRAMESET}]><ESC>BBhhi")
+call HTMLmap("inoremap", "<lead>fr", "<[{FRAME SRC}]=\"\" /><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>nf", "<[{NOFRAMES}]><CR></[{NOFRAMES}]><ESC>O")
 " Visual mappings:
-call HTMLmap("vnoremap", ";fs", "<ESC>`>a<CR></[{FRAMESET}]><C-O>`<<[{FRAMESET ROWS=\"\" COLS}]=\"\"><CR><ESC>k0f\"l")
-call HTMLmap("vnoremap", ";fr", "<ESC>`>a\" /><C-O>`<<[{FRAME SRC=\"<ESC>")
-call HTMLmap("vnoremap", ";nf", "<ESC>`>a<CR></[{NOFRAMES}]><C-O>`<<[{NOFRAMES}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>fs", "<ESC>`>a<CR></[{FRAMESET}]><C-O>`<<[{FRAMESET ROWS=\"\" COLS}]=\"\"><CR><ESC>k0f\"l")
+call HTMLmap("vnoremap", "<lead>fr", "<ESC>`>a\" /><C-O>`<<[{FRAME SRC=\"<ESC>")
+call HTMLmap("vnoremap", "<lead>nf", "<ESC>`>a<CR></[{NOFRAMES}]><C-O>`<<[{NOFRAMES}]><CR><ESC>", 1)
 " Motion mappings:
-call HTMLmapo(";fs", 0)
-call HTMLmapo(";fr", 0)
-call HTMLmapo(";nf", 0)
+call HTMLmapo("<lead>fs", 0)
+call HTMLmapo("<lead>fr", 0)
+call HTMLmapo("<lead>nf", 0)
 
 "       IFRAME  Inline Frame            HTML 4.0
-call HTMLmap("inoremap", ";if", "<[{IFRAME SRC}]=\"\"><CR></[{IFRAME}]><ESC>Bblli")
+call HTMLmap("inoremap", "<lead>if", "<[{IFRAME SRC}]=\"\"><CR></[{IFRAME}]><ESC>Bblli")
 " Visual mapping:
-call HTMLmap("vnoremap", ";if", "<ESC>`>a<CR></[{IFRAME}]><C-O>`<<[{IFRAME SRC}]=\"\"><CR><ESC>k0f\"l")
+call HTMLmap("vnoremap", "<lead>if", "<ESC>`>a<CR></[{IFRAME}]><C-O>`<<[{IFRAME SRC}]=\"\"><CR><ESC>k0f\"l")
 " Motion mapping:
-call HTMLmapo(';if', 0)
+call HTMLmapo('<lead>if', 0)
 
 " Forms stuff:
-call HTMLmap("inoremap", ";fm", "<[{FORM ACTION}]=\"\"><CR></[{FORM}]><ESC>k0f\"li")
-call HTMLmap("inoremap", ";bu", "<[{INPUT TYPE=\"BUTTON\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
-call HTMLmap("inoremap", ";ch", "<[{INPUT TYPE=\"CHECKBOX\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
-call HTMLmap("inoremap", ";ra", "<[{INPUT TYPE=\"RADIO\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
-call HTMLmap("inoremap", ";hi", "<[{INPUT TYPE=\"HIDDEN\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
-call HTMLmap("inoremap", ";pa", "<[{INPUT TYPE=\"PASSWORD\" NAME=\"\" SIZE}]=20 /><ESC>F\"i")
-call HTMLmap("inoremap", ";te", "<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE=\"\" SIZE}]=20 /><ESC>3F\"i")
-call HTMLmap("inoremap", ";fi", "<[{INPUT TYPE=\"FILE\" NAME=\"\" VALUE=\"\" SIZE}]=20 /><ESC>3F\"i")
-call HTMLmap("inoremap", ";se", "<[{SELECT NAME}]=\"\"><CR></[{SELECT}]><ESC>O")
-call HTMLmap("inoremap", ";ms", "<[{SELECT NAME=\"\" MULTIPLE}]><CR></[{SELECT}]><ESC>O")
-call HTMLmap("inoremap", ";op", "<[{OPTION}] />")
-call HTMLmap("inoremap", ";og", "<[{OPTGROUP LABEL}]=\"\"><CR></[{OPTGROUP}]><ESC>k0f\"li")
-call HTMLmap("inoremap", ";tx", "<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR></[{TEXTAREA}]><ESC>k0f\"li")
-call HTMLmap("inoremap", ";su", "<[{INPUT TYPE=\"SUBMIT\" VALUE}]=\"Submit\" />")
-call HTMLmap("inoremap", ";re", "<[{INPUT TYPE=\"RESET\" VALUE}]=\"Reset\" />")
-call HTMLmap("inoremap", ";la", "<[{LABEL FOR=\"\"></LABEL}]><C-O>F\"")
+call HTMLmap("inoremap", "<lead>fm", "<[{FORM ACTION}]=\"\"><CR></[{FORM}]><ESC>k0f\"li")
+call HTMLmap("inoremap", "<lead>bu", "<[{INPUT TYPE=\"BUTTON\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
+call HTMLmap("inoremap", "<lead>ch", "<[{INPUT TYPE=\"CHECKBOX\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
+call HTMLmap("inoremap", "<lead>ra", "<[{INPUT TYPE=\"RADIO\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
+call HTMLmap("inoremap", "<lead>hi", "<[{INPUT TYPE=\"HIDDEN\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
+call HTMLmap("inoremap", "<lead>pa", "<[{INPUT TYPE=\"PASSWORD\" NAME=\"\" SIZE}]=20 /><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>te", "<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE=\"\" SIZE}]=20 /><ESC>3F\"i")
+call HTMLmap("inoremap", "<lead>fi", "<[{INPUT TYPE=\"FILE\" NAME=\"\" VALUE=\"\" SIZE}]=20 /><ESC>3F\"i")
+call HTMLmap("inoremap", "<lead>se", "<[{SELECT NAME}]=\"\"><CR></[{SELECT}]><ESC>O")
+call HTMLmap("inoremap", "<lead>ms", "<[{SELECT NAME=\"\" MULTIPLE}]><CR></[{SELECT}]><ESC>O")
+call HTMLmap("inoremap", "<lead>op", "<[{OPTION}] />")
+call HTMLmap("inoremap", "<lead>og", "<[{OPTGROUP LABEL}]=\"\"><CR></[{OPTGROUP}]><ESC>k0f\"li")
+call HTMLmap("inoremap", "<lead>tx", "<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR></[{TEXTAREA}]><ESC>k0f\"li")
+call HTMLmap("inoremap", "<lead>su", "<[{INPUT TYPE=\"SUBMIT\" VALUE}]=\"Submit\" />")
+call HTMLmap("inoremap", "<lead>re", "<[{INPUT TYPE=\"RESET\" VALUE}]=\"Reset\" />")
+call HTMLmap("inoremap", "<lead>la", "<[{LABEL FOR=\"\"></LABEL}]><C-O>F\"")
 " Visual mappings:
-call HTMLmap("vnoremap", ";fm", "<ESC>`>a<CR></[{FORM}]><C-O>`<<[{FORM ACTION}]=\"\"><CR><ESC>k0f\"l", 1)
-call HTMLmap("vnoremap", ";bu", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"BUTTON\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
-call HTMLmap("vnoremap", ";ch", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"CHECKBOX\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
-call HTMLmap("vnoremap", ";ra", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"RADIO\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
-call HTMLmap("vnoremap", ";hi", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"HIDDEN\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
-call HTMLmap("vnoremap", ";te", "<ESC>`>a\" [{SIZE}]=\"20\" /><C-O>`<<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
-call HTMLmap("vnoremap", ";se", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME}]=\"\"><CR><ESC>k0f\"l", 1)
-call HTMLmap("vnoremap", ";ms", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME=\"\" MULTIPLE}]><CR><ESC>k0f\"l", 1)
-call HTMLmap("vnoremap", ";og", "<ESC>`>a<CR></[{OPTGROUP}]><C-O>`<<[{OPTGROUP LABEL}]=\"\"><CR><ESC>k0f\"l", 1)
-call HTMLmap("vnoremap", ";tx", "<ESC>`>a<CR></[{TEXTAREA}]><C-O>`<<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR><ESC>k0f\"l", 1)
-call HTMLmap("vnoremap", ";la", "<ESC>`>a</[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"\"><C-O>F\"", 0)
-call HTMLmap("vnoremap", ";lA", "<ESC>`>a\"></[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"<C-O>f<", 0)
+call HTMLmap("vnoremap", "<lead>fm", "<ESC>`>a<CR></[{FORM}]><C-O>`<<[{FORM ACTION}]=\"\"><CR><ESC>k0f\"l", 1)
+call HTMLmap("vnoremap", "<lead>bu", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"BUTTON\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", "<lead>ch", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"CHECKBOX\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", "<lead>ra", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"RADIO\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", "<lead>hi", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"HIDDEN\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", "<lead>te", "<ESC>`>a\" [{SIZE}]=\"20\" /><C-O>`<<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", "<lead>se", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME}]=\"\"><CR><ESC>k0f\"l", 1)
+call HTMLmap("vnoremap", "<lead>ms", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME=\"\" MULTIPLE}]><CR><ESC>k0f\"l", 1)
+call HTMLmap("vnoremap", "<lead>og", "<ESC>`>a<CR></[{OPTGROUP}]><C-O>`<<[{OPTGROUP LABEL}]=\"\"><CR><ESC>k0f\"l", 1)
+call HTMLmap("vnoremap", "<lead>tx", "<ESC>`>a<CR></[{TEXTAREA}]><C-O>`<<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR><ESC>k0f\"l", 1)
+call HTMLmap("vnoremap", "<lead>la", "<ESC>`>a</[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"\"><C-O>F\"", 0)
+call HTMLmap("vnoremap", "<lead>lA", "<ESC>`>a\"></[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"<C-O>f<", 0)
 " Motion mappings:
-call HTMLmapo(";fm", 0)
-call HTMLmapo(";bu", 1)
-call HTMLmapo(";ch", 1)
-call HTMLmapo(";ra", 1)
-call HTMLmapo(";hi", 1)
-call HTMLmapo(";te", 1)
-call HTMLmapo(";se", 0)
-call HTMLmapo(";ms", 0)
-call HTMLmapo(";og", 0)
-call HTMLmapo(";tx", 0)
-call HTMLmapo(";la", 1)
-call HTMLmapo(";lA", 1)
+call HTMLmapo("<lead>fm", 0)
+call HTMLmapo("<lead>bu", 1)
+call HTMLmapo("<lead>ch", 1)
+call HTMLmapo("<lead>ra", 1)
+call HTMLmapo("<lead>hi", 1)
+call HTMLmapo("<lead>te", 1)
+call HTMLmapo("<lead>se", 0)
+call HTMLmapo("<lead>ms", 0)
+call HTMLmapo("<lead>og", 0)
+call HTMLmapo("<lead>tx", 0)
+call HTMLmapo("<lead>la", 1)
+call HTMLmapo("<lead>lA", 1)
 
 " ----------------------------------------------------------------------------
 
@@ -1154,8 +1161,8 @@ call HTMLmapo(";lA", 1)
 
 " Convert the character under the cursor or the highlighted string to straight
 " HTML entities:
-call HTMLmap("nnoremap", ";&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
-call HTMLmap("vnoremap", ";&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
+call HTMLmap("nnoremap", "<lead>&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
+call HTMLmap("vnoremap", "<lead>&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
 
 call HTMLmap("inoremap", "&&", "&amp;")
 call HTMLmap("inoremap", "&cO", "&copy;")
@@ -1165,7 +1172,7 @@ call HTMLmap("inoremap", "&'", "&quot;")
 call HTMLmap("inoremap", "&<", "&lt;")
 call HTMLmap("inoremap", "&>", "&gt;")
 call HTMLmap("inoremap", "&<space>", "&nbsp;")
-call HTMLmap("inoremap", ";<space>", "&nbsp;")
+call HTMLmap("inoremap", "<lead><space>", "&nbsp;")
 call HTMLmap("inoremap", "&#", "&pound;")
 call HTMLmap("inoremap", "&Y=", "&yen;")
 call HTMLmap("inoremap", "&c\\|", "&cent;")
@@ -1254,35 +1261,35 @@ if has("unix")
 
   if exists("*LaunchBrowser")
     " Firefox: View current file, starting Netscape if it's not running:
-    call HTMLmap("nnoremap", ";ff", ":call LaunchBrowser('f',0)<CR>")
+    call HTMLmap("nnoremap", "<lead>ff", ":call LaunchBrowser('f',0)<CR>")
     " Firefox: Open a new window, and view the current file:
-    call HTMLmap("nnoremap", ";nff", ":call LaunchBrowser('f',1)<CR>")
+    call HTMLmap("nnoremap", "<lead>nff", ":call LaunchBrowser('f',1)<CR>")
     " Firefox: Open a new tab, and view the current file:
-    call HTMLmap("nnoremap", ";tff", ":call LaunchBrowser('f',2)<CR>")
+    call HTMLmap("nnoremap", "<lead>tff", ":call LaunchBrowser('f',2)<CR>")
 
     " Mozilla: View current file, starting Netscape if it's not running:
-    call HTMLmap("nnoremap", ";mo", ":call LaunchBrowser('m',0)<CR>")
+    call HTMLmap("nnoremap", "<lead>mo", ":call LaunchBrowser('m',0)<CR>")
     " Mozilla: Open a new window, and view the current file:
-    call HTMLmap("nnoremap", ";nmo", ":call LaunchBrowser('m',1)<CR>")
+    call HTMLmap("nnoremap", "<lead>nmo", ":call LaunchBrowser('m',1)<CR>")
     " Mozilla: Open a new tab, and view the current file:
-    call HTMLmap("nnoremap", ";tmo", ":call LaunchBrowser('m',2)<CR>")
+    call HTMLmap("nnoremap", "<lead>tmo", ":call LaunchBrowser('m',2)<CR>")
 
     " Netscape: View current file, starting Netscape if it's not running:
-    call HTMLmap("nnoremap", ";ns", ":call LaunchBrowser('n',0)<CR>")
+    call HTMLmap("nnoremap", "<lead>ns", ":call LaunchBrowser('n',0)<CR>")
     " Netscape: Open a new window, and view the current file:
-    call HTMLmap("nnoremap", ";nns", ":call LaunchBrowser('n',1)<CR>")
+    call HTMLmap("nnoremap", "<lead>nns", ":call LaunchBrowser('n',1)<CR>")
 
     " Opera: View current file, starting Opera if it's not running:
-    call HTMLmap("nnoremap", ";oa", ":call LaunchBrowser('o',0)<CR>")
+    call HTMLmap("nnoremap", "<lead>oa", ":call LaunchBrowser('o',0)<CR>")
     " Opera: View current file in a new window, starting Opera if it's not running:
-    call HTMLmap("nnoremap", ";noa", ":call LaunchBrowser('o',1)<CR>")
+    call HTMLmap("nnoremap", "<lead>noa", ":call LaunchBrowser('o',1)<CR>")
     " Opera: Open a new tab, and view the current file:
-    call HTMLmap("nnoremap", ";toa", ":call LaunchBrowser('o',2)<CR>")
+    call HTMLmap("nnoremap", "<lead>toa", ":call LaunchBrowser('o',2)<CR>")
 
     " Lynx:  (This happens anyway if there's no DISPLAY environmental variable.)
-    call HTMLmap("nnoremap",";ly",":call LaunchBrowser('l',0)<CR>")
+    call HTMLmap("nnoremap","<lead>ly",":call LaunchBrowser('l',0)<CR>")
     " Lynx in an xterm:      (This happens regardless if you're in the Vim GUI.)
-    call HTMLmap("nnoremap", ";nly", ":call LaunchBrowser('l',1)<CR>")
+    call HTMLmap("nnoremap", "<lead>nly", ":call LaunchBrowser('l',1)<CR>")
   endif
 elseif has("win32")
   " Internet Explorer:
@@ -1294,11 +1301,11 @@ elseif has("win32")
   "    exe '!start explorer ' . a:file
   "  endif
   "endfunction
-  "call HTMLmap("nnoremap", ";ie", ":call HTMLstartExplorer(expand('%:p'))<CR>")
+  "call HTMLmap("nnoremap", "<lead>ie", ":call HTMLstartExplorer(expand('%:p'))<CR>")
 
   " This assumes that IE is installed and the file explorer will become IE
   " when given an URL to open:
-  call HTMLmap("nnoremap", ";ie", ":exe '!start explorer ' . expand('%:p')<CR>")
+  call HTMLmap("nnoremap", "<lead>ie", ":exe '!start explorer ' . expand('%:p')<CR>")
 endif
 
 " ----------------------------------------------------------------------------
@@ -1347,75 +1354,75 @@ if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gu
 
    menu 1.50          ToolBar.-sep1-    <nul>
 
-  HTMLtmenu Template  1.60  ToolBar.Template  Create\ Template
-  amenu               1.60  ToolBar.Template  ;html
+  HTMLtmenu Template  1.60  ToolBar.Template   Create\ Template
+  exe 'amenu          1.60  ToolBar.Template'  g:html_map_leader . 'html'
 
-   menu               1.65  ToolBar.-sep2-    <nul>
+   menu               1.65  ToolBar.-sep2-     <nul>
 
-  HTMLtmenu Paragraph 1.70  ToolBar.Paragraph Create\ Paragraph
-  imenu               1.70  ToolBar.Paragraph ;pp
-  vmenu               1.70  ToolBar.Paragraph ;pp
-  nmenu               1.70  ToolBar.Paragraph i;pp
-  HTMLtmenu Break     1.80  ToolBar.Break     Line\ Break
-  imenu               1.80  ToolBar.Break     ;br
-  vmenu               1.80  ToolBar.Break     ;br
-  nmenu               1.80  ToolBar.Break     i;br
+  HTMLtmenu Paragraph 1.70  ToolBar.Paragraph  Create\ Paragraph
+  exe 'imenu          1.70  ToolBar.Paragraph' g:html_map_leader . 'pp'
+  exe 'vmenu          1.70  ToolBar.Paragraph' g:html_map_leader . 'pp'
+  exe 'nmenu          1.70  ToolBar.Paragraph' 'i' . g:html_map_leader . 'pp'
+  HTMLtmenu Break     1.80  ToolBar.Break      Line\ Break
+  exe 'imenu          1.80  ToolBar.Break'     g:html_map_leader . 'br'
+  exe 'vmenu          1.80  ToolBar.Break'     g:html_map_leader . 'br'
+  exe 'nmenu          1.80  ToolBar.Break'     'i' . g:html_map_leader . 'br'
 
-   menu               1.85  ToolBar.-sep3-    <nul>
+   menu               1.85  ToolBar.-sep3-     <nul>
 
-  HTMLtmenu Link      1.90  ToolBar.Link      Create\ Hyperlink
-  imenu               1.90  ToolBar.Link      ;ah
-  vmenu               1.90  ToolBar.Link      ;ah
-  nmenu               1.90  ToolBar.Link      i;ah
-  HTMLtmenu Target    1.100 ToolBar.Target    Create\ Target\ (Named\ Anchor)
-  imenu               1.100 ToolBar.Target    ;an
-  vmenu               1.100 ToolBar.Target    ;an
-  nmenu               1.100 ToolBar.Target    i;an
-  HTMLtmenu Image     1.110 ToolBar.Image     Insert\ Image
-  imenu               1.110 ToolBar.Image     ;im
-  vmenu               1.110 ToolBar.Image     ;im
-  nmenu               1.110 ToolBar.Image     i;im
+  HTMLtmenu Link      1.90  ToolBar.Link       Create\ Hyperlink
+  exe 'imenu          1.90  ToolBar.Link'      g:html_map_leader . 'ah'
+  exe 'vmenu          1.90  ToolBar.Link'      g:html_map_leader . 'ah'
+  exe 'nmenu          1.90  ToolBar.Link'      'i' . g:html_map_leader . 'ah'
+  HTMLtmenu Target    1.100 ToolBar.Target     Create\ Target\ (Named\ Anchor)
+  exe 'imenu          1.100 ToolBar.Target'    g:html_map_leader . 'an'
+  exe 'vmenu          1.100 ToolBar.Target'    g:html_map_leader . 'an'
+  exe 'nmenu          1.100 ToolBar.Target'    'i' . g:html_map_leader . 'an'
+  HTMLtmenu Image     1.110 ToolBar.Image      Insert\ Image
+  exe 'imenu          1.110 ToolBar.Image'     g:html_map_leader . 'im'
+  exe 'vmenu          1.110 ToolBar.Image'     g:html_map_leader . 'im'
+  exe 'nmenu          1.110 ToolBar.Image'     'i' . g:html_map_leader . 'im'
 
-   menu               1.115 ToolBar.-sep4-    <nul>
+   menu               1.115 ToolBar.-sep4-     <nul>
 
-  HTMLtmenu Hline     1.120 ToolBar.Hline     Create\ Horizontal\ Rule
-  imenu               1.120 ToolBar.Hline     ;hr
-  nmenu               1.120 ToolBar.Hline     i;hr
+  HTMLtmenu Hline     1.120 ToolBar.Hline      Create\ Horizontal\ Rule
+  exe 'imenu          1.120 ToolBar.Hline'     g:html_map_leader . 'hr'
+  exe 'nmenu          1.120 ToolBar.Hline'     'i' . g:html_map_leader . 'hr'
 
-   menu               1.125 ToolBar.-sep5-    <nul>
+   menu               1.125 ToolBar.-sep5-     <nul>
 
-  HTMLtmenu Table     1.130 ToolBar.Table     Create\ Table
-  imenu               1.130 ToolBar.Table     <ESC>;ta
-  nmenu               1.130 ToolBar.Table     ;ta
+  HTMLtmenu Table     1.130 ToolBar.Table      Create\ Table
+  exe 'imenu          1.130 ToolBar.Table'     '<ESC>' . g:html_map_leader . 'tA'
+  exe 'nmenu          1.130 ToolBar.Table'     g:html_map_leader . 'tA'
 
-   menu               1.135 ToolBar.-sep6-    <nul>
+   menu               1.135 ToolBar.-sep6-     <nul>
 
-  HTMLtmenu Blist     1.140 ToolBar.Blist     Create\ Bullet\ List
-  imenu               1.140 ToolBar.Blist     ;ul;li
-  vmenu               1.140 ToolBar.Blist     ;uli;li<ESC>
-  nmenu               1.140 ToolBar.Blist     i;ul;li
-  HTMLtmenu Nlist     1.150 ToolBar.Nlist     Create\ Numbered\ List
-  imenu               1.150 ToolBar.Nlist     ;ol;li
-  vmenu               1.150 ToolBar.Nlist     ;oli;li<ESC>
-  nmenu               1.150 ToolBar.Nlist     i;ol;li
-  HTMLtmenu Litem     1.160 ToolBar.Litem     Add\ List\ Item
-  imenu               1.160 ToolBar.Litem     ;li
-  nmenu               1.160 ToolBar.Litem     i;li
+  HTMLtmenu Blist     1.140 ToolBar.Blist      Create\ Bullet\ List
+  exe 'imenu          1.140 ToolBar.Blist'     g:html_map_leader . 'ul' . g:html_map_leader . 'li'
+  exe 'vmenu          1.140 ToolBar.Blist'     g:html_map_leader . 'uli' . g:html_map_leader . 'li<ESC>'
+  exe 'nmenu          1.140 ToolBar.Blist'     'i' . g:html_map_leader . 'ul' . g:html_map_leader . 'li'
+  HTMLtmenu Nlist     1.150 ToolBar.Nlist      Create\ Numbered\ List
+  exe 'imenu          1.150 ToolBar.Nlist'     g:html_map_leader . 'ol' . g:html_map_leader . 'li'
+  exe 'vmenu          1.150 ToolBar.Nlist'     g:html_map_leader . 'oli' . g:html_map_leader . 'li<ESC>'
+  exe 'nmenu          1.150 ToolBar.Nlist'     'i' . g:html_map_leader . 'ol' . g:html_map_leader . 'li'
+  HTMLtmenu Litem     1.160 ToolBar.Litem      Add\ List\ Item
+  exe 'imenu          1.160 ToolBar.Litem'     g:html_map_leader . 'li'
+  exe 'nmenu          1.160 ToolBar.Litem'     'i' . g:html_map_leader . 'li'
 
-   menu               1.165 ToolBar.-sep7-    <nul>
+   menu               1.165 ToolBar.-sep7-     <nul>
 
-  HTMLtmenu Bold      1.170 ToolBar.Bold      Bold
-  imenu               1.170 ToolBar.Bold      ;bo
-  vmenu               1.170 ToolBar.Bold      ;bo
-  nmenu               1.170 ToolBar.Bold      i;bo
-  HTMLtmenu Italic    1.180 ToolBar.Italic    Italic
-  imenu               1.180 ToolBar.Italic    ;it
-  vmenu               1.180 ToolBar.Italic    ;it
-  nmenu               1.180 ToolBar.Italic    i;it
-  HTMLtmenu Underline 1.190 ToolBar.Underline Underline
-  imenu               1.190 ToolBar.Underline ;un
-  vmenu               1.190 ToolBar.Underline ;un
-  nmenu               1.190 ToolBar.Underline i;un
+  HTMLtmenu Bold      1.170 ToolBar.Bold       Bold
+  exe 'imenu          1.170 ToolBar.Bold'      g:html_map_leader . 'bo'
+  exe 'vmenu          1.170 ToolBar.Bold'      g:html_map_leader . 'bo'
+  exe 'nmenu          1.170 ToolBar.Bold'      'i' . g:html_map_leader . 'bo'
+  HTMLtmenu Italic    1.180 ToolBar.Italic     Italic
+  exe 'imenu          1.180 ToolBar.Italic'    g:html_map_leader . 'it'
+  exe 'vmenu          1.180 ToolBar.Italic'    g:html_map_leader . 'it'
+  exe 'nmenu          1.180 ToolBar.Italic'    'i' . g:html_map_leader . 'it'
+  HTMLtmenu Underline 1.190 ToolBar.Underline  Underline
+  exe 'imenu          1.190 ToolBar.Underline' g:html_map_leader . 'un'
+  exe 'vmenu          1.190 ToolBar.Underline' g:html_map_leader . 'un'
+  exe 'nmenu          1.190 ToolBar.Underline' 'i' . g:html_map_leader . 'un'
 
    menu               1.195 ToolBar.-sep8-    <nul>
 
@@ -1449,36 +1456,36 @@ if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gu
 
 
   if exists("*LaunchBrowser")
-    amenu 1.500 ToolBar.-sep50-  <nul>
+    amenu 1.500 ToolBar.-sep50- <nul>
 
     let s:browsers = LaunchBrowser()
     
     if s:browsers =~ 'f'
-      HTMLtmenu Firefox  1.510 ToolBar.Firefox  Launch\ Firefox\ on\ Current\ File
-      amenu              1.510 ToolBar.Firefox  ;ff
+      HTMLtmenu Firefox  1.510 ToolBar.Firefox   Launch\ Firefox\ on\ Current\ File
+      exe 'amenu         1.510 ToolBar.Firefox'  g:html_map_leader . 'ff'
     elseif s:browsers =~ 'm'
-      HTMLtmenu Mozilla  1.510 ToolBar.Mozilla  Launch\ Mozilla\ on\ Current\ File
-      amenu              1.510 ToolBar.Mozilla  ;mo
+      HTMLtmenu Mozilla  1.510 ToolBar.Mozilla   Launch\ Mozilla\ on\ Current\ File
+      exe 'amenu         1.510 ToolBar.Mozilla'  g:html_map_leader . 'mo'
     elseif s:browsers =~ 'n'
-      HTMLtmenu Netscape 1.510 ToolBar.Netscape Launch\ Netscape\ on\ Current\ File
-      amenu              1.510 ToolBar.Netscape ;ns
+      HTMLtmenu Netscape 1.510 ToolBar.Netscape  Launch\ Netscape\ on\ Current\ File
+      exe 'amenu         1.510 ToolBar.Netscape' g:html_map_leader . 'ns'
     endif
 
     if s:browsers =~ 'o'
-      HTMLtmenu Opera    1.520 ToolBar.Opera    Launch\ Opera\ on\ Current\ File
-      amenu              1.520 ToolBar.Opera    ;oa
+      HTMLtmenu Opera    1.520 ToolBar.Opera     Launch\ Opera\ on\ Current\ File
+      exe 'amenu         1.520 ToolBar.Opera'    g:html_map_leader . 'oa'
     endif
 
     if s:browsers =~ 'l'
       HTMLtmenu Lynx     1.530 ToolBar.Lynx     Launch\ Lynx\ on\ Current\ File
-      amenu              1.530 ToolBar.Lynx     ;ly
+      exe 'amenu         1.530 ToolBar.Lynx'    g:html_map_leader . 'ly'
     endif
 
-  elseif maparg(';ie', 'n') != ""
-    amenu 1.500 ToolBar.-sep50-  <nul>
+  elseif maparg(g:html_map_leader . 'ie', 'n') != ""
+    amenu 1.500 ToolBar.-sep50- <nul>
 
     tmenu 1.510 ToolBar.IE Launch Internet Explorer on Current File
-    amenu 1.510 ToolBar.IE ;ie
+    exe 'amenu 1.510 ToolBar.IE' g:html_map_leader . 'ie'
   endif
 
   amenu 1.998 ToolBar.-sep99-   <nul>
@@ -1520,40 +1527,42 @@ autocmd BufEnter,BufWinEnter *
  \ endif
 augroup END
 
-amenu HTM&L.Template<tab>;html                 ;html
+exe 'amenu HTM&L.Template<tab>' . g:html_map_leader . 'html' g:html_map_leader . 'html'
 
 if exists("*LaunchBrowser")
+  let s:browsers = LaunchBrowser()
+
   if s:browsers =~ 'f'
-    amenu HTML.Preview.Firefox<tab>;ff                   ;ff
-    amenu HTML.Preview.Firefox\ (New\ Window)<tab>;nff   ;nff
-    amenu HTML.Preview.Firefox\ (New\ Tab)<tab>;tff      ;tff
+    exe 'amenu HTML.Preview.Firefox<tab>' . g:html_map_leader . 'ff' g:html_map_leader . 'ff'
+    exe 'amenu HTML.Preview.Firefox\ (New\ Window)<tab>' . g:html_map_leader . 'nff' g:html_map_leader . 'nff'
+    exe 'amenu HTML.Preview.Firefox\ (New\ Tab)<tab>' . g:html_map_leader . 'tff' g:html_map_leader . 'tff'
     amenu HTML.Preview.-sep1-                            <nop>
   endif
   if s:browsers =~ 'm'
-    amenu HTML.Preview.Mozilla<tab>;mo                   ;mo
-    amenu HTML.Preview.Mozilla\ (New\ Window)<tab>;nmo   ;nmo
-    amenu HTML.Preview.Mozilla\ (New\ Tab)<tab>;tmo      ;tmo
+    exe 'amenu HTML.Preview.Mozilla<tab>' . g:html_map_leader . 'mo' g:html_map_leader . 'mo'
+    exe 'amenu HTML.Preview.Mozilla\ (New\ Window)<tab>' . g:html_map_leader . 'nmo' g:html_map_leader . 'nmo'
+    exe 'amenu HTML.Preview.Mozilla\ (New\ Tab)<tab>' . g:html_map_leader . 'tmo' g:html_map_leader . 'tmo'
     amenu HTML.Preview.-sep2-                            <nop>
   endif
   if s:browsers =~ 'n'
-    amenu HTML.Preview.Netscape<tab>;ns                  ;ns
-    amenu HTML.Preview.Netscape\ (New\ Window)<tab>;nns  ;nns
+    exe 'amenu HTML.Preview.Netscape<tab>' . g:html_map_leader . 'ns' g:html_map_leader . 'ns'
+    exe 'amenu HTML.Preview.Netscape\ (New\ Window)<tab>' . g:html_map_leader . 'nns' g:html_map_leader . 'nns'
     amenu HTML.Preview.-sep3-                            <nop>
   endif
   if s:browsers =~ 'o'
-    amenu HTML.Preview.Opera<tab>;oa                     ;oa
-    amenu HTML.Preview.Opera\ (New\ Window)<tab>;noa     ;noa
-    amenu HTML.Preview.Opera\ (New\ Tab)<tab>;toa        ;toa
+    exe 'amenu HTML.Preview.Opera<tab>' . g:html_map_leader . 'oa' g:html_map_leader . 'oa'
+    exe 'amenu HTML.Preview.Opera\ (New\ Window)<tab>' . g:html_map_leader . 'noa' g:html_map_leader . 'noa'
+    exe 'amenu HTML.Preview.Opera\ (New\ Tab)<tab>' . g:html_map_leader . 'toa' g:html_map_leader . 'toa'
     amenu HTML.Preview.-sep4-                            <nop>
   endif
   if s:browsers =~ 'l'
-    amenu HTML.Preview.Lynx<tab>;ly                      ;ly
+    exe 'amenu HTML.Preview.Lynx<tab>' . g:html_map_leader . 'ly' g:html_map_leader . 'ly'
   endif
-elseif maparg(';ie', 'n') != ""
-  amenu HTML.Preview.Internet\ Explorer<tab>;ie        ;ie
+elseif maparg(g:html_map_leader . 'ie', 'n') != ""
+  exe 'amenu HTML.Preview.Internet\ Explorer<tab>' . g:html_map_leader . 'ie' g:html_map_leader . 'ie'
 endif
 
- menu HTML.-sep1-                              <nul>
+ menu HTML.-sep1- <nul>
 
 " Character Entities menu:   {{{2
 
@@ -2047,284 +2056,284 @@ imenu HTML.Colors.&T-Z.Violet<TAB>(#EE82EE)             #EE82EE
 
 " Font Styles menu:   {{{2
 
-imenu HTML.Font\ Styles.Bold<tab>;bo           ;bo
-vmenu HTML.Font\ Styles.Bold<tab>;bo           ;bo
-nmenu HTML.Font\ Styles.Bold<tab>;bo           i;bo
-imenu HTML.Font\ Styles.Italics<tab>;it        ;it
-vmenu HTML.Font\ Styles.Italics<tab>;it        ;it
-nmenu HTML.Font\ Styles.Italics<tab>;it        i;it
-imenu HTML.Font\ Styles.Underline<tab>;un      ;un
-vmenu HTML.Font\ Styles.Underline<tab>;un      ;un
-nmenu HTML.Font\ Styles.Underline<tab>;un      i;un
-imenu HTML.Font\ Styles.Big<tab>;bi            ;bi
-vmenu HTML.Font\ Styles.Big<tab>;bi            ;bi
-nmenu HTML.Font\ Styles.Big<tab>;bi            i;bi
-imenu HTML.Font\ Styles.Small<tab>;sm          ;sm
-vmenu HTML.Font\ Styles.Small<tab>;sm          ;sm
-nmenu HTML.Font\ Styles.Small<tab>;sm          i;sm
- menu HTML.Font\ Styles.-sep1-                 <nul>
-imenu HTML.Font\ Styles.Font\ Size<tab>;fo     ;fo
-vmenu HTML.Font\ Styles.Font\ Size<tab>;fo     ;fo
-nmenu HTML.Font\ Styles.Font\ Size<tab>;fo     i;fo
-imenu HTML.Font\ Styles.Font\ Color<tab>;fc    ;fc
-vmenu HTML.Font\ Styles.Font\ Color<tab>;fc    ;fc
-nmenu HTML.Font\ Styles.Font\ Color<tab>;fc    i;fc
- menu HTML.Font\ Styles.-sep2-                 <nul>
-imenu HTML.Font\ Styles.CITE<tab>;ci           ;ci
-vmenu HTML.Font\ Styles.CITE<tab>;ci           ;ci
-nmenu HTML.Font\ Styles.CITE<tab>;ci           i;ci
-imenu HTML.Font\ Styles.CODE<tab>;co           ;co
-vmenu HTML.Font\ Styles.CODE<tab>;co           ;co
-nmenu HTML.Font\ Styles.CODE<tab>;co           i;co
-imenu HTML.Font\ Styles.Inserted\ Text<tab>;in ;in
-vmenu HTML.Font\ Styles.Inserted\ Text<tab>;in ;in
-nmenu HTML.Font\ Styles.Inserted\ Text<tab>;in i;in
-imenu HTML.Font\ Styles.Deleted\ Text<tab>;de  ;de
-vmenu HTML.Font\ Styles.Deleted\ Text<tab>;de  ;de
-nmenu HTML.Font\ Styles.Deleted\ Text<tab>;de  i;de
-imenu HTML.Font\ Styles.Emphasize<tab>;em      ;em
-vmenu HTML.Font\ Styles.Emphasize<tab>;em      ;em
-nmenu HTML.Font\ Styles.Emphasize<tab>;em      i;em
-imenu HTML.Font\ Styles.Keyboard\ Text<tab>;kb ;kb
-vmenu HTML.Font\ Styles.Keyboard\ Text<tab>;kb ;kb
-nmenu HTML.Font\ Styles.Keyboard\ Text<tab>;kb i;kb
-imenu HTML.Font\ Styles.Sample\ Text<tab>;sa   ;sa
-vmenu HTML.Font\ Styles.Sample\ Text<tab>;sa   ;sa
-nmenu HTML.Font\ Styles.Sample\ Text<tab>;sa   i;sa
-imenu HTML.Font\ Styles.Strikethrough<tab>;sk  ;sk
-vmenu HTML.Font\ Styles.Strikethrough<tab>;sk  ;sk
-nmenu HTML.Font\ Styles.Strikethrough<tab>;sk  i;sk
-imenu HTML.Font\ Styles.STRONG<tab>;st         ;st
-vmenu HTML.Font\ Styles.STRONG<tab>;st         ;st
-nmenu HTML.Font\ Styles.STRONG<tab>;st         i;st
-imenu HTML.Font\ Styles.Subscript<tab>;sb      ;sb
-vmenu HTML.Font\ Styles.Subscript<tab>;sb      ;sb
-nmenu HTML.Font\ Styles.Subscript<tab>;sb      i;sb
-imenu HTML.Font\ Styles.Superscript<tab>;sp    ;sp
-vmenu HTML.Font\ Styles.Superscript<tab>;sp    ;sp
-nmenu HTML.Font\ Styles.Superscript<tab>;sp    i;sp
-imenu HTML.Font\ Styles.Teletype\ Text<tab>;tt ;tt
-vmenu HTML.Font\ Styles.Teletype\ Text<tab>;tt ;tt
-nmenu HTML.Font\ Styles.Teletype\ Text<tab>;tt i;tt
-imenu HTML.Font\ Styles.Variable<tab>;va       ;va
-vmenu HTML.Font\ Styles.Variable<tab>;va       ;va
-nmenu HTML.Font\ Styles.Variable<tab>;va       i;va
+exe 'imenu HTML.Font\ Styles.Bold<tab>' . g:html_map_leader . 'bo' g:html_map_leader . 'bo'
+exe 'vmenu HTML.Font\ Styles.Bold<tab>' . g:html_map_leader . 'bo' g:html_map_leader . 'bo'
+exe 'nmenu HTML.Font\ Styles.Bold<tab>' . g:html_map_leader . 'bo' 'i' . g:html_map_leader . 'bo'
+exe 'imenu HTML.Font\ Styles.Italics<tab>' . g:html_map_leader . 'it' g:html_map_leader . 'it'
+exe 'vmenu HTML.Font\ Styles.Italics<tab>' . g:html_map_leader . 'it' g:html_map_leader . 'it'
+exe 'nmenu HTML.Font\ Styles.Italics<tab>' . g:html_map_leader . 'it' 'i' . g:html_map_leader . 'it'
+exe 'imenu HTML.Font\ Styles.Underline<tab>' . g:html_map_leader . 'un' g:html_map_leader . 'un'
+exe 'vmenu HTML.Font\ Styles.Underline<tab>' . g:html_map_leader . 'un' g:html_map_leader . 'un'
+exe 'nmenu HTML.Font\ Styles.Underline<tab>' . g:html_map_leader . 'un' 'i' . g:html_map_leader . 'un'
+exe 'imenu HTML.Font\ Styles.Big<tab>' . g:html_map_leader . 'bi' g:html_map_leader . 'bi'
+exe 'vmenu HTML.Font\ Styles.Big<tab>' . g:html_map_leader . 'bi' g:html_map_leader . 'bi'
+exe 'nmenu HTML.Font\ Styles.Big<tab>' . g:html_map_leader . 'bi' 'i' . g:html_map_leader . 'bi'
+exe 'imenu HTML.Font\ Styles.Small<tab>' . g:html_map_leader . 'sm' g:html_map_leader . 'sm'
+exe 'vmenu HTML.Font\ Styles.Small<tab>' . g:html_map_leader . 'sm' g:html_map_leader . 'sm'
+exe 'nmenu HTML.Font\ Styles.Small<tab>' . g:html_map_leader . 'sm' 'i' . g:html_map_leader . 'sm'
+ menu HTML.Font\ Styles.-sep1- <nul>
+exe 'imenu HTML.Font\ Styles.Font\ Size<tab>' . g:html_map_leader . 'fo' g:html_map_leader . 'fo'
+exe 'vmenu HTML.Font\ Styles.Font\ Size<tab>' . g:html_map_leader . 'fo' g:html_map_leader . 'fo'
+exe 'nmenu HTML.Font\ Styles.Font\ Size<tab>' . g:html_map_leader . 'fo' 'i' . g:html_map_leader . 'fo'
+exe 'imenu HTML.Font\ Styles.Font\ Color<tab>' . g:html_map_leader . 'fc' g:html_map_leader . 'fc'
+exe 'vmenu HTML.Font\ Styles.Font\ Color<tab>' . g:html_map_leader . 'fc' g:html_map_leader . 'fc'
+exe 'nmenu HTML.Font\ Styles.Font\ Color<tab>' . g:html_map_leader . 'fc' 'i' . g:html_map_leader . 'fc'
+ menu HTML.Font\ Styles.-sep2- <nul>
+exe 'imenu HTML.Font\ Styles.CITE<tab>' . g:html_map_leader . 'ci' g:html_map_leader . 'ci'
+exe 'vmenu HTML.Font\ Styles.CITE<tab>' . g:html_map_leader . 'ci' g:html_map_leader . 'ci'
+exe 'nmenu HTML.Font\ Styles.CITE<tab>' . g:html_map_leader . 'ci' 'i' . g:html_map_leader . 'ci'
+exe 'imenu HTML.Font\ Styles.CODE<tab>' . g:html_map_leader . 'co' g:html_map_leader . 'co'
+exe 'vmenu HTML.Font\ Styles.CODE<tab>' . g:html_map_leader . 'co' g:html_map_leader . 'co'
+exe 'nmenu HTML.Font\ Styles.CODE<tab>' . g:html_map_leader . 'co' 'i' . g:html_map_leader . 'co'
+exe 'imenu HTML.Font\ Styles.Inserted\ Text<tab>' . g:html_map_leader . 'in' g:html_map_leader . 'in'
+exe 'vmenu HTML.Font\ Styles.Inserted\ Text<tab>' . g:html_map_leader . 'in' g:html_map_leader . 'in'
+exe 'nmenu HTML.Font\ Styles.Inserted\ Text<tab>' . g:html_map_leader . 'in' 'i' . g:html_map_leader . 'in'
+exe 'imenu HTML.Font\ Styles.Deleted\ Text<tab>' . g:html_map_leader . 'de' g:html_map_leader . 'de'
+exe 'vmenu HTML.Font\ Styles.Deleted\ Text<tab>' . g:html_map_leader . 'de' g:html_map_leader . 'de'
+exe 'nmenu HTML.Font\ Styles.Deleted\ Text<tab>' . g:html_map_leader . 'de' 'i' . g:html_map_leader . 'de'
+exe 'imenu HTML.Font\ Styles.Emphasize<tab>' . g:html_map_leader . 'em' g:html_map_leader . 'em'
+exe 'vmenu HTML.Font\ Styles.Emphasize<tab>' . g:html_map_leader . 'em' g:html_map_leader . 'em'
+exe 'nmenu HTML.Font\ Styles.Emphasize<tab>' . g:html_map_leader . 'em' 'i' . g:html_map_leader . 'em'
+exe 'imenu HTML.Font\ Styles.Keyboard\ Text<tab>' . g:html_map_leader . 'kb' g:html_map_leader . 'kb'
+exe 'vmenu HTML.Font\ Styles.Keyboard\ Text<tab>' . g:html_map_leader . 'kb' g:html_map_leader . 'kb'
+exe 'nmenu HTML.Font\ Styles.Keyboard\ Text<tab>' . g:html_map_leader . 'kb' 'i' . g:html_map_leader . 'kb'
+exe 'imenu HTML.Font\ Styles.Sample\ Text<tab>' . g:html_map_leader . 'sa' g:html_map_leader . 'sa'
+exe 'vmenu HTML.Font\ Styles.Sample\ Text<tab>' . g:html_map_leader . 'sa' g:html_map_leader . 'sa'
+exe 'nmenu HTML.Font\ Styles.Sample\ Text<tab>' . g:html_map_leader . 'sa' 'i' . g:html_map_leader . 'sa'
+exe 'imenu HTML.Font\ Styles.Strikethrough<tab>' . g:html_map_leader . 'sk' g:html_map_leader . 'sk'
+exe 'vmenu HTML.Font\ Styles.Strikethrough<tab>' . g:html_map_leader . 'sk' g:html_map_leader . 'sk'
+exe 'nmenu HTML.Font\ Styles.Strikethrough<tab>' . g:html_map_leader . 'sk' 'i' . g:html_map_leader . 'sk'
+exe 'imenu HTML.Font\ Styles.STRONG<tab>' . g:html_map_leader . 'st' g:html_map_leader . 'st'
+exe 'vmenu HTML.Font\ Styles.STRONG<tab>' . g:html_map_leader . 'st' g:html_map_leader . 'st'
+exe 'nmenu HTML.Font\ Styles.STRONG<tab>' . g:html_map_leader . 'st' 'i' . g:html_map_leader . 'st'
+exe 'imenu HTML.Font\ Styles.Subscript<tab>' . g:html_map_leader . 'sb' g:html_map_leader . 'sb'
+exe 'vmenu HTML.Font\ Styles.Subscript<tab>' . g:html_map_leader . 'sb' g:html_map_leader . 'sb'
+exe 'nmenu HTML.Font\ Styles.Subscript<tab>' . g:html_map_leader . 'sb' 'i' . g:html_map_leader . 'sb'
+exe 'imenu HTML.Font\ Styles.Superscript<tab>' . g:html_map_leader . 'sp' g:html_map_leader . 'sp'
+exe 'vmenu HTML.Font\ Styles.Superscript<tab>' . g:html_map_leader . 'sp' g:html_map_leader . 'sp'
+exe 'nmenu HTML.Font\ Styles.Superscript<tab>' . g:html_map_leader . 'sp' 'i' . g:html_map_leader . 'sp'
+exe 'imenu HTML.Font\ Styles.Teletype\ Text<tab>' . g:html_map_leader . 'tt' g:html_map_leader . 'tt'
+exe 'vmenu HTML.Font\ Styles.Teletype\ Text<tab>' . g:html_map_leader . 'tt' g:html_map_leader . 'tt'
+exe 'nmenu HTML.Font\ Styles.Teletype\ Text<tab>' . g:html_map_leader . 'tt' 'i' . g:html_map_leader . 'tt'
+exe 'imenu HTML.Font\ Styles.Variable<tab>' . g:html_map_leader . 'va' g:html_map_leader . 'va'
+exe 'vmenu HTML.Font\ Styles.Variable<tab>' . g:html_map_leader . 'va' g:html_map_leader . 'va'
+exe 'nmenu HTML.Font\ Styles.Variable<tab>' . g:html_map_leader . 'va' 'i' . g:html_map_leader . 'va'
 
 
 " Frames menu:   {{{2
 
-imenu HTML.Frames.FRAMESET<tab>;fs             ;fs
-vmenu HTML.Frames.FRAMESET<tab>;fs             ;fs
-nmenu HTML.Frames.FRAMESET<tab>;fs             i;fs
-imenu HTML.Frames.FRAME<tab>;fr                ;fr
-vmenu HTML.Frames.FRAME<tab>;fr                ;fr
-nmenu HTML.Frames.FRAME<tab>;fr                i;fr
-imenu HTML.Frames.NOFRAMES<tab>;nf             ;nf
-vmenu HTML.Frames.NOFRAMES<tab>;nf             ;nf
-nmenu HTML.Frames.NOFRAMES<tab>;nf             i;nf
-imenu HTML.Frames.IFRAME<tab>;if               ;if
-vmenu HTML.Frames.IFRAME<tab>;if               ;if
-nmenu HTML.Frames.IFRAME<tab>;if               i;if
+exe 'imenu HTML.Frames.FRAMESET<tab>' . g:html_map_leader . 'fs' g:html_map_leader . 'fs'
+exe 'vmenu HTML.Frames.FRAMESET<tab>' . g:html_map_leader . 'fs' g:html_map_leader . 'fs'
+exe 'nmenu HTML.Frames.FRAMESET<tab>' . g:html_map_leader . 'fs' 'i' . g:html_map_leader . 'fs'
+exe 'imenu HTML.Frames.FRAME<tab>' . g:html_map_leader . 'fr' g:html_map_leader . 'fr'
+exe 'vmenu HTML.Frames.FRAME<tab>' . g:html_map_leader . 'fr' g:html_map_leader . 'fr'
+exe 'nmenu HTML.Frames.FRAME<tab>' . g:html_map_leader . 'fr' 'i' . g:html_map_leader . 'fr'
+exe 'imenu HTML.Frames.NOFRAMES<tab>' . g:html_map_leader . 'nf' g:html_map_leader . 'nf'
+exe 'vmenu HTML.Frames.NOFRAMES<tab>' . g:html_map_leader . 'nf' g:html_map_leader . 'nf'
+exe 'nmenu HTML.Frames.NOFRAMES<tab>' . g:html_map_leader . 'nf' 'i' . g:html_map_leader . 'nf'
+exe 'imenu HTML.Frames.IFRAME<tab>' . g:html_map_leader . 'if' g:html_map_leader . 'if'
+exe 'vmenu HTML.Frames.IFRAME<tab>' . g:html_map_leader . 'if' g:html_map_leader . 'if'
+exe 'nmenu HTML.Frames.IFRAME<tab>' . g:html_map_leader . 'if' 'i' . g:html_map_leader . 'if'
 
 
 " Headers menu:   {{{2
 
-imenu HTML.Headers.Header\ Level\ 1<tab>;h1    ;h1
-imenu HTML.Headers.Header\ Level\ 2<tab>;h2    ;h2
-imenu HTML.Headers.Header\ Level\ 3<tab>;h3    ;h3
-imenu HTML.Headers.Header\ Level\ 4<tab>;h4    ;h4
-imenu HTML.Headers.Header\ Level\ 5<tab>;h5    ;h5
-imenu HTML.Headers.Header\ Level\ 6<tab>;h6    ;h6
-vmenu HTML.Headers.Header\ Level\ 1<tab>;h1    ;h1
-vmenu HTML.Headers.Header\ Level\ 2<tab>;h2    ;h2
-vmenu HTML.Headers.Header\ Level\ 3<tab>;h3    ;h3
-vmenu HTML.Headers.Header\ Level\ 4<tab>;h4    ;h4
-vmenu HTML.Headers.Header\ Level\ 5<tab>;h5    ;h5
-vmenu HTML.Headers.Header\ Level\ 6<tab>;h6    ;h6
-nmenu HTML.Headers.Header\ Level\ 1<tab>;h1    i;h1
-nmenu HTML.Headers.Header\ Level\ 2<tab>;h2    i;h2
-nmenu HTML.Headers.Header\ Level\ 3<tab>;h3    i;h3
-nmenu HTML.Headers.Header\ Level\ 4<tab>;h4    i;h4
-nmenu HTML.Headers.Header\ Level\ 5<tab>;h5    i;h5
-nmenu HTML.Headers.Header\ Level\ 6<tab>;h6    i;h6
+exe 'imenu HTML.Headers.Header\ Level\ 1<tab>' . g:html_map_leader . 'h1' g:html_map_leader . 'h1'
+exe 'imenu HTML.Headers.Header\ Level\ 2<tab>' . g:html_map_leader . 'h2' g:html_map_leader . 'h2'
+exe 'imenu HTML.Headers.Header\ Level\ 3<tab>' . g:html_map_leader . 'h3' g:html_map_leader . 'h3'
+exe 'imenu HTML.Headers.Header\ Level\ 4<tab>' . g:html_map_leader . 'h4' g:html_map_leader . 'h4'
+exe 'imenu HTML.Headers.Header\ Level\ 5<tab>' . g:html_map_leader . 'h5' g:html_map_leader . 'h5'
+exe 'imenu HTML.Headers.Header\ Level\ 6<tab>' . g:html_map_leader . 'h6' g:html_map_leader . 'h6'
+exe 'vmenu HTML.Headers.Header\ Level\ 1<tab>' . g:html_map_leader . 'h1' g:html_map_leader . 'h1'
+exe 'vmenu HTML.Headers.Header\ Level\ 2<tab>' . g:html_map_leader . 'h2' g:html_map_leader . 'h2'
+exe 'vmenu HTML.Headers.Header\ Level\ 3<tab>' . g:html_map_leader . 'h3' g:html_map_leader . 'h3'
+exe 'vmenu HTML.Headers.Header\ Level\ 4<tab>' . g:html_map_leader . 'h4' g:html_map_leader . 'h4'
+exe 'vmenu HTML.Headers.Header\ Level\ 5<tab>' . g:html_map_leader . 'h5' g:html_map_leader . 'h5'
+exe 'vmenu HTML.Headers.Header\ Level\ 6<tab>' . g:html_map_leader . 'h6' g:html_map_leader . 'h6'
+exe 'nmenu HTML.Headers.Header\ Level\ 1<tab>' . g:html_map_leader . 'h1' 'i' . g:html_map_leader . 'h1'
+exe 'nmenu HTML.Headers.Header\ Level\ 2<tab>' . g:html_map_leader . 'h2' 'i' . g:html_map_leader . 'h2'
+exe 'nmenu HTML.Headers.Header\ Level\ 3<tab>' . g:html_map_leader . 'h3' 'i' . g:html_map_leader . 'h3'
+exe 'nmenu HTML.Headers.Header\ Level\ 4<tab>' . g:html_map_leader . 'h4' 'i' . g:html_map_leader . 'h4'
+exe 'nmenu HTML.Headers.Header\ Level\ 5<tab>' . g:html_map_leader . 'h5' 'i' . g:html_map_leader . 'h5'
+exe 'nmenu HTML.Headers.Header\ Level\ 6<tab>' . g:html_map_leader . 'h6' 'i' . g:html_map_leader . 'h6'
 
 
 " Lists menu:   {{{2
 
-imenu HTML.Lists.Ordered\ List<tab>;ol         ;ol
-vmenu HTML.Lists.Ordered\ List<tab>;ol         ;ol
-nmenu HTML.Lists.Ordered\ List<tab>;ol         i;ol
-imenu HTML.Lists.Unordered\ List<tab>;ul       ;ul
-vmenu HTML.Lists.Unordered\ List<tab>;ul       ;ul
-nmenu HTML.Lists.Unordered\ List<tab>;ul       i;ul
-imenu HTML.Lists.List\ Item<tab>;li            ;li
-nmenu HTML.Lists.List\ Item<tab>;li            i;li
-imenu HTML.Lists.List\ Header<tab>;lh          ;lh
-vmenu HTML.Lists.List\ Header<tab>;lh          ;lh
-nmenu HTML.Lists.List\ Header<tab>;lh          i;lh
- menu HTML.Lists.-sep1-                        <nul>
-imenu HTML.Lists.Definition\ List<tab>;dl      ;dl
-vmenu HTML.Lists.Definition\ List<tab>;dl      ;dl
-nmenu HTML.Lists.Definition\ List<tab>;dl      i;dl
-imenu HTML.Lists.Definition\ Term<tab>;dt      ;dt
-nmenu HTML.Lists.Definition\ Term<tab>;dt      i;dt
-imenu HTML.Lists.Definition\ Body<tab>;dd      ;dd
-nmenu HTML.Lists.Definition\ Body<tab>;dd      i;dd
+exe 'imenu HTML.Lists.Ordered\ List<tab>' . g:html_map_leader . 'ol' g:html_map_leader . 'ol'
+exe 'vmenu HTML.Lists.Ordered\ List<tab>' . g:html_map_leader . 'ol' g:html_map_leader . 'ol'
+exe 'nmenu HTML.Lists.Ordered\ List<tab>' . g:html_map_leader . 'ol' 'i' . g:html_map_leader . 'ol'
+exe 'imenu HTML.Lists.Unordered\ List<tab>' . g:html_map_leader . 'ul' g:html_map_leader . 'ul'
+exe 'vmenu HTML.Lists.Unordered\ List<tab>' . g:html_map_leader . 'ul' g:html_map_leader . 'ul'
+exe 'nmenu HTML.Lists.Unordered\ List<tab>' . g:html_map_leader . 'ul' 'i' . g:html_map_leader . 'ul'
+exe 'imenu HTML.Lists.List\ Item<tab>' . g:html_map_leader . 'li' g:html_map_leader . 'li'
+exe 'nmenu HTML.Lists.List\ Item<tab>' . g:html_map_leader . 'li' 'i' . g:html_map_leader . 'li'
+exe 'imenu HTML.Lists.List\ Header<tab>' . g:html_map_leader . 'lh' g:html_map_leader . 'lh'
+exe 'vmenu HTML.Lists.List\ Header<tab>' . g:html_map_leader . 'lh' g:html_map_leader . 'lh'
+exe 'nmenu HTML.Lists.List\ Header<tab>' . g:html_map_leader . 'lh' 'i' . g:html_map_leader . 'lh'
+ menu HTML.Lists.-sep1- <nul>
+exe 'imenu HTML.Lists.Definition\ List<tab>' . g:html_map_leader . 'dl' g:html_map_leader . 'dl'
+exe 'vmenu HTML.Lists.Definition\ List<tab>' . g:html_map_leader . 'dl' g:html_map_leader . 'dl'
+exe 'nmenu HTML.Lists.Definition\ List<tab>' . g:html_map_leader . 'dl' 'i' . g:html_map_leader . 'dl'
+exe 'imenu HTML.Lists.Definition\ Term<tab>' . g:html_map_leader . 'dt' g:html_map_leader . 'dt'
+exe 'nmenu HTML.Lists.Definition\ Term<tab>' . g:html_map_leader . 'dt' 'i' . g:html_map_leader . 'dt'
+exe 'imenu HTML.Lists.Definition\ Body<tab>' . g:html_map_leader . 'dd' g:html_map_leader . 'dd'
+exe 'nmenu HTML.Lists.Definition\ Body<tab>' . g:html_map_leader . 'dd' 'i' . g:html_map_leader . 'dd'
 
 
 " Tables menu:   {{{2
 
-nmenu HTML.Tables.Interactive\ Table<tab>;ta   ;ta
-imenu HTML.Tables.TABLE<tab>;ta                ;ta
-vmenu HTML.Tables.TABLE<tab>;ta                ;ta
-"nmenu HTML.Tables.TABLE<tab>;ta                i;ta
-imenu HTML.Tables.Row<TAB>;tr                  ;tr
-vmenu HTML.Tables.Row<TAB>;tr                  ;tr
-nmenu HTML.Tables.Row<TAB>;tr                  i;tr
-imenu HTML.Tables.Data<tab>;td                 ;td
-vmenu HTML.Tables.Data<tab>;td                 ;td
-nmenu HTML.Tables.Data<tab>;td                 i;td
-imenu HTML.Tables.CAPTION<tab>;ca              ;ca
-vmenu HTML.Tables.CAPTION<tab>;ca              ;ca
-nmenu HTML.Tables.CAPTION<tab>;ca              i;ca
-imenu HTML.Tables.Header<tab>;th               ;th
-vmenu HTML.Tables.Header<tab>;th               ;th
-nmenu HTML.Tables.Header<tab>;th               i;th
+exe 'nmenu HTML.Tables.Interactive\ Table<tab>' . g:html_map_leader . 'ta' g:html_map_leader . 'ta'
+exe 'imenu HTML.Tables.TABLE<tab>' . g:html_map_leader . 'ta' g:html_map_leader . 'ta'
+exe 'vmenu HTML.Tables.TABLE<tab>' . g:html_map_leader . 'ta' g:html_map_leader . 'ta'
+exe '"nmenu HTML.Tables.TABLE<tab>' . g:html_map_leader . 'ta' 'i' . g:html_map_leader . 'ta'
+exe 'imenu HTML.Tables.Row<TAB>' . g:html_map_leader . 'tr' g:html_map_leader . 'tr'
+exe 'vmenu HTML.Tables.Row<TAB>' . g:html_map_leader . 'tr' g:html_map_leader . 'tr'
+exe 'nmenu HTML.Tables.Row<TAB>' . g:html_map_leader . 'tr' 'i' . g:html_map_leader . 'tr'
+exe 'imenu HTML.Tables.Data<tab>' . g:html_map_leader . 'td' g:html_map_leader . 'td'
+exe 'vmenu HTML.Tables.Data<tab>' . g:html_map_leader . 'td' g:html_map_leader . 'td'
+exe 'nmenu HTML.Tables.Data<tab>' . g:html_map_leader . 'td' 'i' . g:html_map_leader . 'td'
+exe 'imenu HTML.Tables.CAPTION<tab>' . g:html_map_leader . 'ca' g:html_map_leader . 'ca'
+exe 'vmenu HTML.Tables.CAPTION<tab>' . g:html_map_leader . 'ca' g:html_map_leader . 'ca'
+exe 'nmenu HTML.Tables.CAPTION<tab>' . g:html_map_leader . 'ca' 'i' . g:html_map_leader . 'ca'
+exe 'imenu HTML.Tables.Header<tab>' . g:html_map_leader . 'th' g:html_map_leader . 'th'
+exe 'vmenu HTML.Tables.Header<tab>' . g:html_map_leader . 'th' g:html_map_leader . 'th'
+exe 'nmenu HTML.Tables.Header<tab>' . g:html_map_leader . 'th' 'i' . g:html_map_leader . 'th'
 
 
 " Forms menu:   {{{2
 
-imenu HTML.Forms.FORM<TAB>;fm                  ;fm
-vmenu HTML.Forms.FORM<TAB>;fm                  ;fm
-nmenu HTML.Forms.FORM<TAB>;fm                  i;fm
-imenu HTML.Forms.BUTTON<TAB>;bu                ;bu
-vmenu HTML.Forms.BUTTON<TAB>;bu                ;bu
-nmenu HTML.Forms.BUTTON<TAB>;bu                i;bu
-imenu HTML.Forms.CHECKBOX<TAB>;ch              ;ch
-vmenu HTML.Forms.CHECKBOX<TAB>;ch              ;ch
-nmenu HTML.Forms.CHECKBOX<TAB>;ch              i;ch
-imenu HTML.Forms.RADIO<TAB>;ra                 ;ra
-vmenu HTML.Forms.RADIO<TAB>;ra                 ;ra
-nmenu HTML.Forms.RADIO<TAB>;ra                 i;ra
-imenu HTML.Forms.HIDDEN<TAB>;hi                ;hi
-vmenu HTML.Forms.HIDDEN<TAB>;hi                ;hi
-nmenu HTML.Forms.HIDDEN<TAB>;hi                i;hi
-imenu HTML.Forms.PASSWORD<TAB>;pa              ;pa
-vmenu HTML.Forms.PASSWORD<TAB>;pa              ;pa
-nmenu HTML.Forms.PASSWORD<TAB>;pa              i;pa
-imenu HTML.Forms.TEXT<TAB>;te                  ;te
-vmenu HTML.Forms.TEXT<TAB>;te                  ;te
-nmenu HTML.Forms.TEXT<TAB>;te                  i;te
-imenu HTML.Forms.SELECT<TAB>;se                ;se
-vmenu HTML.Forms.SELECT<TAB>;se                ;se
-nmenu HTML.Forms.SELECT<TAB>;se                i;se
-imenu HTML.Forms.SELECT\ MULTIPLE<TAB>;ms      ;ms
-vmenu HTML.Forms.SELECT\ MULTIPLE<TAB>;ms      ;ms
-nmenu HTML.Forms.SELECT\ MULTIPLE<TAB>;ms      i;ms
-imenu HTML.Forms.OPTION<TAB>;op                ;op
-vmenu HTML.Forms.OPTION<TAB>;op                <ESC>a;op
-nmenu HTML.Forms.OPTION<TAB>;op                i;op
-imenu HTML.Forms.OPTGROUP<TAB>;og              ;og
-vmenu HTML.Forms.OPTGROUP<TAB>;og              ;og
-nmenu HTML.Forms.OPTGROUP<TAB>;og              i;og
-imenu HTML.Forms.TEXTAREA<TAB>;tx              ;tx
-vmenu HTML.Forms.TEXTAREA<TAB>;tx              ;tx
-nmenu HTML.Forms.TEXTAREA<TAB>;tx              i;tx
-imenu HTML.Forms.SUBMIT<TAB>;su                ;su
-vmenu HTML.Forms.SUBMIT<TAB>;su                <ESC>a;su
-nmenu HTML.Forms.SUBMIT<TAB>;su                a;su
-imenu HTML.Forms.RESET<TAB>;re                 ;re
-vmenu HTML.Forms.RESET<TAB>;re                 <ESC>a;re
-nmenu HTML.Forms.RESET<TAB>;re                 a;re
-imenu HTML.Forms.LABEL<TAB>;la                 ;la
-vmenu HTML.Forms.LABEL<TAB>;la                 ;la
-nmenu HTML.Forms.LABEL<TAB>;la                 a;la
+exe 'imenu HTML.Forms.FORM<TAB>' . g:html_map_leader . 'fm' g:html_map_leader . 'fm'
+exe 'vmenu HTML.Forms.FORM<TAB>' . g:html_map_leader . 'fm' g:html_map_leader . 'fm'
+exe 'nmenu HTML.Forms.FORM<TAB>' . g:html_map_leader . 'fm' 'i' . g:html_map_leader . 'fm'
+exe 'imenu HTML.Forms.BUTTON<TAB>' . g:html_map_leader . 'bu' g:html_map_leader . 'bu'
+exe 'vmenu HTML.Forms.BUTTON<TAB>' . g:html_map_leader . 'bu' g:html_map_leader . 'bu'
+exe 'nmenu HTML.Forms.BUTTON<TAB>' . g:html_map_leader . 'bu' 'i' . g:html_map_leader . 'bu'
+exe 'imenu HTML.Forms.CHECKBOX<TAB>' . g:html_map_leader . 'ch' g:html_map_leader . 'ch'
+exe 'vmenu HTML.Forms.CHECKBOX<TAB>' . g:html_map_leader . 'ch' g:html_map_leader . 'ch'
+exe 'nmenu HTML.Forms.CHECKBOX<TAB>' . g:html_map_leader . 'ch' 'i' . g:html_map_leader . 'ch'
+exe 'imenu HTML.Forms.RADIO<TAB>' . g:html_map_leader . 'ra' g:html_map_leader . 'ra'
+exe 'vmenu HTML.Forms.RADIO<TAB>' . g:html_map_leader . 'ra' g:html_map_leader . 'ra'
+exe 'nmenu HTML.Forms.RADIO<TAB>' . g:html_map_leader . 'ra' 'i' . g:html_map_leader . 'ra'
+exe 'imenu HTML.Forms.HIDDEN<TAB>' . g:html_map_leader . 'hi' g:html_map_leader . 'hi'
+exe 'vmenu HTML.Forms.HIDDEN<TAB>' . g:html_map_leader . 'hi' g:html_map_leader . 'hi'
+exe 'nmenu HTML.Forms.HIDDEN<TAB>' . g:html_map_leader . 'hi' 'i' . g:html_map_leader . 'hi'
+exe 'imenu HTML.Forms.PASSWORD<TAB>' . g:html_map_leader . 'pa' g:html_map_leader . 'pa'
+exe 'vmenu HTML.Forms.PASSWORD<TAB>' . g:html_map_leader . 'pa' g:html_map_leader . 'pa'
+exe 'nmenu HTML.Forms.PASSWORD<TAB>' . g:html_map_leader . 'pa' 'i' . g:html_map_leader . 'pa'
+exe 'imenu HTML.Forms.TEXT<TAB>' . g:html_map_leader . 'te' g:html_map_leader . 'te'
+exe 'vmenu HTML.Forms.TEXT<TAB>' . g:html_map_leader . 'te' g:html_map_leader . 'te'
+exe 'nmenu HTML.Forms.TEXT<TAB>' . g:html_map_leader . 'te' 'i' . g:html_map_leader . 'te'
+exe 'imenu HTML.Forms.SELECT<TAB>' . g:html_map_leader . 'se' g:html_map_leader . 'se'
+exe 'vmenu HTML.Forms.SELECT<TAB>' . g:html_map_leader . 'se' g:html_map_leader . 'se'
+exe 'nmenu HTML.Forms.SELECT<TAB>' . g:html_map_leader . 'se' 'i' . g:html_map_leader . 'se'
+exe 'imenu HTML.Forms.SELECT\ MULTIPLE<TAB>' . g:html_map_leader . 'ms' g:html_map_leader . 'ms'
+exe 'vmenu HTML.Forms.SELECT\ MULTIPLE<TAB>' . g:html_map_leader . 'ms' g:html_map_leader . 'ms'
+exe 'nmenu HTML.Forms.SELECT\ MULTIPLE<TAB>' . g:html_map_leader . 'ms' 'i' . g:html_map_leader . 'ms'
+exe 'imenu HTML.Forms.OPTION<TAB>' . g:html_map_leader . 'op' g:html_map_leader . 'op'
+exe 'vmenu HTML.Forms.OPTION<TAB>' . g:html_map_leader . 'op' '<ESC>a' g:html_map_leader . 'op'
+exe 'nmenu HTML.Forms.OPTION<TAB>' . g:html_map_leader . 'op' 'i' . g:html_map_leader . 'op'
+exe 'imenu HTML.Forms.OPTGROUP<TAB>' . g:html_map_leader . 'og' g:html_map_leader . 'og'
+exe 'vmenu HTML.Forms.OPTGROUP<TAB>' . g:html_map_leader . 'og' g:html_map_leader . 'og'
+exe 'nmenu HTML.Forms.OPTGROUP<TAB>' . g:html_map_leader . 'og' 'i' . g:html_map_leader . 'og'
+exe 'imenu HTML.Forms.TEXTAREA<TAB>' . g:html_map_leader . 'tx' g:html_map_leader . 'tx'
+exe 'vmenu HTML.Forms.TEXTAREA<TAB>' . g:html_map_leader . 'tx' g:html_map_leader . 'tx'
+exe 'nmenu HTML.Forms.TEXTAREA<TAB>' . g:html_map_leader . 'tx' 'i' . g:html_map_leader . 'tx'
+exe 'imenu HTML.Forms.SUBMIT<TAB>' . g:html_map_leader . 'su' g:html_map_leader . 'su'
+exe 'vmenu HTML.Forms.SUBMIT<TAB>' . g:html_map_leader . 'su' '<ESC>a' . g:html_map_leader . 'su'
+exe 'nmenu HTML.Forms.SUBMIT<TAB>' . g:html_map_leader . 'su' 'a' . g:html_map_leader . 'su'
+exe 'imenu HTML.Forms.RESET<TAB>' . g:html_map_leader . 're' g:html_map_leader . 're'
+exe 'vmenu HTML.Forms.RESET<TAB>' . g:html_map_leader . 're' '<ESC>a' . g:html_map_leader . 're'
+exe 'nmenu HTML.Forms.RESET<TAB>' . g:html_map_leader . 're' 'a' . g:html_map_leader . 're'
+exe 'imenu HTML.Forms.LABEL<TAB>' . g:html_map_leader . 'la' g:html_map_leader . 'la'
+exe 'vmenu HTML.Forms.LABEL<TAB>' . g:html_map_leader . 'la' g:html_map_leader . 'la'
+exe 'nmenu HTML.Forms.LABEL<TAB>' . g:html_map_leader . 'la' 'a' . g:html_map_leader . 'la'
 
 " }}}2
 
- menu HTML.-sep2-                              <nul>
+ menu HTML.-sep2- <nul>
 
-imenu HTML.BODY<tab>;bd                        ;bd
-vmenu HTML.BODY<tab>;bd                        ;bd
-nmenu HTML.BODY<tab>;bd                        i;bd
-imenu HTML.CENTER<tab>;ce                      ;ce
-vmenu HTML.CENTER<tab>;ce                      ;ce
-nmenu HTML.CENTER<tab>;ce                      i;ce
-imenu HTML.Comment<tab>;cm                     ;cm
-vmenu HTML.Comment<tab>;cm                     ;cm
-nmenu HTML.Comment<tab>;cm                     i;cm
-imenu HTML.HEAD<tab>;he                        ;he
-vmenu HTML.HEAD<tab>;he                        ;he
-nmenu HTML.HEAD<tab>;he                        i;he
-imenu HTML.Horizontal\ Rule<tab>;hr            ;hr
-nmenu HTML.Horizontal\ Rule<tab>;hr            i;hr
-imenu HTML.HTML<tab>;ht                        ;ht
-vmenu HTML.HTML<tab>;ht                        ;ht
-nmenu HTML.HTML<tab>;ht                        i;ht
-imenu HTML.Hyperlink<tab>;ah                   ;ah
-vmenu HTML.Hyperlink<tab>;ah                   ;ah
-nmenu HTML.Hyperlink<tab>;ah                   i;ah
-imenu HTML.Inline\ Image<tab>;im               ;im
-vmenu HTML.Inline\ Image<tab>;im               ;im
-nmenu HTML.Inline\ Image<tab>;im               i;im
+exe 'imenu HTML.BODY<tab>' . g:html_map_leader . 'bd' g:html_map_leader . 'bd'
+exe 'vmenu HTML.BODY<tab>' . g:html_map_leader . 'bd' g:html_map_leader . 'bd'
+exe 'nmenu HTML.BODY<tab>' . g:html_map_leader . 'bd' 'i' . g:html_map_leader . 'bd'
+exe 'imenu HTML.CENTER<tab>' . g:html_map_leader . 'ce' g:html_map_leader . 'ce'
+exe 'vmenu HTML.CENTER<tab>' . g:html_map_leader . 'ce' g:html_map_leader . 'ce'
+exe 'nmenu HTML.CENTER<tab>' . g:html_map_leader . 'ce' 'i' . g:html_map_leader . 'ce'
+exe 'imenu HTML.Comment<tab>' . g:html_map_leader . 'cm' g:html_map_leader . 'cm'
+exe 'vmenu HTML.Comment<tab>' . g:html_map_leader . 'cm' g:html_map_leader . 'cm'
+exe 'nmenu HTML.Comment<tab>' . g:html_map_leader . 'cm' 'i' . g:html_map_leader . 'cm'
+exe 'imenu HTML.HEAD<tab>' . g:html_map_leader . 'he' g:html_map_leader . 'he'
+exe 'vmenu HTML.HEAD<tab>' . g:html_map_leader . 'he' g:html_map_leader . 'he'
+exe 'nmenu HTML.HEAD<tab>' . g:html_map_leader . 'he' 'i' . g:html_map_leader . 'he'
+exe 'imenu HTML.Horizontal\ Rule<tab>' . g:html_map_leader . 'hr' g:html_map_leader . 'hr'
+exe 'nmenu HTML.Horizontal\ Rule<tab>' . g:html_map_leader . 'hr' 'i' . g:html_map_leader . 'hr'
+exe 'imenu HTML.HTML<tab>' . g:html_map_leader . 'ht' g:html_map_leader . 'ht'
+exe 'vmenu HTML.HTML<tab>' . g:html_map_leader . 'ht' g:html_map_leader . 'ht'
+exe 'nmenu HTML.HTML<tab>' . g:html_map_leader . 'ht' 'i' . g:html_map_leader . 'ht'
+exe 'imenu HTML.Hyperlink<tab>' . g:html_map_leader . 'ah' g:html_map_leader . 'ah'
+exe 'vmenu HTML.Hyperlink<tab>' . g:html_map_leader . 'ah' g:html_map_leader . 'ah'
+exe 'nmenu HTML.Hyperlink<tab>' . g:html_map_leader . 'ah' 'i' . g:html_map_leader . 'ah'
+exe 'imenu HTML.Inline\ Image<tab>' . g:html_map_leader . 'im' g:html_map_leader . 'im'
+exe 'vmenu HTML.Inline\ Image<tab>' . g:html_map_leader . 'im' g:html_map_leader . 'im'
+exe 'nmenu HTML.Inline\ Image<tab>' . g:html_map_leader . 'im' 'i' . g:html_map_leader . 'im'
 if exists("*MangleImageTag")
-  imenu HTML.Update\ Image\ Size\ Attributes<tab>;mi ;mi
-  nmenu HTML.Update\ Image\ Size\ Attributes<tab>;mi ;mi
+  exe 'imenu HTML.Update\ Image\ Size\ Attributes<tab>' . g:html_map_leader . 'mi' g:html_map_leader . 'mi'
+  exe 'nmenu HTML.Update\ Image\ Size\ Attributes<tab>' . g:html_map_leader . 'mi' g:html_map_leader . 'mi'
 endif
-imenu HTML.Line\ Break<tab>;br                 ;br
-nmenu HTML.Line\ Break<tab>;br                 i;br
-imenu HTML.Named\ Anchor<tab>;an               ;an
-vmenu HTML.Named\ Anchor<tab>;an               ;an
-nmenu HTML.Named\ Anchor<tab>;an               i;an
-imenu HTML.Paragraph<tab>;pp                   ;pp
-vmenu HTML.Paragraph<tab>;pp                   ;pp
-nmenu HTML.Paragraph<tab>;pp                   i;pp
-imenu HTML.Preformatted\ Text<tab>;pr          ;pr
-vmenu HTML.Preformatted\ Text<tab>;pr          ;pr
-nmenu HTML.Preformatted\ Text<tab>;pr          i;pr
-imenu HTML.TITLE<tab>;ti                       ;ti
-vmenu HTML.TITLE<tab>;ti                       ;ti
-nmenu HTML.TITLE<tab>;ti                       i;ti
+exe 'imenu HTML.Line\ Break<tab>' . g:html_map_leader . 'br' g:html_map_leader . 'br'
+exe 'nmenu HTML.Line\ Break<tab>' . g:html_map_leader . 'br' 'i' . g:html_map_leader . 'br'
+exe 'imenu HTML.Named\ Anchor<tab>' . g:html_map_leader . 'an' g:html_map_leader . 'an'
+exe 'vmenu HTML.Named\ Anchor<tab>' . g:html_map_leader . 'an' g:html_map_leader . 'an'
+exe 'nmenu HTML.Named\ Anchor<tab>' . g:html_map_leader . 'an' 'i' . g:html_map_leader . 'an'
+exe 'imenu HTML.Paragraph<tab>' . g:html_map_leader . 'pp' g:html_map_leader . 'pp'
+exe 'vmenu HTML.Paragraph<tab>' . g:html_map_leader . 'pp' g:html_map_leader . 'pp'
+exe 'nmenu HTML.Paragraph<tab>' . g:html_map_leader . 'pp' 'i' . g:html_map_leader . 'pp'
+exe 'imenu HTML.Preformatted\ Text<tab>' . g:html_map_leader . 'pr' g:html_map_leader . 'pr'
+exe 'vmenu HTML.Preformatted\ Text<tab>' . g:html_map_leader . 'pr' g:html_map_leader . 'pr'
+exe 'nmenu HTML.Preformatted\ Text<tab>' . g:html_map_leader . 'pr' 'i' . g:html_map_leader . 'pr'
+exe 'imenu HTML.TITLE<tab>' . g:html_map_leader . 'ti' g:html_map_leader . 'ti'
+exe 'vmenu HTML.TITLE<tab>' . g:html_map_leader . 'ti' g:html_map_leader . 'ti'
+exe 'nmenu HTML.TITLE<tab>' . g:html_map_leader . 'ti' 'i' . g:html_map_leader . 'ti'
 
-imenu HTML.More\.\.\..ADDRESS<tab>;ad             ;ad
-vmenu HTML.More\.\.\..ADDRESS<tab>;ad             ;ad
-nmenu HTML.More\.\.\..ADDRESS<tab>;ad             i;ad
-imenu HTML.More\.\.\..BASE\ HREF<tab>;bh          ;bh
-vmenu HTML.More\.\.\..BASE\ HREF<tab>;bh          ;bh
-nmenu HTML.More\.\.\..BASE\ HREF<tab>;bh          i;bh
-imenu HTML.More\.\.\..BLOCKQUTE<tab>;bl           ;bl
-vmenu HTML.More\.\.\..BLOCKQUTE<tab>;bl           ;bl
-nmenu HTML.More\.\.\..BLOCKQUTE<tab>;bl           i;bl
-imenu HTML.More\.\.\..Defining\ Instance<tab>;df  ;df
-vmenu HTML.More\.\.\..Defining\ Instance<tab>;df  ;df
-nmenu HTML.More\.\.\..Defining\ Instance<tab>;df  i;df
-imenu HTML.More\.\.\..Document\ Division<tab>;dv  ;dv
-vmenu HTML.More\.\.\..Document\ Division<tab>;dv  ;dv
-nmenu HTML.More\.\.\..Document\ Division<tab>;dv  i;dv
-imenu HTML.More\.\.\..EMBED<tab>;eb               ;eb
-nmenu HTML.More\.\.\..EMBED<tab>;eb               i;eb
-imenu HTML.More\.\.\..ISINDEX<tab>;ii             ;ii
-nmenu HTML.More\.\.\..ISINDEX<tab>;ii             i;ii
-imenu HTML.More\.\.\..JavaScript<tab>;js          ;js
-nmenu HTML.More\.\.\..JavaScript<tab>;js          i;js
-imenu HTML.More\.\.\..LINK\ HREF<tab>;lk          ;lk
-vmenu HTML.More\.\.\..LINK\ HREF<tab>;lk          ;lk
-nmenu HTML.More\.\.\..LINK\ HREF<tab>;lk          i;lk
-imenu HTML.More\.\.\..Linked\ CSS<tab>;ls         ;ls
-vmenu HTML.More\.\.\..Linked\ CSS<tab>;ls         ;ls
-nmenu HTML.More\.\.\..Linked\ CSS<tab>;ls         i;ls
-imenu HTML.More\.\.\..META<tab>;me                ;me
-vmenu HTML.More\.\.\..META<tab>;me                ;me
-nmenu HTML.More\.\.\..META<tab>;me                i;me
-imenu HTML.More\.\.\..Quoted\ Text<tab>;qu        ;qu
-vmenu HTML.More\.\.\..Quoted\ Text<tab>;qu        ;qu
-nmenu HTML.More\.\.\..Quoted\ Text<tab>;qu        i;qu
-imenu HTML.More\.\.\..SPAN<tab>;sn                ;sn
-vmenu HTML.More\.\.\..SPAN<tab>;sn                ;sn
-nmenu HTML.More\.\.\..SPAN<tab>;sn                i;sn
-imenu HTML.More\.\.\..STYLE<tab>;cs               ;cs
-vmenu HTML.More\.\.\..STYLE<tab>;cs               ;cs
-nmenu HTML.More\.\.\..STYLE<tab>;cs               i;cs
+exe 'imenu HTML.More\.\.\..ADDRESS<tab>' . g:html_map_leader . 'ad' g:html_map_leader . 'ad'
+exe 'vmenu HTML.More\.\.\..ADDRESS<tab>' . g:html_map_leader . 'ad' g:html_map_leader . 'ad'
+exe 'nmenu HTML.More\.\.\..ADDRESS<tab>' . g:html_map_leader . 'ad' 'i' . g:html_map_leader . 'ad'
+exe 'imenu HTML.More\.\.\..BASE\ HREF<tab>' . g:html_map_leader . 'bh' g:html_map_leader . 'bh'
+exe 'vmenu HTML.More\.\.\..BASE\ HREF<tab>' . g:html_map_leader . 'bh' g:html_map_leader . 'bh'
+exe 'nmenu HTML.More\.\.\..BASE\ HREF<tab>' . g:html_map_leader . 'bh' 'i' . g:html_map_leader . 'bh'
+exe 'imenu HTML.More\.\.\..BLOCKQUTE<tab>' . g:html_map_leader . 'bl' g:html_map_leader . 'bl'
+exe 'vmenu HTML.More\.\.\..BLOCKQUTE<tab>' . g:html_map_leader . 'bl' g:html_map_leader . 'bl'
+exe 'nmenu HTML.More\.\.\..BLOCKQUTE<tab>' . g:html_map_leader . 'bl' 'i' . g:html_map_leader . 'bl'
+exe 'imenu HTML.More\.\.\..Defining\ Instance<tab>' . g:html_map_leader . 'df' g:html_map_leader . 'df'
+exe 'vmenu HTML.More\.\.\..Defining\ Instance<tab>' . g:html_map_leader . 'df' g:html_map_leader . 'df'
+exe 'nmenu HTML.More\.\.\..Defining\ Instance<tab>' . g:html_map_leader . 'df' 'i' . g:html_map_leader . 'df'
+exe 'imenu HTML.More\.\.\..Document\ Division<tab>' . g:html_map_leader . 'dv' g:html_map_leader . 'dv'
+exe 'vmenu HTML.More\.\.\..Document\ Division<tab>' . g:html_map_leader . 'dv' g:html_map_leader . 'dv'
+exe 'nmenu HTML.More\.\.\..Document\ Division<tab>' . g:html_map_leader . 'dv' 'i' . g:html_map_leader . 'dv'
+exe 'imenu HTML.More\.\.\..EMBED<tab>' . g:html_map_leader . 'eb' g:html_map_leader . 'eb'
+exe 'nmenu HTML.More\.\.\..EMBED<tab>' . g:html_map_leader . 'eb' 'i' . g:html_map_leader . 'eb'
+exe 'imenu HTML.More\.\.\..ISINDEX<tab>' . g:html_map_leader . 'ii' g:html_map_leader . 'ii'
+exe 'nmenu HTML.More\.\.\..ISINDEX<tab>' . g:html_map_leader . 'ii' 'i' . g:html_map_leader . 'ii'
+exe 'imenu HTML.More\.\.\..JavaScript<tab>' . g:html_map_leader . 'js' g:html_map_leader . 'js'
+exe 'nmenu HTML.More\.\.\..JavaScript<tab>' . g:html_map_leader . 'js' 'i' . g:html_map_leader . 'js'
+exe 'imenu HTML.More\.\.\..LINK\ HREF<tab>' . g:html_map_leader . 'lk' g:html_map_leader . 'lk'
+exe 'vmenu HTML.More\.\.\..LINK\ HREF<tab>' . g:html_map_leader . 'lk' g:html_map_leader . 'lk'
+exe 'nmenu HTML.More\.\.\..LINK\ HREF<tab>' . g:html_map_leader . 'lk' 'i' . g:html_map_leader . 'lk'
+exe 'imenu HTML.More\.\.\..Linked\ CSS<tab>' . g:html_map_leader . 'ls' g:html_map_leader . 'ls'
+exe 'vmenu HTML.More\.\.\..Linked\ CSS<tab>' . g:html_map_leader . 'ls' g:html_map_leader . 'ls'
+exe 'nmenu HTML.More\.\.\..Linked\ CSS<tab>' . g:html_map_leader . 'ls' 'i' . g:html_map_leader . 'ls'
+exe 'imenu HTML.More\.\.\..META<tab>' . g:html_map_leader . 'me' g:html_map_leader . 'me'
+exe 'vmenu HTML.More\.\.\..META<tab>' . g:html_map_leader . 'me' g:html_map_leader . 'me'
+exe 'nmenu HTML.More\.\.\..META<tab>' . g:html_map_leader . 'me' 'i' . g:html_map_leader . 'me'
+exe 'imenu HTML.More\.\.\..Quoted\ Text<tab>' . g:html_map_leader . 'qu' g:html_map_leader . 'qu'
+exe 'vmenu HTML.More\.\.\..Quoted\ Text<tab>' . g:html_map_leader . 'qu' g:html_map_leader . 'qu'
+exe 'nmenu HTML.More\.\.\..Quoted\ Text<tab>' . g:html_map_leader . 'qu' 'i' . g:html_map_leader . 'qu'
+exe 'imenu HTML.More\.\.\..SPAN<tab>' . g:html_map_leader . 'sn' g:html_map_leader . 'sn'
+exe 'vmenu HTML.More\.\.\..SPAN<tab>' . g:html_map_leader . 'sn' g:html_map_leader . 'sn'
+exe 'nmenu HTML.More\.\.\..SPAN<tab>' . g:html_map_leader . 'sn' 'i' . g:html_map_leader . 'sn'
+exe 'imenu HTML.More\.\.\..STYLE<tab>' . g:html_map_leader . 'cs' g:html_map_leader . 'cs'
+exe 'vmenu HTML.More\.\.\..STYLE<tab>' . g:html_map_leader . 'cs' g:html_map_leader . 'cs'
+exe 'nmenu HTML.More\.\.\..STYLE<tab>' . g:html_map_leader . 'cs' 'i' . g:html_map_leader . 'cs'
 
 let did_html_menus = 1
 endif  " ! has("gui_running"))
