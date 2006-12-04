@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: November 13, 2006
-" Version:     0.22.1
+" Last Change: December 04, 2006
+" Version:     0.22.2
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.119 2006/11/13 22:58:53 infynity Exp $
+" $Id: HTML.vim,v 1.121 2006/12/05 02:25:10 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -880,7 +880,7 @@ call HTMLmapo('<lead>lh', 0)
 "imap ;mu <MENU><CR></MENU><ESC>O
 
 "       META    Meta Information        HTML 2.0        HEADER
-call HTMLmap("inoremap", "<lead>me", "<[{META NAME=\"\" CONTENT}]=\"\" /><ESC>F\"i")
+call HTMLmap("inoremap", "<lead>me", "<[{META NAME=\"\" CONTENT}]=\"\" /><ESC>3F\"i")
 " Visual mappings:
 call HTMLmap("vnoremap", "<lead>me", "<ESC>`>a\" [{CONTENT}]=\"\" /><C-O>`<<[{META NAME}]=\"<C-O>3f\"", 0)
 call HTMLmap("vnoremap", "<lead>mE", "<ESC>`>a\" /><C-O>`<<[{META NAME=\"\" CONTENT}]=\"<C-O>2F\"", 0)
@@ -1116,9 +1116,9 @@ call HTMLmap("inoremap", "<lead>bu", "<[{INPUT TYPE=\"BUTTON\" NAME=\"\" VALUE}]
 call HTMLmap("inoremap", "<lead>ch", "<[{INPUT TYPE=\"CHECKBOX\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
 call HTMLmap("inoremap", "<lead>ra", "<[{INPUT TYPE=\"RADIO\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
 call HTMLmap("inoremap", "<lead>hi", "<[{INPUT TYPE=\"HIDDEN\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
-call HTMLmap("inoremap", "<lead>pa", "<[{INPUT TYPE=\"PASSWORD\" NAME=\"\" SIZE}]=20 /><ESC>F\"i")
-call HTMLmap("inoremap", "<lead>te", "<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE=\"\" SIZE}]=20 /><ESC>3F\"i")
-call HTMLmap("inoremap", "<lead>fi", "<[{INPUT TYPE=\"FILE\" NAME=\"\" VALUE=\"\" SIZE}]=20 /><ESC>3F\"i")
+call HTMLmap("inoremap", "<lead>pa", "<[{INPUT TYPE=\"PASSWORD\" NAME=\"\" SIZE}]=\"20\" /><ESC>3F\"i")
+call HTMLmap("inoremap", "<lead>te", "<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE=\"\" SIZE}]=\"20\" /><ESC>5F\"i")
+call HTMLmap("inoremap", "<lead>fi", "<[{INPUT TYPE=\"FILE\" NAME=\"\" VALUE=\"\" SIZE}]=\"20\" /><ESC>5F\"i")
 call HTMLmap("inoremap", "<lead>se", "<[{SELECT NAME}]=\"\"><CR></[{SELECT}]><ESC>O")
 call HTMLmap("inoremap", "<lead>ms", "<[{SELECT NAME=\"\" MULTIPLE}]><CR></[{SELECT}]><ESC>O")
 call HTMLmap("inoremap", "<lead>op", "<[{OPTION}] />")
@@ -1477,8 +1477,8 @@ if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gu
     endif
 
     if s:browsers =~ 'l'
-      HTMLtmenu Lynx     1.530 ToolBar.Lynx     Launch\ Lynx\ on\ Current\ File
-      exe 'amenu         1.530 ToolBar.Lynx'    g:html_map_leader . 'ly'
+      HTMLtmenu Lynx     1.530 ToolBar.Lynx      Launch\ Lynx\ on\ Current\ File
+      exe 'amenu         1.530 ToolBar.Lynx'     g:html_map_leader . 'ly'
     endif
 
   elseif maparg(g:html_map_leader . 'ie', 'n') != ""
@@ -1488,9 +1488,9 @@ if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gu
     exe 'amenu 1.510 ToolBar.IE' g:html_map_leader . 'ie'
   endif
 
-  amenu 1.998 ToolBar.-sep99-   <nul>
-  tmenu 1.999 ToolBar.Help      HTML Help
-  amenu 1.999 ToolBar.Help      :help HTML<CR>
+  amenu 1.998 ToolBar.-sep99- <nul>
+  tmenu 1.999 ToolBar.Help    HTML Help
+  amenu 1.999 ToolBar.Help    :help HTML<CR>
 
   delcommand HTMLtmenu
   delfunction HTMLtmenu

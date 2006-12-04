@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2006 Nov 12
+		Last change: 2006 Dec 04
 		Written by Christian J. Robinson
 
 
@@ -100,7 +100,7 @@ sourced.
 
 *g:do_xhtml_mappings* *b:do_xhtml_mappings*
 Set this to a nonzero value if you prefer XHTML compatible tags to be defined.
-Setting this forces |b:html_tag_case| to "lowercase". This is automatic if you
+Setting this forces |b:html_tag_case| to "lowercase".  This is automatic if you
 are already editing a file that Vim detects as XHTML.  This variable must be
 set before HTML.vim is sourced.  You can also set this on a per-buffer basis
 by using b:do_xhtml_mappings instead.
@@ -294,9 +294,9 @@ another character of your preference.  See |g:html_map_leader|.
 							*i_;em* *v_;em*
 ;em	Emphasize (<EM></EM>).
 							*i_;fo* *v_;fo*
-;fo	Font size (<FONT SIZE=></FONT>).
+;fo	Font size (<FONT SIZE=""></FONT>).
 							*i_;fc* *v_;fc*
-;fc	Font color (<FONT COLOR=></FONT>).
+;fc	Font color (<FONT COLOR=""></FONT>).
 
 							*html-headers*
 							*i_;h1* *v_;h1*
@@ -314,7 +314,7 @@ another character of your preference.  See |g:html_map_leader|.
 							*i_;H5* *v_;H5*
 							*i_;H6* *v_;H6*
 ;H1 through ;H6
-	Headers, levels 1-6, centered (<H_ ALIGN=CENTER></H_>).
+	Headers, levels 1-6, centered (<H_ ALIGN="CENTER"></H_>).
 							*i_;he* *v_;he*
 ;he	Head (<HEAD><CR></HEAD>).
 							*i_;hr*
@@ -367,7 +367,7 @@ another character of your preference.  See |g:html_map_leader|.
 							*i_;pp* *v_;pp*
 ;pp	Paragraph (<P><CR></P>).
 							*i_;/p*
-;/p	Like above, but inserts </P><CR><CR><P><CR>. This is intended to be
+;/p	Like above, but inserts </P><CR><CR><P><CR>.  This is intended to be
 	used when your cursor is between <P> and </P> in insert mode and want
 	to start a new paragraph without having to move the cursor.
 							*i_;pr* *v_;pr*
@@ -432,25 +432,25 @@ another character of your preference.  See |g:html_map_leader|.
 							*i_;fm* *v_;fm*
 ;fm	Form (<FORM ACTION=""><CR></FORM>).
 							*i_;bu* *v_;bu*
-;bu	Form button (<INPUT TYPE=BUTTON NAME="" VALUE="">).  Visual mode puts
+;bu	Form button (<INPUT TYPE="BUTTON" NAME="" VALUE="">).  Visual mode puts
 	the selected text VALUE="here".
 							*i_;ch* *v_;ch*
-;ch	Form checkbox (<INPUT TYPE=CHECKBOX NAME="" VALUE="">).  Visual mode
+;ch	Form checkbox (<INPUT TYPE="CHECKBOX" NAME="" VALUE="">).  Visual mode
 	puts the selected text VALUE="here".
 							*i_;ra* *v_;ra*
-;ra	Form radiobutton (<INPUT TYPE=RADIO NAME="" VALUE="">).  Visual mode
+;ra	Form radiobutton (<INPUT TYPE="RADIO" NAME="" VALUE="">).  Visual mode
 	puts the selected text VALUE="here".
 							*i_;hi* *v_;hi*
-;hi	Hidden form data (<INPUT TYPE=HIDDEN NAME="" VALUE="">).  Visual mode
+;hi	Hidden form data (<INPUT TYPE="HIDDEN" NAME="" VALUE="">).  Visual mode
 	puts the selected text VALUE="here".
 							*i_;pa*
-;pa	Form password input field (<INPUT TYPE=PASSWORD NAME="" SIZE=20>).
+;pa	Form password input field (<INPUT TYPE="PASSWORD" NAME="" SIZE="20">).
 	Visual mode puts the selected text VALUE="here".
 							*i_;te* *v_;te*
-;te	Form text input field (<INPUT TYPE=TEXT NAME="" VALUE="" SIZE=20>).
+;te	Form text input field (<INPUT TYPE="TEXT" NAME="" VALUE="" SIZE="20">).
 	Visual mode puts the selected text VALUE="here".
 							*i_;fi*
-;fi	Form file input field (<INPUT TYPE=FILE NAME="" VALUE="" SIZE=20>).
+;fi	Form file input field (<INPUT TYPE="FILE" NAME="" VALUE="" SIZE="20">).
 	Visual mode puts the selected text VALUE="here".
 							*i_;se* *v_;se*
 ;se	Form selection box (<SELECT NAME=""><CR></SELECT>).  Visual mode puts
@@ -465,13 +465,13 @@ another character of your preference.  See |g:html_map_leader|.
 ;og	Form option group (<OPTGROUP LABEL=""><CR></OPTGROUP>).  Visual mode
 	puts the selected text <OPTGROUP LABEL=""><CR>here<CR></OPTGROUP>.
 							*i_;tx* *v_;tx*
-;tx	Form text input area (<TEXTAREA NAME="" ROWS=10
-	COLS=50><CR></TEXTAREA>).  Visual mode puts the selected text
-	<TEXTAREA NAME="" ROWS=10 COLS=50><CR>here<CR></TEXTAREA>.
+;tx	Form text input area (<TEXTAREA NAME="" ROWS="10"
+	COLS="50"><CR></TEXTAREA>).  Visual mode puts the selected text
+	<TEXTAREA NAME="" ROWS="10" COLS="50"><CR>here<CR></TEXTAREA>.
 							*i_;su*
-;su	Form submit button (<INPUT TYPE=SUBMIT>).
+;su	Form submit button (<INPUT TYPE="SUBMIT">).
 							*i_;re*
-;re	Form reset button (<INPUT TYPE=RESET>).
+;re	Form reset button (<INPUT TYPE="RESET">).
 							*i_;la* *v_;la*
 ;la	Form element label (<LABEL FOR=""></LABEL>).  Visual mode puts the
 	visually selected text <LABEL FOR="">here</LABEL> and positions the
