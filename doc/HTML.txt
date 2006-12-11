@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2006 Dec 04
+		Last change: 2006 Dec 08
 		Written by Christian J. Robinson
 
 
@@ -39,7 +39,7 @@ In the descriptions of the mappings I often use <CR> to mean a literal
 newline.
 
 							*html-smart-tag*
-Noted tags are "smart" -- if syntax highlighting is enabled it can be used to
+Noted tags are "smart"--if syntax highlighting is enabled it can be used to
 detect whether to close then open a tag instead of open then close the tag.
 For example, if your cursor is in italicized text and type ;it, it will insert
 </I><I> instead of <I></I>.  (This can't be done on most tags due to its
@@ -108,8 +108,10 @@ by using b:do_xhtml_mappings instead.
 *g:html_tag_case* *b:html_tag_case*
 This variable can be set to "l" / "lower" / "lowercase" or "u" / "upper" /
 "uppercase" to determine the case of the text in the HTML tags.  This variable
-must be set before HTML.vim is sourced.  The default is "uppercase".  You can
-also set this on a per-buffer basis by using b:html_tag_case instead.
+must be set before HTML.vim is sourced (typically when the buffer is loaded).
+The default is "uppercase".  You can also set this on a per-buffer basis by
+using b:html_tag_case instead.  Note that this value is ignored when editing
+XHTML files (see g:do_xhtml_mappings|).
 
 *g:html_map_leader*
 This variable can be set to the character you want for the leader of the
@@ -158,6 +160,16 @@ These control the <BODY> tag in the internal template and can also be used as
 	:let g:html_alinkcolor  = '#FF0000'
 	:let g:html_vlinkcolor  = '#990066'
 
+*g:html_default_charset*
+This defaults to "iso-8859-1" and is the value used if a character set can't
+be detected by the 'fileencoding' or 'encoding' options.  See |;ct| and
+|html-tokens| for how this is used.  (Also see |html-author-notes|)
+
+*g:html_charset*
+If this variable is set it completely overrides the Content-Type charset
+detection for the |;ct| mapping and in the |html-tokens|.  Normally this
+should be left unset.  
+
 ------------------------------------------------------------------------------
 					*html-template-tokens* *html-tokens*
 
@@ -174,6 +186,9 @@ Token:		 Variable: ~
 %alinkcolor%	|g:html_alinkcolor|
 %vlinkcolor%	|g:html_vlinkcolor|
 %date%		 strftime("%B %d, %Y")  (e.g.: March 16, 2004)
+%charset%        Auto detected based on the 'fileencoding' or 'encoding'
+		 option.  This can be overridden, see |g:html_default_charset
+		 and |g:html_charset|.  (See |html-author-notes|)
 
 So if you had the template: >
  <HTML>
@@ -199,9 +214,9 @@ You would get: >
 3. Mappings for normal <> tags.				*html-tags*
 
 Most of these mappings are insert or visual mappings.  In insert mode the tag
-is inserted and the cursor placed where you wouldd likely want to insert text.
+is inserted and the cursor placed where you would likely want to insert text.
 In visual mode, the tag is wrapped around the visually selected text somehow
-(see |i_;ah|, |v_;aH| and |i_;ab| for explicit examples -- the rest of the
+(see |i_;ah|, |v_;aH| and |i_;ab| for explicit examples--the rest of the
 mappings that work in visual mode are similar).
 
 If you run Vim 7 or later, all of the visual ;-mappings also function as
@@ -221,16 +236,19 @@ another character of your preference.  See |g:html_map_leader|.
 <	at the top of the file.  If you're editing XHTML, it will be >
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 	 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<
+<       (See |g:do_xhtml_mappings|)
 							*i_;ct*
 ;ct	Insert <META HTTP-EQUIV="Content-Type" CONTENT="text/html;
 	charset=iso-8859-1"> at the current cursor position.
-	TODO: Make the charset value based on the current
-	'encoding'/'fileencoding' (see |html-author-notes|).
+
+	The actual value of the charset is auto detected based on the
+	'fileencoding' or 'encoding' option.  This can be overridden--see
+	|g:html_default_charset| and |g:html_charset|.
+	(See |html-author-notes|)
 							*i_;cm* *v_;cm*
-;cm	Comment tag (<!-- -->).  (|html-smart-tag|)
+;cm	Comment tag (<!-- -->).  (See |html-smart-tag|)
 							*i_;ah* *v_;ah*
-;ah	Anchor hyperlink (<A HREF=""></A>).  Visual mode puts the visually
+;ah	Anchor hyper link (<A HREF=""></A>).  Visual mode puts the visually
 	selected text <A HREF="">here</A> and positions the cursor on the
 	second ".
 							*v_;aH*
@@ -245,11 +263,11 @@ another character of your preference.  See |g:html_map_leader|.
 	Same as the ;ah and ;aH mappings, but uses NAME instead of HREF.
 							*i_;ab* *v_;ab*
 ;ab	Abbreviation  (<ABBR TITLE=""></ABBR>).  Visual mode puts the visually
-	selected text <ABBR TITLE="">here</ABBR> and positions the curosr on
+	selected text <ABBR TITLE="">here</ABBR> and positions the cursor on
 	the second ".
 							*v_;aB*
 ;aB	Same as ;ab, but puts the visually selected text <ABBR TITLE="here">
-	and places the curosr on the < of </ABBREV>
+	and places the cursor on the < of </ABBREV>
 							*i_;ac* *v_;ac* *v_;aC*
 ;ac and ;aC
 	Acronym (<ACRONYM TITLE=""></ACRONYM>).  Similar to the ;ab and ;aB
@@ -257,7 +275,7 @@ another character of your preference.  See |g:html_map_leader|.
 							*i_;ad* *v_;ad*
 ;ad	Address (<ADDRESS></ADDRESS>).
 							*i_;bo* *v_;bo*
-;bo	Boldfaced Text (<B></B>).  (|html-smart-tag|)
+;bo	Boldfaced Text (<B></B>).  (See |html-smart-tag|)
 							*i_;bh* *v_;bh*
 ;bh	Base URL (<BASE HREF="">).
 							*i_;bi* *v_;bi*
@@ -326,7 +344,7 @@ another character of your preference.  See |g:html_map_leader|.
 							*i_;ii*
 ;ii	Identifies index (<ISINDEX>).
 							*i_;it*
-;it	Italicized text (<I></I>).  (|html-smart-tag|)
+;it	Italicized text (<I></I>).  (See |html-smart-tag|)
 							*i_;im* *v_;im*
 ;im	Image (<IMG SRC="" ALT="").  Places the cursor on the second " of the
 	SRC="".  In visual mode it puts the visually selected text <IMG SRC=""
@@ -375,7 +393,7 @@ another character of your preference.  See |g:html_map_leader|.
 							*i_;qu* *v_;qu*
 ;qu	Quoted text (<Q></Q>).
 							*i_;sk* *v_;sk*
-;sk	Strikethrough (<STRIKE></STRIKE>).
+;sk	Strike-through (<STRIKE></STRIKE>).
 							*i_;sm* *v_;sm*
 ;sm	Small text (<SMALL></SMALL>).
 							*i_;sn* *v_;sn*
@@ -383,11 +401,11 @@ another character of your preference.  See |g:html_map_leader|.
 							*i_;sa* *v_;sa*
 ;sa	Sample text (<SAMP></SAMP>).
 							*i_;st* *v_;st*
-;st	Strong text (<STRONG></STRONG>).  (|html-smart-tag|)
+;st	Strong text (<STRONG></STRONG>).  (See |html-smart-tag|)
 							*i_;cs* *v_;cs*
 ;cs	CSS Style (<STYLE TYPE="text/css"><CR><!--<CR><CR>--><CR></STYLE>).
 							*i_;ls* *v_;ls*
-;ls	Linked CSS stylesheet (<LINK REL="stylesheet" TYPE="text/css"
+;ls	Linked CSS style sheet (<LINK REL="stylesheet" TYPE="text/css"
 	HREF="">).
 							*i_;sb* *v_;sb*
 ;sb	Subscript (<SUB></SUB>).
@@ -398,7 +416,7 @@ another character of your preference.  See |g:html_map_leader|.
 							*i_;tt* *v_;tt*
 ;tt	Teletype Text (monospaced) (<TT></TT>).
 							*i_;un* *v_;un*
-;un	Underlined text (<U></U>).  (|html-smart-tag|)
+;un	Underlined text (<U></U>).  (See |html-smart-tag|)
 							*i_;ul* *v_;ul*
 ;ul	Unordered list (<UL><CR></UL>).
 
@@ -435,10 +453,10 @@ another character of your preference.  See |g:html_map_leader|.
 ;bu	Form button (<INPUT TYPE="BUTTON" NAME="" VALUE="">).  Visual mode puts
 	the selected text VALUE="here".
 							*i_;ch* *v_;ch*
-;ch	Form checkbox (<INPUT TYPE="CHECKBOX" NAME="" VALUE="">).  Visual mode
-	puts the selected text VALUE="here".
+;ch	Form check box (<INPUT TYPE="CHECKBOX" NAME="" VALUE="">).  Visual
+	mode puts the selected text VALUE="here".
 							*i_;ra* *v_;ra*
-;ra	Form radiobutton (<INPUT TYPE="RADIO" NAME="" VALUE="">).  Visual mode
+;ra	Form radio button (<INPUT TYPE="RADIO" NAME="" VALUE="">).  Visual mode
 	puts the selected text VALUE="here".
 							*i_;hi* *v_;hi*
 ;hi	Hidden form data (<INPUT TYPE="HIDDEN" NAME="" VALUE="">).  Visual mode
@@ -459,8 +477,8 @@ another character of your preference.  See |g:html_map_leader|.
 ;ms	Form multiple selection box (<SELECT NAME="" MULTIPLE><CR></SELECT>).
 	Visual mode puts the selected text
 	<SELECT NAME="" MULTIPLE><CR>here<CR></SELECT>.
-							*i_;op*
-;op	Form selection option (<OPTION>).
+							*i_;op* *v_;op*
+;op	Form selection option (<OPTION></OPTION>).
 							*i_;og* *v_;og*
 ;og	Form option group (<OPTGROUP LABEL=""><CR></OPTGROUP>).  Visual mode
 	puts the selected text <OPTGROUP LABEL=""><CR>here<CR></OPTGROUP>.
@@ -498,10 +516,10 @@ The following mappings work in insert mode only.
 Name:			HTML:		Macro:              ~
 --------------------------------------------------------------------
 Ampersand (&)		&amp;		&&		*i_&&*
-Greaterthan (>)		&gt;		&>		*i_&>*
-Lessthan (<)		&lt;		&<		*i_&<*
+Greater than (>)	&gt;		&>		*i_&>*
+Less than (<)		&lt;		&<		*i_&<*
 					*i_&<space>* *i_&space* *i_;<space>*
-Space (nonbreaking)	&nbsp;		&<space>/;<space>	*i_;space*
+Space (non-breaking)	&nbsp;		&<space>/;<space>	*i_;space*
 Quotation mark (")	&quot;		&'		*i_&'*
 Cent			&cent;		&c|		*&cbar*
 Pound			&pound;		&#		*i_&#*
@@ -513,7 +531,7 @@ Registered		&reg;		&rO		*i_&rO*
 Trademark		&trade;		&tm		*i_&tm*
 Multiply		&times;		&x		*i_&x*
 Divide			&divide;	&/		*i_&/*
-Inverted Exlamation	&iexcl;		&!		*i_&!*
+Inverted Exclamation	&iexcl;		&!		*i_&!*
 Inverted Question	&iquest;	&?		*i_&?*
 Degree			&deg;		&de		*i_&de*
 Micro/Greek mu		&micro;		&mu		*i_&mu*
@@ -709,13 +727,12 @@ SetIfUnset({variable}, {value})				*SetIfUnset()*
 
 Author's notes:						*html-author-notes*
 ---------------
+The Content-Type charset auto detection value based on the 'fileencoding' /
+'encoding' option has a very incomplete translation table from the possible
+values that Vim uses--I could use help with this.
+
 I will never include mappings for certain tags, such as <BLINK></BLINK> and
 <MARQUEE></MARQUEE>.  As far as I am concerned these tags should never have
 existed.  (I disable these "features" completely in my browser.)
-
-I would like to make the |;ct| mapping's charset value based on the 'encoding'
-option or the buffer's 'fileencoding' option if it's set.  Unfortunately I
-need a good translation table from the possible values that Vim uses to the
-valid values for the Content-Type HTTP header.
 
  vim:tw=78:ts=8:sw=8:ft=help:fo=tcq2:ai:

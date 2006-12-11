@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: December 04, 2006
-" Version:     0.22.2
+" Last Change: December 08, 2006
+" Version:     0.23.1
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.121 2006/12/05 02:25:10 infynity Exp $
+" $Id: HTML.vim,v 1.123 2006/12/09 05:55:52 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -101,13 +101,14 @@ endfunction
 
 command! -nargs=+ SetIfUnset call SetIfUnset(<f-args>)
 
-SetIfUnset html_bgcolor     #FFFFFF
-SetIfUnset html_textcolor   #000000
-SetIfUnset html_linkcolor   #0000EE
-SetIfUnset html_alinkcolor  #FF0000
-SetIfUnset html_vlinkcolor  #990066
-SetIfUnset html_tag_case    uppercase
-SetIfUnset html_map_leader  ;
+SetIfUnset html_bgcolor         #FFFFFF
+SetIfUnset html_textcolor       #000000
+SetIfUnset html_linkcolor       #0000EE
+SetIfUnset html_alinkcolor      #FF0000
+SetIfUnset html_vlinkcolor      #990066
+SetIfUnset html_tag_case        uppercase
+SetIfUnset html_map_leader      ;
+SetIfUnset html_default_charset iso-8859-1
 call SetIfUnset('b:html_tag_case', g:html_tag_case)
 " No way to know sensible defaults here so just make sure the
 " variables are set:
@@ -419,6 +420,51 @@ function! s:tag(tag, mode)
   return ret
 endfunction
 
+" s:HTMLdetectCharset()  {{{2
+" 
+" Detects the HTTP-EQUIV Content-Type charset based on Vim's current
+" encoding/fileencoding.
+"
+" Arguments:
+"  None
+" Return value:
+"  The value for the Content-Type charset based on 'fileencoding' or
+"  'encoding'.
+function! s:HTMLdetectCharset()
+
+  if exists(g:html_charset)
+    return g:html_charset
+  endif
+
+  " TODO: This table needs to be expanded:
+  let charsets{'latin1'}    = 'iso-8859-1'
+  let charsets{'utf_8'}     = 'UTF-8'
+  let charsets{'utf_16'}    = 'UTF-16'
+  let charsets{'shift_jis'} = 'Shift_JIS'
+  let charsets{'euc_jp'}    = 'EUC-JP'
+  let charsets{'cp950'}     = 'Big5'
+  let charsets{'big5'}      = 'Big5'
+
+  if &fileencoding != ''
+    let enc=tolower(&fileencoding)
+  else
+    let enc=tolower(&encoding)
+  endif
+
+  " The iso-8859-* encodings are valid for the Content-Type charset header:
+  if enc =~? '^iso-8859-'
+    return enc
+  endif
+
+  let enc=substitute(enc, '\W', '_', 'g')
+
+  if charsets{enc} != ''
+    return charsets{enc}
+  endif
+
+  return g:html_default_charset 
+endfunction
+
 " }}}2
 
 " ----------------------------------------------------------------------------
@@ -557,6 +603,7 @@ function! s:HTMLtemplate2()
   silent! %s/\C%alinkcolor%/\=g:html_alinkcolor/g
   silent! %s/\C%vlinkcolor%/\=g:html_vlinkcolor/g
   silent! %s/\C%date%/\=strftime('%B %d, %Y')/g
+  silent! %s/\C%charset%/\=<SID>HTMLdetectCharset()/g
 
   go 1
 
@@ -584,8 +631,8 @@ else
   call HTMLmap("nnoremap", "<lead>4", ":call append(0, '<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">')<CR>")
 endif
 
-"       Content Type META tag
-call HTMLmap("inoremap", "<lead>ct", "<[{META HTTP-EQUIV}]=\"Content-Type\" [{CONTENT}]=\"text/html; charset=iso-8859-1\" />")
+"       Content-Type META tag
+call HTMLmap("inoremap", "<lead>ct", "<[{META HTTP-EQUIV}]=\"Content-Type\" [{CONTENT}]=\"text/html; charset=<C-R>=<SID>HTMLdetectCharset()<CR>\" />")
 
 "       Comment Tag
 call HTMLmap("inoremap", "<lead>cm", "<C-R>=<SID>tag('comment','i')<CR>")
@@ -1121,7 +1168,7 @@ call HTMLmap("inoremap", "<lead>te", "<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE=\"\
 call HTMLmap("inoremap", "<lead>fi", "<[{INPUT TYPE=\"FILE\" NAME=\"\" VALUE=\"\" SIZE}]=\"20\" /><ESC>5F\"i")
 call HTMLmap("inoremap", "<lead>se", "<[{SELECT NAME}]=\"\"><CR></[{SELECT}]><ESC>O")
 call HTMLmap("inoremap", "<lead>ms", "<[{SELECT NAME=\"\" MULTIPLE}]><CR></[{SELECT}]><ESC>O")
-call HTMLmap("inoremap", "<lead>op", "<[{OPTION}] />")
+call HTMLmap("inoremap", "<lead>op", "<[{OPTION></OPTION}]><ESC>F<i")
 call HTMLmap("inoremap", "<lead>og", "<[{OPTGROUP LABEL}]=\"\"><CR></[{OPTGROUP}]><ESC>k0f\"li")
 call HTMLmap("inoremap", "<lead>tx", "<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR></[{TEXTAREA}]><ESC>k0f\"li")
 call HTMLmap("inoremap", "<lead>su", "<[{INPUT TYPE=\"SUBMIT\" VALUE}]=\"Submit\" />")
@@ -1136,6 +1183,7 @@ call HTMLmap("vnoremap", "<lead>hi", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"HIDDEN
 call HTMLmap("vnoremap", "<lead>te", "<ESC>`>a\" [{SIZE}]=\"20\" /><C-O>`<<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
 call HTMLmap("vnoremap", "<lead>se", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME}]=\"\"><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", "<lead>ms", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME=\"\" MULTIPLE}]><CR><ESC>k0f\"l", 1)
+call HTMLmap("vnoremap", "<lead>op", "<ESC>`>a</[{OPTION}]><C-O>`<<[{OPTION}]><ESC>", 2)
 call HTMLmap("vnoremap", "<lead>og", "<ESC>`>a<CR></[{OPTGROUP}]><C-O>`<<[{OPTGROUP LABEL}]=\"\"><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", "<lead>tx", "<ESC>`>a<CR></[{TEXTAREA}]><C-O>`<<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", "<lead>la", "<ESC>`>a</[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"\"><C-O>F\"", 0)
@@ -1149,6 +1197,7 @@ call HTMLmapo("<lead>hi", 1)
 call HTMLmapo("<lead>te", 1)
 call HTMLmapo("<lead>se", 0)
 call HTMLmapo("<lead>ms", 0)
+call HTMLmapo("<lead>op", 0)
 call HTMLmapo("<lead>og", 0)
 call HTMLmapo("<lead>tx", 0)
 call HTMLmapo("<lead>la", 1)
