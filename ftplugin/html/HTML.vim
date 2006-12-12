@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: December 08, 2006
-" Version:     0.23.1
+" Last Change: December 12, 2006
+" Version:     0.23.2
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.123 2006/12/09 05:55:52 infynity Exp $
+" $Id: HTML.vim,v 1.125 2006/12/13 04:46:30 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -172,7 +172,7 @@ function! HTMLmap(cmd, map, arg, ...)
     let arg = substitute(arg, ' />', '>', 'g')
   endif
 
-  let map = substitute(a:map, "^<lead>", g:html_map_leader, '')
+  let map = substitute(a:map, "^<lead>\\c", g:html_map_leader, '')
 
   if a:cmd =~ '^v'
     if a:0 >= 1 && a:1 < 0
@@ -432,7 +432,7 @@ endfunction
 "  'encoding'.
 function! s:HTMLdetectCharset()
 
-  if exists(g:html_charset)
+  if exists("g:html_charset")
     return g:html_charset
   endif
 
@@ -1163,7 +1163,7 @@ call HTMLmap("inoremap", "<lead>bu", "<[{INPUT TYPE=\"BUTTON\" NAME=\"\" VALUE}]
 call HTMLmap("inoremap", "<lead>ch", "<[{INPUT TYPE=\"CHECKBOX\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
 call HTMLmap("inoremap", "<lead>ra", "<[{INPUT TYPE=\"RADIO\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
 call HTMLmap("inoremap", "<lead>hi", "<[{INPUT TYPE=\"HIDDEN\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
-call HTMLmap("inoremap", "<lead>pa", "<[{INPUT TYPE=\"PASSWORD\" NAME=\"\" SIZE}]=\"20\" /><ESC>3F\"i")
+call HTMLmap("inoremap", "<lead>pa", "<[{INPUT TYPE=\"PASSWORD\" NAME=\"\" VALUE=\"\" SIZE}]=\"20\" /><ESC>5F\"i")
 call HTMLmap("inoremap", "<lead>te", "<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE=\"\" SIZE}]=\"20\" /><ESC>5F\"i")
 call HTMLmap("inoremap", "<lead>fi", "<[{INPUT TYPE=\"FILE\" NAME=\"\" VALUE=\"\" SIZE}]=\"20\" /><ESC>5F\"i")
 call HTMLmap("inoremap", "<lead>se", "<[{SELECT NAME}]=\"\"><CR></[{SELECT}]><ESC>O")
@@ -1180,7 +1180,9 @@ call HTMLmap("vnoremap", "<lead>bu", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"BUTTON
 call HTMLmap("vnoremap", "<lead>ch", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"CHECKBOX\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
 call HTMLmap("vnoremap", "<lead>ra", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"RADIO\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
 call HTMLmap("vnoremap", "<lead>hi", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"HIDDEN\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", "<lead>pa", "<ESC>`>a\" [{SIZE}]=\"20\" /><C-O>`<<[{INPUT TYPE=\"PASSWORD\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
 call HTMLmap("vnoremap", "<lead>te", "<ESC>`>a\" [{SIZE}]=\"20\" /><C-O>`<<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", "<lead>fi", "<ESC>`>a\" [{SIZE}]=\"20\" /><C-O>`<<[{INPUT TYPE=\"FILE\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
 call HTMLmap("vnoremap", "<lead>se", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME}]=\"\"><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", "<lead>ms", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME=\"\" MULTIPLE}]><CR><ESC>k0f\"l", 1)
 call HTMLmap("vnoremap", "<lead>op", "<ESC>`>a</[{OPTION}]><C-O>`<<[{OPTION}]><ESC>", 2)
@@ -1194,7 +1196,9 @@ call HTMLmapo("<lead>bu", 1)
 call HTMLmapo("<lead>ch", 1)
 call HTMLmapo("<lead>ra", 1)
 call HTMLmapo("<lead>hi", 1)
+call HTMLmapo("<lead>pa", 1)
 call HTMLmapo("<lead>te", 1)
+call HTMLmapo("<lead>fi", 1)
 call HTMLmapo("<lead>se", 0)
 call HTMLmapo("<lead>ms", 0)
 call HTMLmapo("<lead>op", 0)
