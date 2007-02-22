@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: December 12, 2006
-" Version:     0.23.2
+" Last Change: February 06, 2007
+" Version:     0.24
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.125 2006/12/13 04:46:30 infynity Exp $
+" $Id: HTML.vim,v 1.128 2007/02/06 18:20:57 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -478,13 +478,21 @@ if g:html_map_leader == ';'
   call HTMLmap("vnoremap", ";;", ";", -1)
   call HTMLmap("nnoremap", ";;", ";")
 endif
-" Allow hard tabs to be inserted:
-call HTMLmap("inoremap", "<lead><tab>", "<tab>")
 
-" Tab takes us to a (hopefully) reasonable next insert point:
-call HTMLmap("inoremap", "<TAB>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
-call HTMLmap("nnoremap", "<TAB>", ":call HTMLnextInsertPoint('n')<CR>")
-call HTMLmap("vnoremap", "<TAB>", "<C-C>:call HTMLnextInsertPoint('n')<CR>", -1)
+if ! exists('g:no_html_tab_mapping')
+  " Allow hard tabs to be inserted:
+  call HTMLmap("inoremap", "<lead><tab>", "<tab>")
+  call HTMLmap("nnoremap", "<lead><tab>", "<tab>")
+
+  " Tab takes us to a (hopefully) reasonable next insert point:
+  call HTMLmap("inoremap", "<tab>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
+  call HTMLmap("nnoremap", "<tab>", ":call HTMLnextInsertPoint('n')<CR>")
+  call HTMLmap("vnoremap", "<tab>", "<C-C>:call HTMLnextInsertPoint('n')<CR>", -1)
+else
+  call HTMLmap("inoremap", "<lead><tab>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
+  call HTMLmap("nnoremap", "<lead><tab>", ":call HTMLnextInsertPoint('n')<CR>")
+  call HTMLmap("vnoremap", "<lead><tab>", "<C-C>:call HTMLnextInsertPoint('n')<CR>", -1)
+endif
 
 " Update an image tag's WIDTH & HEIGHT attributes (experimental!):
 runtime! MangleImageTag.vim 
@@ -882,8 +890,10 @@ call HTMLmapo('<lead>it', 0)
 call HTMLmap("inoremap", "<lead>im", "<[{IMG SRC=\"\" ALT}]=\"\" /><ESC>3F\"i")
 " Visual mapping:
 call HTMLmap("vnoremap", "<lead>im", "<ESC>`>a\" /><C-O>`<<[{IMG SRC=\"\" ALT}]=\"<C-O>2F\"", 0)
+call HTMLmap("vnoremap", "<lead>iM", "<ESC>`>a\" [{ALT}]=\"\" /><C-O>`<<[{IMG SRC}]=\"<C-O>3f\"", 0)
 " Motion mapping:
 call HTMLmapo('<lead>im', 1)
+call HTMLmapo('<lead>iM', 1)
 
 "       INS     Inserted Text           HTML 3.0
 call HTMLmap("inoremap", "<lead>in", "<lt>[{INS></INS}]><ESC>bhhi")
@@ -1375,7 +1385,9 @@ elseif exists("did_html_menus")
   if &filetype ==? "html" || &filetype ==? "xhtml"
     amenu enable HTML
     amenu enable HTML.*
-    amenu enable ToolBar.*
+    if exists('g:did_html_toolbar')
+      amenu enable ToolBar.*
+    endif
   endif
 else
 
@@ -1576,7 +1588,9 @@ autocmd BufEnter,BufWinEnter *
  \ if &filetype ==? "html" || &filetype ==? "xhtml" |
    \ amenu enable HTML |
    \ amenu enable HTML.* |
+   \ if exists('g:did_html_toolbar') |
    \ amenu enable ToolBar.* |
+   \ endif |
  \ endif
 augroup END
 

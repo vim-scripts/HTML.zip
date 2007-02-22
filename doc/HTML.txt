@@ -1,6 +1,6 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2006 Dec 11
-		Written by Christian J. Robinson
+		Last change: 2007 Feb 06
+		Author: Christian J. Robinson
 
 
 						*HTML.vim* *HTML-macros*
@@ -16,7 +16,7 @@ GPL version 2 or later.
 
 1. Introduction.			|html-intro|
 2. Customization variables.		|html-variables|
-3. Mappings for normal <> tags.		|html-tags|		
+3. Mappings for normal <> tags.		|html-tags|
 4. Mappings for &...; codes, such as &lt; &gt; &amp; and so on.
 					|character-codes|
 5. How to use browser mappings.		|browser-control|
@@ -42,7 +42,7 @@ newline.
 Noted tags are "smart"--if syntax highlighting is enabled it can be used to
 detect whether to close then open a tag instead of open then close the tag.
 For example, if your cursor is in italicized text and type ;it, it will insert
-</I><I> instead of <I></I>.  (This can't be done on most tags due to its
+</I><I> instead of <I></I>.  (This can not be done on most tags due to its
 dependence on the syntax highlighting.)
 
 							*;;* *i_;;* *v_;;*
@@ -70,15 +70,20 @@ dependence on the syntax highlighting.)
 	 <TABLE>
 	 </TABLE>
 <
-	I think the use of tab is acceptable because I don not like the idea
+	I think the use of tab is acceptable because I do not like the idea
 	of hard tabs or indentation greater than one or two spaces in HTML.
 
 	Currently using this mapping in visual mode clears the visual
 	selection.
 
+	See |g:no_html_tab_mapping| if you do not want these mappings to be
+	defined, in which case ;<Tab> will be used for the mappings instead.
+
 					*i_;<tab>* *i_;tab* *i_;CTRL-I*
-;<Tab>	If you want to insert a hard tab (; then the tab key).
-	(See |g:html_map_leader|)
+					*n_;<tab>* *n_;tab* *n_;CTRL-I*
+;<Tab>	If you want to insert a hard tab (; then the tab key).  If
+	|g:no_html_tab_mapping| is set this mapping replaces the normal
+	|html-tab| mapping instead.  (See |g:html_map_leader|)
 
 								*;html*
 ;html	The ;html macro inserts a basic template at the top of the file.  If
@@ -95,35 +100,44 @@ dependence on the syntax highlighting.)
 
 
 You can set the following global Vim variables to control the behavior of the
-macros.  It is recommended you set these in your .vimrc before the file is
-sourced.
+macros.  It is recommended you set these variables in your .vimrc--some of
+them are only effecive if they are set before HTML.vim is sourced.
 
 *g:do_xhtml_mappings* *b:do_xhtml_mappings*
 Set this to a nonzero value if you prefer XHTML compatible tags to be defined.
 Setting this forces |b:html_tag_case| to "lowercase".  This is automatic if
 you are already editing a file that Vim detects as XHTML.  This variable must
-be set before HTML.vim is sourced.  You can also set this on a per-buffer
-basis
-by using b:do_xhtml_mappings instead.
+be set before HTML.vim is sourced for the current buffer.  You can also set
+this on a per-buffer basis by using b:do_xhtml_mappings instead.
 
 *g:html_tag_case* *b:html_tag_case*
 This variable can be set to "l" / "lower" / "lowercase" or "u" / "upper" /
 "uppercase" to determine the case of the text in the HTML tags.  This variable
-must be set before HTML.vim is sourced (typically when the buffer is loaded).
-The default is "uppercase".  You can also set this on a per-buffer basis by
-using b:html_tag_case instead.  Note that this value is ignored when editing
-XHTML files (see g:do_xhtml_mappings|).
+must be set before HTML.vim is sourced for the current buffer.  The default is
+"uppercase".  You can also set this on a per-buffer basis by using
+b:html_tag_case instead.  Note that this value is ignored when editing XHTML
+files (see |g:do_xhtml_mappings|).
 
 *g:html_map_leader*
 This variable can be set to the character you want for the leader of the
-mappings defined under |html-tags|, the default being ';'.  There is no way to
-modify the mappings for the character entity mappings, which are prefixed with
-'&'.  You can set this to your |mapleader| or |maplocalleader|.  e.g.: >
+mappings defined under |html-tags|, the default being ';'.  This variable must
+be set before HTML.vim is sourced.  There is no way to modify the mappings for
+the character entity mappings, which are prefixed with '&'.  You can set this
+to your |mapleader| or |maplocalleader|.  e.g.: >
 	:let g:html_map_leader = g:maplocalleader
 
+*g:no_html_tab_mapping*
+Set this variable if you do not want the tab key to be mapped in normal,
+visual and insert mode, ;<tab> will be used instead.  See |html-tab| and
+|i_;tab|.  This variable must be set before HTML.vim is sourced for the
+current buffer.  The contents of this variable do not matter, as long as it is
+set.  e.g.: >
+	:let g:no_html_tab_mapping = 'yes'
+
 *g:no_html_toolbar*
-Set this variable if you don not want this plugin to modify the Vim toolbar
-and add "T" to 'guioptions'.  The contents of the variable do not matter, as
+Set this variable if you do not want this plugin to modify the Vim toolbar
+and add "T" to 'guioptions'.  This variable must be set before HTML.vim is
+sourced.  The contents of the variable do not matter, as
 long as it is set.  e.g.: >
 	:let g:no_html_toolbar = 'yes'
 
@@ -162,7 +176,7 @@ These control the <BODY> tag in the internal template and can also be used as
 	:let g:html_vlinkcolor  = '#990066'
 
 *g:html_default_charset*
-This defaults to "iso-8859-1" and is the value used if a character set can't
+This defaults to "iso-8859-1" and is the value used if a character set can not
 be detected by the 'fileencoding' or 'encoding' options.  See |;ct| and
 |html-tokens| for how this is used.  (Also see |html-author-notes|)
 
@@ -188,7 +202,7 @@ Token:		 Variable: ~
 %vlinkcolor%	|g:html_vlinkcolor|
 %date%		 strftime("%B %d, %Y")  (e.g.: March 16, 2004)
 %charset%        Auto detected based on the 'fileencoding' or 'encoding'
-		 option.  This can be overridden, see |g:html_default_charset
+		 option.  This can be overridden, see |g:html_default_charset|
 		 and |g:html_charset|.  (See |html-author-notes|)
 
 So if you had the template: >
@@ -224,9 +238,9 @@ examples--the rest of the mappings that work in visual mode are similar.)
 						*html-motion-mappings* *n_;*
 If you run Vim 7 or later the noted normal mode ;-mappings take a {motion}
 operator.  These mappings function as if you had visually highlighted the text
-covered by the motion and invoked the corresponding visual mapping.  (There's
+covered by the motion and invoked the corresponding visual mapping.  (There is
 no reasonable way to get this functionality in versions prior to Vim 7, in
-which case the operator mappings simply won't be defined.)
+which case the operator mappings will not be defined.)
 
 If you are editing an XHTML file (see |g:do_xhtml_mappings|) the tags will be
 compatible with XHTML.
@@ -239,7 +253,7 @@ another character of your preference.  See |g:html_map_leader|.
 ;4	Inserts >
 	<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 	 "http://www.w3.org/TR/html4/loose.dtd">
-<	at the top of the file.  If you're editing XHTML, it will be >
+<	at the top of the file.  If you are editing XHTML, it will be >
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 	 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <       (See |g:do_xhtml_mappings|)
@@ -359,6 +373,9 @@ another character of your preference.  See |g:html_map_leader|.
 	SRC="".  In visual mode it puts the visually selected text <IMG SRC=""
 	ALT="here"> and places the cursor on the second " of the SRC="".
 	(|n_;|)
+							*v_;iM* *n_;iM*
+;iM	Same as ;im, but puts the visually selected text <IMG SRC NAME="HERE"
+	ALT=""> and places the cursor on the second " of ALT="".  (|n_;|)
 							*i_;in* *v_;in* *n_;in*
 ;in	Inserted text (<INS></INS>). (|n_;|)
 							*i_;js*
@@ -691,7 +708,7 @@ HTMLencodeString({string})				*HTMLencodeString()*
 		:echo HTMLencodeString('foo@bar.baz')
 <	Results in: >
 		&#102;&#111;&#111;&#64;&#98;&#97;&#114;&#46;&#98;&#97;&#122;
-<	Note that there's no guarantee this will prevent all harvesting, but
+<	Note that there is no guarantee this will prevent all harvesting, but
 	it will likely stop most spam harvesters.
 
 HTMLgenerateTable()					*HTMLgenerateTable()*
