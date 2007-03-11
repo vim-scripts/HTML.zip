@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2007 Feb 06
+		Last change: 2007 Mar 10
 		Author: Christian J. Robinson
 
 
@@ -64,20 +64,21 @@ dependence on the syntax highlighting.)
 <
 	And you hit tab, your cursor would be placed on the second " so you
 	could insert text easily.  Next time you hit tab it would be placed on
-	the < character of </A>.  This works for tags split across lines, such
-	as:
+	the < character of </A>.  And the third time you hit tab the cursor
+	would be placed on the > of </A>, and so on.  This works for tags
+	split across lines, such as:
 >
 	 <TABLE>
 	 </TABLE>
 <
-	I think the use of tab is acceptable because I do not like the idea
-	of hard tabs or indentation greater than one or two spaces in HTML.
-
 	Currently using this mapping in visual mode clears the visual
 	selection.
 
 	See |g:no_html_tab_mapping| if you do not want these mappings to be
 	defined, in which case ;<Tab> will be used for the mappings instead.
+
+	[I think the use of tab is acceptable because I do not like the idea
+	of hard tabs or indentation greater than one or two spaces in HTML.]
 
 					*i_;<tab>* *i_;tab* *i_;CTRL-I*
 					*n_;<tab>* *n_;tab* *n_;CTRL-I*
@@ -141,9 +142,10 @@ sourced.  The contents of the variable do not matter, as
 long as it is set.  e.g.: >
 	:let g:no_html_toolbar = 'yes'
 
-*g:html_template*
+*g:html_template* *b:html_template*
 Set this to the location of your template file to be used by the ;html
-mapping.  If unset, a basic internal template will be used.
+mapping.  You can also set this on a per-buffer basis by using b:html_template
+instead.  If unset, a basic internal template will be used.
 
 See |html-template-tokens| for special tokens you can use within the template.
 
@@ -192,22 +194,45 @@ When you define a template file with the |g:html_template| variable, special
 tokens within the template will automatically replaced with their
 corresponding variable value:
 
-Token:		 Variable: ~
-%authorname%	|g:html_authorname|
-%authoremail%	|g:html_authoremail_encoded|
-%bgcolor%	|g:html_bgcolor|
-%textcolor%	|g:html_textcolor|
-%linkcolor%	|g:html_linkcolor|
-%alinkcolor%	|g:html_alinkcolor|
-%vlinkcolor%	|g:html_vlinkcolor|
-%date%		 strftime("%B %d, %Y")  (e.g.: March 16, 2004)
-%charset%        Auto detected based on the 'fileencoding' or 'encoding'
-		 option.  This can be overridden, see |g:html_default_charset|
-		 and |g:html_charset|.  (See |html-author-notes|)
+Token:			 Variable: ~
+%authorname%		|g:html_authorname|
+%authoremail%		|g:html_authoremail_encoded|
+%bgcolor%		|g:html_bgcolor|
+%textcolor%		|g:html_textcolor|
+%linkcolor%		|g:html_linkcolor|
+%alinkcolor%		|g:html_alinkcolor|
+%vlinkcolor%		|g:html_vlinkcolor|
+
+Special tokens: ~
+%date%						*%date%*
+This is replaced with the output of strftime("%B %d, %Y")  (e.g.: March 16,
+2004).  You can send custom fields to the |strftime()| call by embedding !...
+(rather than %...) notation before the second "%" in the token. e.g.: >
+ %date!m/!d/!Y !l:!M !p !Z%
+Would produce something like: >
+ 03/08/2007  5:59 PM MST
+Note that spaces before and after the format string are ignored, and you can
+get literal "%" and "!" characters inside the custom format by preceding them
+with backslashes. e.g.: >
+ (%date  \%!r\!  %)
+Would produce something like: >
+ (%05:59:34 PM!)
+
+%time% or %time12%				*%time%* *%time12%*
+This is replaced with the output of strftime("%r %Z") (e.g.: 05:59:34 PM MST)
+
+%time24%					*%time24%*
+This is replaced with the output of strftime("%T %Z") (e.g.: 17:59:34 MST)
+
+%charset%					*%charset%*
+This is replaced by a string that's automatically detected based on the
+'fileencoding' or 'encoding' option.  This can be overridden, see
+|g:html_default_charset| and |g:html_charset|.  (Also see |html-author-notes|)
 
 So if you had the template: >
  <HTML>
   <HEAD>
+   <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=%charset%">
    <META NAME="Author" CONTENT="%authorname%">
    <META NAME="Copyright" CONTENT="Copyright (C) %date% %authorname%">
    <LINK REV="made" HREF="mailto:%authoremail%">
@@ -215,9 +240,10 @@ So if you had the template: >
   </BODY>
  </HTML>
 <
-You would get: >
+You would get something like: >
  <HTML>
   <HEAD>
+   <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
    <META NAME="Author" CONTENT="John Smith">
    <META NAME="Copyright" CONTENT="Copyright (C) March 16, 2004 John Smith">
    <LINK REV="made" HREF="mailto:jsmith@example.com">
@@ -249,7 +275,7 @@ Note that you can change the leader character for these mappings from ';' to
 another character of your preference.  See |g:html_map_leader|.
 
 
-							*;4*
+							*n_;4* *i_;4*
 ;4	Inserts >
 	<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
 	 "http://www.w3.org/TR/html4/loose.dtd">
@@ -257,6 +283,10 @@ another character of your preference.  See |g:html_map_leader|.
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 	 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <       (See |g:do_xhtml_mappings|)
+							*n_;s4* *i_;s4*
+;s4	Does the same as ;4, but the document type is strict rather than
+	transitional.  (Note that these macros are meant for a transitional
+	document type, so be careful.)
 							*i_;ct*
 ;ct	Insert <META HTTP-EQUIV="Content-Type" CONTENT="text/html;
 	charset=iso-8859-1"> at the current cursor position.
@@ -635,16 +665,13 @@ o-slash			&oslash;	&o/		*i_&o/*
 ==============================================================================
 5. How to use browser mappings.				*browser-control*
 
-You can use a browser to preview your current HTML document.
+You can use a browser to preview your current HTML document.  (See
+|html-author-notes|)
 
 
 For Windows:
 								*;ie*
 ;ie	Call Explorer on the current file.
-
-	(Currently I do not have access to a Windows machine running anything
-	but Internet Explorer, so controls for other browsers under Windows
-	do not exist yet.)
 
 
 For Unix:
@@ -743,12 +770,12 @@ HTMLmapo({map}, {insert})					*HTMLmapo()*
 	visual mapping by the same name.  {insert} is a boolean value (0 or 1)
 	that indicates whether to end in insert mode.
 
-HTMLnextInsertPoint({mode})				*HTMLnextInsertPoint()*
+HTMLnextInsertPoint([{mode}])				*HTMLnextInsertPoint()*
 	This is normally called by the |html-<TAB>| mapping, but it works the
 	same if you call it any other way.  The {mode} argument is either 'i'
-	or 'n' which means 'insert' or 'normal'.  In insert mode, if the
-	cursor is on the start of a closing tag it places the cursor after the
-	tag.
+	or 'n' (default) which means |Insert| or |Normal|.  In insert mode, if
+	the cursor is on the start of a closing tag it places the cursor after
+	the tag.
 
 HTMLtemplate()						*HTMLtemplate()*
 	This is normally called by the normal mapping |;html|, but it works
@@ -765,6 +792,11 @@ Author's notes:						*html-author-notes*
 The Content-Type charset auto detection value based on the 'fileencoding' /
 'encoding' option has a very incomplete translation table from the possible
 values that Vim uses--I could use help with this.
+
+I want to finally release a 1.0 version, but I'm not willing to until I have
+browser control mappings for operating systems other than *nix.  Unfortunately
+I need substantial help to create them for Windows and MacOS since I don't
+have access to either OS.
 
 I will never include mappings for certain tags, such as <BLINK></BLINK> and
 <MARQUEE></MARQUEE>.  As far as I am concerned these tags should never have

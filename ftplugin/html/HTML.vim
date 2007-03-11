@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: February 06, 2007
-" Version:     0.24
+" Last Change: March 09, 2007
+" Version:     0.25.1
 "
 " Original Author: Doug Renze  (See below.)
 "
@@ -56,7 +56,7 @@
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ----------------------------------------------------------------------- }}}1
 " RCS Information: 
-" $Id: HTML.vim,v 1.128 2007/02/06 18:20:57 infynity Exp $
+" $Id: HTML.vim,v 1.131 2007/03/10 03:21:06 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -75,6 +75,8 @@ let b:did_html_mappings = 1
 
 setlocal matchpairs+=<:>
 
+" SetIfUnset()  {{{2
+"
 " Set a global variable if it's not already set.
 " Arguments:
 "  1 - String:  The variable name.
@@ -97,26 +99,27 @@ function! SetIfUnset(var,val)
     return 1
   endif
   return 0
-endfunction
+endfunction  "}}}2
 
 command! -nargs=+ SetIfUnset call SetIfUnset(<f-args>)
 
-SetIfUnset html_bgcolor         #FFFFFF
-SetIfUnset html_textcolor       #000000
-SetIfUnset html_linkcolor       #0000EE
-SetIfUnset html_alinkcolor      #FF0000
-SetIfUnset html_vlinkcolor      #990066
-SetIfUnset html_tag_case        uppercase
-SetIfUnset html_map_leader      ;
-SetIfUnset html_default_charset iso-8859-1
-call SetIfUnset('b:html_tag_case', g:html_tag_case)
+SetIfUnset g:html_bgcolor         #FFFFFF
+SetIfUnset g:html_textcolor       #000000
+SetIfUnset g:html_linkcolor       #0000EE
+SetIfUnset g:html_alinkcolor      #FF0000
+SetIfUnset g:html_vlinkcolor      #990066
+SetIfUnset g:html_tag_case        uppercase
+SetIfUnset g:html_map_leader      ;
+SetIfUnset g:html_default_charset iso-8859-1
 " No way to know sensible defaults here so just make sure the
 " variables are set:
-SetIfUnset html_authorname  -
-SetIfUnset html_authoremail -
+SetIfUnset g:html_authorname  -
+SetIfUnset g:html_authoremail -
 
 "call input(&filetype)
-if &filetype ==? "xhtml" || (exists('g:do_xhtml_mappings') && g:do_xhtml_mappings != 0)
+if &filetype ==? "xhtml" 
+      \ || (exists('g:do_xhtml_mappings') && g:do_xhtml_mappings != 0) 
+      \ || (exists('b:do_xhtml_mappings') && b:do_xhtml_mappings != 0)
   let b:do_xhtml_mappings = 1
 else
   let b:do_xhtml_mappings = 0
@@ -125,6 +128,8 @@ endif
 if b:do_xhtml_mappings != 0
   let b:html_tag_case = 'lowercase'
 endif
+
+call SetIfUnset('b:html_tag_case', g:html_tag_case)
 " ----------------------------------------------------------------------------
 
 
@@ -323,45 +328,76 @@ endfunction
 "
 " Position the cursor at the next point in the file that needs data.
 " Arguments:
-"  1 - Character: The mode the function is being called from. 'n' for normal,
-"                 'i' for insert.
+"  1 - Character: Optional, the mode the function is being called from. 'n'
+"                 for normal, 'i' for insert.  If 'i' is used the function
+"                 enables an extra feature where if the cursor is on the start
+"                 of a closing tag it places the cursor after the tag.
+"                 Default is 'n'.
 " Return value:
 "  None.
-function! HTMLnextInsertPoint(mode)
+" Known problems:
+"  Due to the necessity of running the search twice (why doesn't Vim support
+"  cursor offset positioning in search()?) this function
+"    a) won't ever position the cursor on an "empty" tag that starts on the
+"       first character of the first line of the buffer
+"    b) won't let the cursor "escape" from an "empty" tag that it can match on
+"       the first line of the buffer when the cursor is on the first line and
+"       tab is successively pressed
+function! HTMLnextInsertPoint(...)
   let saveerrmsg = v:errmsg
   let v:errmsg = ""
-  let byteoffset = line2byte(line(".")) + col(".") - 1
+  let byteoffset = line2byte(line('.')) + col('.') - 1
 
   " Tab in insert mode on the beginning of a closing tag jumps us to
   " after the tag:
-  if a:mode == "i" && strpart(getline(line(".")), col(".") - 1, 2) == "</"
-    normal %
-    if col('.') == col('$') - 1
-      startinsert!
+  if a:0 >= 1 && a:1 == 'i' 
+    if strpart(getline(line('.')), col('.') - 1, 2) == '</'
+      normal %
+      let done = 1
+    elseif strpart(getline(line('.')), col('.') - 1, 4) =~ ' *-->'
+      normal f>
+      let done = 1
     else
-      normal l
+      let done = 0
     endif
 
-    return
+    if done == 1
+      if col('.') == col('$') - 1
+        startinsert!
+      else
+        normal l
+      endif
+
+      return
+    endif
   endif
+
 
   normal 0
 
   " Running the search twice is inefficient, but it squelches error
   " messages and the second search puts my cursor where it's needed...
-  if search("<\\([^ <>]\\+\\)\\_[^<>]*>\\(\\n *\\)\\{0,2}<\\/\\1>\\|<\\_[^<>]*\"\"\\_[^<>]*>","w") == 0
+  if search('<\([^ <>]\+\)\_[^<>]*>\( \|\n *\)\{0,2}<\/\1>\|<\_[^<>]*""\_[^<>]*>\|<!--\( \|\n *\)\{0,2}-->', 'w') == 0
     if byteoffset == -1
       go 1
     else
-      execute ":go " . byteoffset
+      execute ':go ' . byteoffset
     endif
   else
     normal 0
-    exe 'silent normal! /<\([^ <>]\+\)\_[^<>]*>\(\n *\)\{0,2}<\/\1>\|<\_[^<>]*""\_[^<>]*>/;/>\(\n *\)\{0,2}<\|""/e' . "\<CR>"
+    silent! execute ':go ' . line2byte(line('.')) + col('.') - 2
+    exe 'silent normal! /<\([^ <>]\+\)\_[^<>]*>\(\n *\)\{0,2}<\/\1>\|<\_[^<>]*""\_[^<>]*>\|<!--\( \|\n *\)\{0,2}-->/;/>\(\n *\)\{0,2}<\|""\|<!--\( \|\n *\)\{0,2}-->/e' . "\<CR>"
 
-    " Since matching open/close tags that spans lines is possible, it
-    " might be necessary to position the cursor on a blank line:
-    if getline('.') =~ "^ *<\\/[^<>]\\+>" && getline(line('.')-1) =~ "^ *$"
+    " Handle cursor positioning for comments and/or open+close tags spanning
+    " multiple lines:
+    if getline('.') =~ '<!-- \+-->'
+      exe "normal F\<space>"
+    elseif getline('.') =~ '^ *-->' && getline(line('.')-1) =~ '<!-- *$'
+      normal 0
+      normal t-
+    elseif getline('.') =~ '^ *-->' && getline(line('.')-1) =~ '^ *$'
+      normal k$
+    elseif getline('.') =~ '^ *<\/[^<>]\+>' && getline(line('.')-1) =~ '^ *$'
       normal k$
     endif
 
@@ -407,7 +443,7 @@ let s:HTMLtags{'strong'}{'i'}{'c'} = "<[{/STRONG><STRONG}]>\<ESC>bhi"
 let s:HTMLtags{'strong'}{'v'}{'o'} = "`>a</[{STRONG}]>\<C-O>`<<[{STRONG}]>"
 let s:HTMLtags{'strong'}{'v'}{'c'} = "`>a<[{STRONG}]>\<C-O>`<</[{STRONG}]>"
 function! s:tag(tag, mode)
-  let attr=synIDattr(synID(line("."), col(".") - 1, 1), "name")
+  let attr=synIDattr(synID(line('.'), col('.') - 1, 1), "name")
   if ( a:tag == 'i' && attr =~? 'italic' )
         \ || ( a:tag == 'b' && attr =~? 'bold' )
         \ || ( a:tag == 'strong' && attr =~? 'bold' )
@@ -584,18 +620,26 @@ function! s:HTMLtemplate2()
     let g:html_authoremail_encoded = ''
   endif
 
-  if (! exists('g:html_template')) || g:html_template == ""
-      0put =b:internal_html_template
-  else
-    if filereadable(expand(g:html_template))
-      execute "0read " . g:html_template
+  let template = ''
+
+  if (exists('b:html_template') && b:html_template != '')
+    let template = b:html_template
+  elseif (exists('g:html_template') && g:html_template != '')
+    let template = g:html_template
+  endif
+
+  if template != ''
+    if filereadable(expand(template))
+      silent execute "0read " . template
     else
       echohl ErrorMsg
-      echomsg "Unable to insert template file: " . g:html_template
+      echomsg "Unable to insert template file: " . template
       echomsg "Either it doesn't exist or it isn't readable."
       echohl None
       return 0
     endif
+  else
+    0put =b:internal_html_template
   endif
 
   if getline('$') =~ '^\s*$'
@@ -611,6 +655,11 @@ function! s:HTMLtemplate2()
   silent! %s/\C%alinkcolor%/\=g:html_alinkcolor/g
   silent! %s/\C%vlinkcolor%/\=g:html_vlinkcolor/g
   silent! %s/\C%date%/\=strftime('%B %d, %Y')/g
+  "silent! %s/\C%date\s*\([^%]\{-}\)\s*%/\=strftime(substitute(submatch(1),'\\\@<!!','%','g'))/g
+  silent! %s/\C%date\s*\(\%(\\%\|[^%]\)\{-}\)\s*%/\=strftime(substitute(substitute(submatch(1),'\\%','%%','g'),'\\\@<!!','%','g'))/g
+  silent! %s/\C%time%/\=strftime('%r %Z')/g
+  silent! %s/\C%time12%/\=strftime('%r %Z')/g
+  silent! %s/\C%time24%/\=strftime('%T')/g
   silent! %s/\C%charset%/\=<SID>HTMLdetectCharset()/g
 
   go 1
@@ -632,12 +681,20 @@ endfunction  " }}}2
 "       SGML Doctype Command
 "call HTMLmap("nnoremap", "<lead>4", "1GO<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\"><ESC>``")
 
-"       SGML Doctype Command -- Transitional (Looser)
+"       SGML Doctype Command
 if b:do_xhtml_mappings == 0
-  call HTMLmap("nnoremap", "<lead>4", ":call append(0, '<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/html4/loose.dtd\">')<CR>")
+  " Transitional HTML (Looser):
+  call HTMLmap("nnoremap", "<lead>4", ":call append(0, '<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/html4/loose.dtd\">')<CR>")
+  " Strict HTML:
+  call HTMLmap("nnoremap", "<lead>s4", ":call append(0, '<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/html4/strict.dtd\">')<CR>")
 else
+  " Transitional XHTML (Looser):
   call HTMLmap("nnoremap", "<lead>4", ":call append(0, '<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">')<CR>")
+  " Strict XHTML:
+  call HTMLmap("nnoremap", "<lead>s4", ":call append(0, '<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">')<CR>")
 endif
+call HTMLmap("imap", "<lead>4", "<C-O>" . g:html_map_leader . "4")
+call HTMLmap("imap", "<lead>s4", "<C-O>" . g:html_map_leader . "s4")
 
 "       Content-Type META tag
 call HTMLmap("inoremap", "<lead>ct", "<[{META HTTP-EQUIV}]=\"Content-Type\" [{CONTENT}]=\"text/html; charset=<C-R>=<SID>HTMLdetectCharset()<CR>\" />")
@@ -1099,7 +1156,7 @@ call HTMLmapo("<lead>th", 0)
 call HTMLmap("nnoremap", "<lead>tA", ":call HTMLgenerateTable()<CR>")
 
 function! HTMLgenerateTable()
-    let byteoffset = line2byte(line(".")) + col(".") - 1
+    let byteoffset = line2byte(line('.')) + col('.') - 1
 
     let rows    = inputdialog("Number of rows: ") + 0
     let columns = inputdialog("Number of columns: ") + 0
