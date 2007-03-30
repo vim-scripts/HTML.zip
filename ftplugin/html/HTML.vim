@@ -2,16 +2,16 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: March 09, 2007
-" Version:     0.25.1
+" Last Change: March 24, 2007
+" Version:     0.25.5
+" Original Concept: Doug Renze
 "
-" Original Author: Doug Renze  (See below.)
 "
-" I am going to assume I can put this entirely under the GPL, as the original
-" author used the phrase "freely-distributable and freely-modifiable".
+" The original Copyright goes to Doug Renze, although nearly all of his
+" efforts have been modified in this implementation.  My changes and additions
+" are Copyrighted by me, on the dates marked in the ChangeLog.
 "
-" Original Copyright should probably go to Doug Renze, my changes and
-" additions are Copyrighted by me, on the dates marked in the ChangeLog.
+" (Doug Renze has authorized me to place the original "code" under the GPL.)
 "
 " ----------------------------------------------------------------------------
 "
@@ -24,10 +24,6 @@
 " ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
 " FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
 " more details.
-"
-" Comments, questions or bug reports can be sent to infynity@onewest.net
-" Make sure to say that your message is regarding the HTML.vim macros.  Also,
-" I wouldn't mind knowing how you got a copy.
 "
 " ---- Original Author's Notes: ----------------------------------------------
 "
@@ -43,20 +39,15 @@
 "        Jones for their excellent book "Web Weaving" which was
 "        my primary source.
 "
-"        The home-page for this set of macros is currently
-"        located at: http://www.avalon.net/~drenze/vi/HTML-macros.html
-"
 "        Doug Renze
-"        http://www.avalon.net/~drenze/
-"        mailto:drenze@avalon.net
 "
 " ---- TODO: ------------------------------------------------------------ {{{1
 " - Under Win32, make a mapping call the user's default browser instead of
 "   just ;ie? (:silent!!start rundll32 url.dll,FileProtocolHandler <URL/File>)
 " - ;ns mapping for Win32 with "start netscape ..." ?
+" ---- RCS Information: ------------------------------------------------- {{{1
+" $Id: HTML.vim,v 1.136 2007/03/25 01:32:12 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
-" RCS Information: 
-" $Id: HTML.vim,v 1.131 2007/03/10 03:21:06 infynity Exp $
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
@@ -140,17 +131,32 @@ call SetIfUnset('b:html_tag_case', g:html_tag_case)
 " Encode the characters in a string into their HTML &#...; representations.
 " Arguments:
 "  1 - String:  The string to encode.
+"  2 - String:  Optional, whether to decode rather than encode the string:
+"                d/decode: Decode the &#...; elements of the provided string
+"                anything else: Encode the string (default)
 " Return value:
 "  String:  The encoded string.
-function! HTMLencodeString(string)
+function! HTMLencodeString(string, ...)
   let out = ''
-  let c   = 0
-  let len = strlen(a:string)
 
-  while c < len
-    let out = out . '&#' . char2nr(a:string[c]) . ';'
-    let c = c + 1
-  endwhile
+  if a:0 > 0 && a:1 =~? '^d\(ecode\)\=$'
+    let out = substitute(a:string, '&#\(\d\+\);', '\=nr2char(submatch(1))', 'g')
+    return out
+  endif
+
+  if v:version >= 700
+    let string = split(a:string, '\zs')
+    for c in string
+      let out = out . '&#' . char2nr(c) . ';'
+    endfor
+  else
+    let len = strlen(a:string)
+    let c = 0
+    while c < len
+      let out = out . '&#' . char2nr(a:string[c]) . ';'
+      let c = c + 1
+    endwhile
+  endif
 
   return out
 endfunction
@@ -514,6 +520,8 @@ if g:html_map_leader == ';'
   call HTMLmap("vnoremap", ";;", ";", -1)
   call HTMLmap("nnoremap", ";;", ";")
 endif
+" ...Make it easy to insert a & in insert mode:
+call HTMLmap("inoremap", "<lead>&", "&")
 
 if ! exists('g:no_html_tab_mapping')
   " Allow hard tabs to be inserted:
@@ -1124,14 +1132,17 @@ call HTMLmap("vnoremap", "<lead>va", "<ESC>`>a</[{VAR}]><C-O>`<<[{VAR}]><ESC>", 
 " Motion mapping:
 call HTMLmapo('<lead>va', 0)
 
-"       JavaScript
+"       Embedded JavaScript
 call HTMLmap("inoremap", "<lead>js", "<[{SCRIPT TYPE}]=\"text/javascript\" [{LANGUAGE}]=\"javascript\"><CR><!--<CR>// --><CR></[{SCRIPT}]><ESC>kO")
 
+"       Sourced JavaScript
+call HTMLmap("inoremap", "<lead>sj", "<[{SCRIPT SRC}]=\"\" [{TYPE}]=\"text/javascript\" [{LANGUAGE}]=\"javascript\"></[{SCRIPT}]><C-O>5F\"")
+
 "       EMBED
-call HTMLmap("inoremap", "<lead>eb", "<[{EMBED SRC=\"\" WIDTH=\"\" HEIGHT}]=\"\" /><CR><[{NOEMBED></NOEMBED}]><ESC>k0f\"li")
+call HTMLmap("inoremap", "<lead>eb", "<[{EMBED SRC=\"\" WIDTH=\"\" HEIGHT}]=\"\" /><CR><[{NOEMBED></NOEMBED}]><ESC>k$5F\"i")
 
 "       OBJECT
-call HTMLmap("inoremap", "<lead>ob", "<[{OBJECT DATA=\"\" WIDTH=\"\" HEIGHT}]=\"\"><CR></[{OBJECT}]><ESC>k0f\"li")
+call HTMLmap("inoremap", "<lead>ob", "<[{OBJECT DATA=\"\" WIDTH=\"\" HEIGHT}]=\"\"><CR></[{OBJECT}]><ESC>k$5F\"i")
 
 " Table stuff:
 call HTMLmap("inoremap", "<lead>ca", "<[{CAPTION></CAPTION}]><ESC>bhhi")
@@ -1209,7 +1220,7 @@ call HTMLmap("inoremap", "<lead>fs", "<[{FRAMESET ROWS=\"\" COLS}]=\"\"><CR></[{
 call HTMLmap("inoremap", "<lead>fr", "<[{FRAME SRC}]=\"\" /><ESC>F\"i")
 call HTMLmap("inoremap", "<lead>nf", "<[{NOFRAMES}]><CR></[{NOFRAMES}]><ESC>O")
 " Visual mappings:
-call HTMLmap("vnoremap", "<lead>fs", "<ESC>`>a<CR></[{FRAMESET}]><C-O>`<<[{FRAMESET ROWS=\"\" COLS}]=\"\"><CR><ESC>k0f\"l")
+call HTMLmap("vnoremap", "<lead>fs", "<ESC>`>a<CR></[{FRAMESET}]><C-O>`<<[{FRAMESET ROWS=\"\" COLS}]=\"\"><CR><ESC>k$3F\"")
 call HTMLmap("vnoremap", "<lead>fr", "<ESC>`>a\" /><C-O>`<<[{FRAME SRC=\"<ESC>")
 call HTMLmap("vnoremap", "<lead>nf", "<ESC>`>a<CR></[{NOFRAMES}]><C-O>`<<[{NOFRAMES}]><CR><ESC>", 1)
 " Motion mappings:
@@ -1220,12 +1231,12 @@ call HTMLmapo("<lead>nf", 0)
 "       IFRAME  Inline Frame            HTML 4.0
 call HTMLmap("inoremap", "<lead>if", "<[{IFRAME SRC}]=\"\"><CR></[{IFRAME}]><ESC>Bblli")
 " Visual mapping:
-call HTMLmap("vnoremap", "<lead>if", "<ESC>`>a<CR></[{IFRAME}]><C-O>`<<[{IFRAME SRC}]=\"\"><CR><ESC>k0f\"l")
+call HTMLmap("vnoremap", "<lead>if", "<ESC>`>a<CR></[{IFRAME}]><C-O>`<<[{IFRAME SRC}]=\"\"><CR><ESC>k$F\"")
 " Motion mapping:
 call HTMLmapo('<lead>if', 0)
 
 " Forms stuff:
-call HTMLmap("inoremap", "<lead>fm", "<[{FORM ACTION}]=\"\"><CR></[{FORM}]><ESC>k0f\"li")
+call HTMLmap("inoremap", "<lead>fm", "<[{FORM ACTION}]=\"\"><CR></[{FORM}]><ESC>k$F\"i")
 call HTMLmap("inoremap", "<lead>bu", "<[{INPUT TYPE=\"BUTTON\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
 call HTMLmap("inoremap", "<lead>ch", "<[{INPUT TYPE=\"CHECKBOX\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
 call HTMLmap("inoremap", "<lead>ra", "<[{INPUT TYPE=\"RADIO\" NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
@@ -1236,13 +1247,13 @@ call HTMLmap("inoremap", "<lead>fi", "<[{INPUT TYPE=\"FILE\" NAME=\"\" VALUE=\"\
 call HTMLmap("inoremap", "<lead>se", "<[{SELECT NAME}]=\"\"><CR></[{SELECT}]><ESC>O")
 call HTMLmap("inoremap", "<lead>ms", "<[{SELECT NAME=\"\" MULTIPLE}]><CR></[{SELECT}]><ESC>O")
 call HTMLmap("inoremap", "<lead>op", "<[{OPTION></OPTION}]><ESC>F<i")
-call HTMLmap("inoremap", "<lead>og", "<[{OPTGROUP LABEL}]=\"\"><CR></[{OPTGROUP}]><ESC>k0f\"li")
-call HTMLmap("inoremap", "<lead>tx", "<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR></[{TEXTAREA}]><ESC>k0f\"li")
+call HTMLmap("inoremap", "<lead>og", "<[{OPTGROUP LABEL}]=\"\"><CR></[{OPTGROUP}]><ESC>k$F\"i")
+call HTMLmap("inoremap", "<lead>tx", "<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR></[{TEXTAREA}]><ESC>k$5F\"i")
 call HTMLmap("inoremap", "<lead>su", "<[{INPUT TYPE=\"SUBMIT\" VALUE}]=\"Submit\" />")
 call HTMLmap("inoremap", "<lead>re", "<[{INPUT TYPE=\"RESET\" VALUE}]=\"Reset\" />")
 call HTMLmap("inoremap", "<lead>la", "<[{LABEL FOR=\"\"></LABEL}]><C-O>F\"")
 " Visual mappings:
-call HTMLmap("vnoremap", "<lead>fm", "<ESC>`>a<CR></[{FORM}]><C-O>`<<[{FORM ACTION}]=\"\"><CR><ESC>k0f\"l", 1)
+call HTMLmap("vnoremap", "<lead>fm", "<ESC>`>a<CR></[{FORM}]><C-O>`<<[{FORM ACTION}]=\"\"><CR><ESC>k$F\"", 1)
 call HTMLmap("vnoremap", "<lead>bu", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"BUTTON\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
 call HTMLmap("vnoremap", "<lead>ch", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"CHECKBOX\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
 call HTMLmap("vnoremap", "<lead>ra", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"RADIO\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
@@ -1250,11 +1261,11 @@ call HTMLmap("vnoremap", "<lead>hi", "<ESC>`>a\" /><C-O>`<<[{INPUT TYPE=\"HIDDEN
 call HTMLmap("vnoremap", "<lead>pa", "<ESC>`>a\" [{SIZE}]=\"20\" /><C-O>`<<[{INPUT TYPE=\"PASSWORD\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
 call HTMLmap("vnoremap", "<lead>te", "<ESC>`>a\" [{SIZE}]=\"20\" /><C-O>`<<[{INPUT TYPE=\"TEXT\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
 call HTMLmap("vnoremap", "<lead>fi", "<ESC>`>a\" [{SIZE}]=\"20\" /><C-O>`<<[{INPUT TYPE=\"FILE\" NAME=\"\" VALUE}]=\"<C-O>2F\"", 0)
-call HTMLmap("vnoremap", "<lead>se", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME}]=\"\"><CR><ESC>k0f\"l", 1)
-call HTMLmap("vnoremap", "<lead>ms", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME=\"\" MULTIPLE}]><CR><ESC>k0f\"l", 1)
+call HTMLmap("vnoremap", "<lead>se", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME}]=\"\"><CR><ESC>k$F\"", 1)
+call HTMLmap("vnoremap", "<lead>ms", "<ESC>`>a<CR></[{SELECT}]><C-O>`<<[{SELECT NAME=\"\" MULTIPLE}]><CR><ESC>k$F\"", 1)
 call HTMLmap("vnoremap", "<lead>op", "<ESC>`>a</[{OPTION}]><C-O>`<<[{OPTION}]><ESC>", 2)
-call HTMLmap("vnoremap", "<lead>og", "<ESC>`>a<CR></[{OPTGROUP}]><C-O>`<<[{OPTGROUP LABEL}]=\"\"><CR><ESC>k0f\"l", 1)
-call HTMLmap("vnoremap", "<lead>tx", "<ESC>`>a<CR></[{TEXTAREA}]><C-O>`<<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR><ESC>k0f\"l", 1)
+call HTMLmap("vnoremap", "<lead>og", "<ESC>`>a<CR></[{OPTGROUP}]><C-O>`<<[{OPTGROUP LABEL}]=\"\"><CR><ESC>k$F\"", 1)
+call HTMLmap("vnoremap", "<lead>tx", "<ESC>`>a<CR></[{TEXTAREA}]><C-O>`<<[{TEXTAREA NAME=\"\" ROWS=\"10\" COLS}]=\"50\"><CR><ESC>k$5F\"", 1)
 call HTMLmap("vnoremap", "<lead>la", "<ESC>`>a</[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"\"><C-O>F\"", 0)
 call HTMLmap("vnoremap", "<lead>lA", "<ESC>`>a\"></[{LABEL}]><C-O>`<<[{LABEL FOR}]=\"<C-O>f<", 0)
 " Motion mappings:
@@ -1283,6 +1294,8 @@ call HTMLmapo("<lead>lA", 1)
 " HTML entities:
 call HTMLmap("nnoremap", "<lead>&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
 call HTMLmap("vnoremap", "<lead>&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
+call HTMLmap("vnoremap", "<lead>^", "s<C-R>=HTMLencodeString(@\", 'd')<CR><Esc>")
+call HTMLmapo("<lead>^", 0)
 
 call HTMLmap("inoremap", "&&", "&amp;")
 call HTMLmap("inoremap", "&cO", "&copy;")

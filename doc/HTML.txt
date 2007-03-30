@@ -1,15 +1,15 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2007 Mar 10
+		Last change: 2007 Mar 24
 		Author: Christian J. Robinson
 
 
 						*HTML.vim* *HTML-macros*
 						*XHTML-macros*
 This is a set of HTML/XHTML macros, menus, and toolbar buttons to make editing
-HTML files easier.  The original Copyright should probably go to Doug Renze,
-although nearly all of his efforts have been modified in this implementation.
-All the changes are Copyright Christian J. Robinson under the terms of the GNU
-GPL version 2 or later.
+HTML files easier.  The original Copyright goes to Doug Renze, although nearly
+all of his efforts have been modified in this implementation.  All the changes
+are Copyright Christian J. Robinson.  These macros and the supporting scripts
+are distributable under the terms of the GNU GPL version 2 or later.
 
 
 ------------------------------------------------------------------------------
@@ -46,12 +46,15 @@ For example, if your cursor is in italicized text and type ;it, it will insert
 dependence on the syntax highlighting.)
 
 							*;;* *i_;;* *v_;;*
-;;	The mappings start with ; or &, aside from the tab mapping.  I have
-	mapped ;; to insert a single ; character in insert mode, and behave
-	like a single ; in normal mode.  There is no mapping to get a literal
-	& since it is not valid in HTML.  Use CTRL-V & if you need to get a
-	literal &.  (This mapping is undefined if |g:html_map_leader| is not
-	set to ';'.)
+;;	Most of the mappings start with ; so ;; is mapped to insert a single
+	; character in insert mode, behave like a single ; in normal mode,
+	etc.  (This mapping is undefined if |g:html_map_leader| is not set to
+	';'.)
+
+							*;&* *i_;&*
+;&	The HTML |character-entities| insert mode mappings start with &, so
+	typing ;& in insert mode will insert a literal & character.  (See
+	|n_;&|)
 
 				*html-<TAB>* *html-tab* *html-CTRL-I*
 				*i_html-<TAB>* *i_html-tab* *i_html-CTRL-I*
@@ -411,8 +414,11 @@ another character of your preference.  See |g:html_map_leader|.
 							*i_;js*
 ;js	<SCRIPT TYPE="text/javascript" LANGUAGE="javascript">
 	 <!--
-	 -->
+	 // -->
 	</SCRIPT>
+							*i_;sj*
+;sj
+	<SCRIPT SRC="" TYPE="text/javascript" LANGUAGE="javascript"></SCRIPT>
 							*i_;li* *v_;li* *n_;li*
 ;li	List item (<LI></LI>) inside <UL> or <OL>. (|n_;|)
 							*i_;lk* *v_;lk* *n_;lk*
@@ -567,8 +573,15 @@ characters into your HTML document.  These are known as characters entities.
 							*n_;&* *v_;&*
 ;&	This mapping converts the character under the cursor or the
 	highlighted text to its &#...; entity, where "..." is equivalent to
-	the ASCII decimal representation.  For example, "foo bar" would become
-	"&#102;&#111;&#111;&#32;&#98;&#97;&#114;".
+	the ASCII decimal representation.  In visual mode it converts each
+	highlighted character.  For example, "foo bar" would become
+	"&#102;&#111;&#111;&#32;&#98;&#97;&#114;".  (See |i_;&|)
+
+							*n_;^* *v_;&*
+;^	This mapping will decode the &#...; elements of the provided string
+	into their actual characters.  The normal mode version of this macro
+	works differently from |;&| in that it requires a motion operator.
+	(|n_;|)
 
 
 The following mappings work in insert mode only.
@@ -727,7 +740,7 @@ This calls |SetIfUnset()|.
 Functions used by the HTML mappings:			*html-functions*
 ------------------------------------
 
-HTMLencodeString({string})				*HTMLencodeString()*
+HTMLencodeString({string} [, {decode}])			*HTMLencodeString()*
 	Returns {string} encoded into HTML entities.  This is primarily used
 	to help prevent email harvesting spiders from catching your email
 	address for spamming purposes.
@@ -737,6 +750,10 @@ HTMLencodeString({string})				*HTMLencodeString()*
 		&#102;&#111;&#111;&#64;&#98;&#97;&#114;&#46;&#98;&#97;&#122;
 <	Note that there is no guarantee this will prevent all harvesting, but
 	it will likely stop most spam harvesters.
+
+	If the second argument is provided and is "d" or "decode" the &#...;
+	elements of the provided string will be decoded into their actual
+	characters.
 
 HTMLgenerateTable()					*HTMLgenerateTable()*
 	This is normally called by the normal mapping |;ta|, but it works the
