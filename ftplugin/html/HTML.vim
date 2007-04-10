@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: March 24, 2007
-" Version:     0.25.5
+" Last Change: April 03, 2007
+" Version:     0.26
 " Original Concept: Doug Renze
 "
 "
@@ -46,12 +46,12 @@
 "   just ;ie? (:silent!!start rundll32 url.dll,FileProtocolHandler <URL/File>)
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.136 2007/03/25 01:32:12 infynity Exp $
+" $Id: HTML.vim,v 1.138 2007/04/03 13:25:40 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
-if version < 600
+if v:version < 600
   echoerr "HTML.vim no longer supports Vim versions prior to 6."
   finish
 endif
@@ -61,8 +61,8 @@ endif
 let s:savecpo = &cpoptions
 set cpoptions&vim
 
-if ! exists("b:did_html_mappings")
-let b:did_html_mappings = 1
+if ! exists("b:did_html_mappings_init")
+let b:did_html_mappings_init = 1
 
 setlocal matchpairs+=<:>
 
@@ -121,6 +121,8 @@ if b:do_xhtml_mappings != 0
 endif
 
 call SetIfUnset('b:html_tag_case', g:html_tag_case)
+
+let s:thisfile = expand("<sfile>:p")
 " ----------------------------------------------------------------------------
 
 
@@ -202,6 +204,13 @@ function! HTMLmap(cmd, map, arg, ...)
     execute a:cmd . " <buffer> <silent> " . map . " " . arg
   endif
 
+  if a:cmd =~ '^[cinv]'
+    let which = strpart(a:cmd, 0, 1)
+    let b:HTMLclearMappings = b:HTMLclearMappings . ':' . which . "unmap <buffer> " . map . "\<CR>"
+  else
+    let b:HTMLclearMappings = b:HTMLclearMappings . ":unmap <buffer> " . map . "\<CR>"
+  endif
+
 endfunction
 
 " HTMLmapo()  {{{2
@@ -222,6 +231,8 @@ function! HTMLmapo(map, insert)
     \ . " :let b:htmltagaction='" . map . "'<CR>"
     \ . ":let b:htmltaginsert=" . a:insert . "<CR>"
     \ . ':set operatorfunc=<SID>HTMLwrapRange<CR>g@'
+
+  let b:HTMLclearMappings = b:HTMLclearMappings . ":nunmap <buffer> " . map . "\<CR>"
 endfunction
 
 " s:HTMLwrapRange()  {{{2
@@ -507,56 +518,118 @@ function! s:HTMLdetectCharset()
   return g:html_default_charset 
 endfunction
 
-" }}}2
+" HTMLgenerateTable()  {{{2
+" 
+" Interactively creates a table.
+"
+" Arguments:
+"  None
+" Return value:
+"  None
+function! HTMLgenerateTable()
+    let byteoffset = line2byte(line('.')) + col('.') - 1
 
-" ----------------------------------------------------------------------------
+    let rows    = inputdialog("Number of rows: ") + 0
+    let columns = inputdialog("Number of columns: ") + 0
 
+    if (! (rows > 0 && columns > 0))
+        echo "Rows and columns must be integers."
+        return
+    endif
 
-" ---- Misc. Mappings: -------------------------------------------------- {{{1
+    let border = inputdialog("Border width of table [none]: ") + 0
 
-" Make it convenient to use ; as "normal":
-if g:html_map_leader == ';'
-  call HTMLmap("inoremap", ";;", ";")
-  call HTMLmap("vnoremap", ";;", ";", -1)
-  call HTMLmap("nnoremap", ";;", ";")
-endif
-" ...Make it easy to insert a & in insert mode:
-call HTMLmap("inoremap", "<lead>&", "&")
+    let r = 0
+    let c = 0
 
-if ! exists('g:no_html_tab_mapping')
-  " Allow hard tabs to be inserted:
-  call HTMLmap("inoremap", "<lead><tab>", "<tab>")
-  call HTMLmap("nnoremap", "<lead><tab>", "<tab>")
+    if (border)
+        exe s:HTMLconvertCase("normal o<[{TABLE BORDER}]=" . border . ">\<ESC>")
+    else
+        exe s:HTMLconvertCase("normal o<[{TABLE}]>\<ESC>")
+    endif
 
-  " Tab takes us to a (hopefully) reasonable next insert point:
-  call HTMLmap("inoremap", "<tab>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
-  call HTMLmap("nnoremap", "<tab>", ":call HTMLnextInsertPoint('n')<CR>")
-  call HTMLmap("vnoremap", "<tab>", "<C-C>:call HTMLnextInsertPoint('n')<CR>", -1)
-else
-  call HTMLmap("inoremap", "<lead><tab>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
-  call HTMLmap("nnoremap", "<lead><tab>", ":call HTMLnextInsertPoint('n')<CR>")
-  call HTMLmap("vnoremap", "<lead><tab>", "<C-C>:call HTMLnextInsertPoint('n')<CR>", -1)
-endif
+    while r < rows
+        let r = r + 1
+        let c = 0
 
-" Update an image tag's WIDTH & HEIGHT attributes (experimental!):
-runtime! MangleImageTag.vim 
-if exists("*MangleImageTag")
-  call HTMLmap("nnoremap", "<lead>mi", ":call MangleImageTag()<CR>")
-  call HTMLmap("inoremap", "<lead>mi", "<C-O>:call MangleImageTag()<CR>")
-endif
+        exe s:HTMLconvertCase("normal o<[{TR}]>\<ESC>")
 
-" ----------------------------------------------------------------------------
+        while c < columns
+            let c = c + 1
+            exe s:HTMLconvertCase("normal o<[{TD}]>\<CR></[{TD}]>\<ESC>")
+        endwhile
 
+        exe s:HTMLconvertCase("normal o</[{TR}]>\<ESC>")
 
-" ---- Template Creation Stuff: ----------------------------------------- {{{1
+    endwhile
 
-call HTMLmap("nnoremap", "<lead>html", ":if (HTMLtemplate()) \\| startinsert \\| endif<CR>")
+    exe s:HTMLconvertCase("normal o</[{TABLE}]>\<ESC>")
+
+    if byteoffset == -1
+      go 1
+    else
+      execute ":go " . byteoffset
+    endif
+
+    normal jjj^
+
+endfunction
+
+" s:HTMLdisableMappings()  {{{2
+"
+" Disable/enable all the mappings defined by HTMLmap()/HTMLmapo().
+" Arguments:
+"  1 - String:  Whether to disable or enable the mappings:
+"                d/disable: Clear the mappings
+"                e/enable: Redefine the mappings
+" Return value:
+"  None
+function! s:HTMLdisableMappings(bool)
+  if ! exists('b:did_html_mappings_init')
+    echohl ErrorMsg
+    echomsg "The HTML mappings were not sourced for this buffer."
+    echohl None
+    return
+  endif
+
+  if a:bool =~? '^d\(isable\)\=$'
+    if exists('b:did_html_mappings')
+      silent execute b:HTMLclearMappings
+      unlet b:did_html_mappings
+      if exists("g:did_html_menus")
+        doautocmd HTML_menu_autos BufWinLeave *
+        amenu enable HTML
+        amenu enable HTML.Enable\ Mappings
+      endif
+    else
+      echohl ErrorMsg
+      echomsg "The HTML mappings are already disabled."
+      echohl None
+    endif
+  elseif a:bool =~? '^e\(nable\)\=$'
+    if exists('b:did_html_mappings')
+      echohl ErrorMsg
+      echomsg "The HTML mappings are already enabled."
+      echohl None
+    else
+      execute "source " . s:thisfile
+    endif
+  else
+    echohl ErrorMsg
+    echomsg "Invalid argument: " . a:bool
+    echohl None
+  endif
+endfunction
+
+command! -nargs=1 HTMLmappings call <SID>HTMLdisableMappings(<f-args>)
+
+" -- Template Creation Stuff: {{{2
 
 let s:internal_html_template=
   \"<[{HTML}]>\n" .
   \" <[{HEAD}]>\n\n" .
   \"  <[{TITLE></TITLE}]>\n\n" .
-  \"  <[{META NAME}]=\"Generator\" [{CONTENT}]=\"vim (Vi IMproved editor; http://www.vim.org/)\" />\n" .
+  \"  <[{META NAME}]=\"Generator\" [{CONTENT}]=\"Vim %vimversion% (Vi IMproved editor; http://www.vim.org/)\" />\n" .
   \"  <[{META NAME}]=\"Author\" [{CONTENT}]=\"%authorname%\" />\n" .
   \"  <[{META NAME}]=\"Copyright\" [{CONTENT}]=\"Copyright (C) %date% %authorname%\" />\n" .
   \"  <[{LINK REV}]=\"made\" [{HREF}]=\"mailto:%authoremail%\" />\n\n" .
@@ -589,7 +662,7 @@ else
   let b:internal_html_template = substitute(b:internal_html_template, ' />', '>', 'g')
 endif
 
-" HTMLtemplate()  {{{2
+" HTMLtemplate()  {{{3
 "
 " Determine whether to insert the HTML template:
 " Arguments:
@@ -598,21 +671,27 @@ endif
 "  0 - The cursor is not on an insert point.
 "  1 - The cursor is on an insert point.
 function! HTMLtemplate()
+  let ret = 0
+  let save_ruler = &ruler
+  let save_showcmd = &showcmd
+  set noruler noshowcmd
   if (line('$') == 1 && getline(1) == "")
-    return s:HTMLtemplate2()
+    let ret = s:HTMLtemplate2()
   else
     let YesNoOverwrite = confirm("Non-empty file.\nInsert template anyway?", "&Yes\n&No\n&Overwrite", 2, "W")
     if (YesNoOverwrite == 1)
-      return s:HTMLtemplate2()
+      let ret = s:HTMLtemplate2()
     elseif (YesNoOverwrite == 3)
       execute "1,$delete"
-      return s:HTMLtemplate2()
+      let ret = s:HTMLtemplate2()
     endif
   endif
-  return 0
-endfunction  " }}}2
+  let &ruler = save_ruler
+  let &showcmd = save_showcmd
+  return ret
+endfunction  " }}}3
 
-" s:HTMLtemplate2()  {{{2
+" s:HTMLtemplate2()  {{{3
 "
 " Actually insert the HTML template:
 " Arguments:
@@ -669,6 +748,7 @@ function! s:HTMLtemplate2()
   silent! %s/\C%time12%/\=strftime('%r %Z')/g
   silent! %s/\C%time24%/\=strftime('%T')/g
   silent! %s/\C%charset%/\=<SID>HTMLdetectCharset()/g
+  silent! %s/\C%vimversion%/\=strpart(v:version, 0, 1) . '.' . (strpart(v:version, 1, 2) + 0)/g
 
   go 1
 
@@ -680,9 +760,55 @@ function! s:HTMLtemplate2()
     return 0
   endif
 
-endfunction  " }}}2
+endfunction  " }}}3
 
 " ----------------------------------------------------------------------------
+
+endif " ! exists("b:did_html_mappings_init")
+
+
+" ---- Misc. Mappings: -------------------------------------------------- {{{1
+
+if ! exists("b:did_html_mappings")
+let b:did_html_mappings = 1
+
+let b:HTMLclearMappings = 'normal '
+
+" Make it convenient to use ; as "normal":
+if g:html_map_leader == ';'
+  call HTMLmap("inoremap", ";;", ";")
+  call HTMLmap("vnoremap", ";;", ";", -1)
+  call HTMLmap("nnoremap", ";;", ";")
+endif
+" ...Make it easy to insert a & in insert mode:
+call HTMLmap("inoremap", "<lead>&", "&")
+
+if ! exists('g:no_html_tab_mapping')
+  " Allow hard tabs to be inserted:
+  call HTMLmap("inoremap", "<lead><tab>", "<tab>")
+  call HTMLmap("nnoremap", "<lead><tab>", "<tab>")
+
+  " Tab takes us to a (hopefully) reasonable next insert point:
+  call HTMLmap("inoremap", "<tab>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
+  call HTMLmap("nnoremap", "<tab>", ":call HTMLnextInsertPoint('n')<CR>")
+  call HTMLmap("vnoremap", "<tab>", "<C-C>:call HTMLnextInsertPoint('n')<CR>", -1)
+else
+  call HTMLmap("inoremap", "<lead><tab>", "<C-O>:call HTMLnextInsertPoint('i')<CR>")
+  call HTMLmap("nnoremap", "<lead><tab>", ":call HTMLnextInsertPoint('n')<CR>")
+  call HTMLmap("vnoremap", "<lead><tab>", "<C-C>:call HTMLnextInsertPoint('n')<CR>", -1)
+endif
+
+" Update an image tag's WIDTH & HEIGHT attributes (experimental!):
+runtime! MangleImageTag.vim 
+if exists("*MangleImageTag")
+  call HTMLmap("nnoremap", "<lead>mi", ":call MangleImageTag()<CR>")
+  call HTMLmap("inoremap", "<lead>mi", "<C-O>:call MangleImageTag()<CR>")
+endif
+
+call HTMLmap("nnoremap", "<lead>html", ":if (HTMLtemplate()) \\| startinsert \\| endif<CR>")
+
+" ----------------------------------------------------------------------------
+
 
 " ---- General Markup Tag Mappings: ------------------------------------- {{{1
 
@@ -1166,55 +1292,6 @@ call HTMLmapo("<lead>th", 0)
 " Interactively generate a table of Rows x Columns:
 call HTMLmap("nnoremap", "<lead>tA", ":call HTMLgenerateTable()<CR>")
 
-function! HTMLgenerateTable()
-    let byteoffset = line2byte(line('.')) + col('.') - 1
-
-    let rows    = inputdialog("Number of rows: ") + 0
-    let columns = inputdialog("Number of columns: ") + 0
-
-    if (! (rows > 0 && columns > 0))
-        echo "Rows and columns must be integers."
-        return
-    endif
-
-    let border = inputdialog("Border width of table [none]: ") + 0
-
-    let r = 0
-    let c = 0
-
-    if (border)
-        exe s:HTMLconvertCase("normal o<[{TABLE BORDER}]=" . border . ">\<ESC>")
-    else
-        exe s:HTMLconvertCase("normal o<[{TABLE}]>\<ESC>")
-    endif
-
-    while r < rows
-        let r = r + 1
-        let c = 0
-
-        exe s:HTMLconvertCase("normal o<[{TR}]>\<ESC>")
-
-        while c < columns
-            let c = c + 1
-            exe s:HTMLconvertCase("normal o<[{TD}]>\<CR></[{TD}]>\<ESC>")
-        endwhile
-
-        exe s:HTMLconvertCase("normal o</[{TR}]>\<ESC>")
-
-    endwhile
-
-    exe s:HTMLconvertCase("normal o</[{TABLE}]>\<ESC>")
-
-    if byteoffset == -1
-      go 1
-    else
-      execute ":go " . byteoffset
-    endif
-
-    normal jjj^
-
-endfunction
-
 " Frames stuff:
 call HTMLmap("inoremap", "<lead>fs", "<[{FRAMESET ROWS=\"\" COLS}]=\"\"><CR></[{FRAMESET}]><ESC>BBhhi")
 call HTMLmap("inoremap", "<lead>fr", "<[{FRAME SRC}]=\"\" /><ESC>F\"i")
@@ -1386,6 +1463,7 @@ call HTMLmap("inoremap", "&--", "&mdash;")  " ditto
 call HTMLmap("inoremap", "&3.", "&hellip;")
 " ----------------------------------------------------------------------------
 
+
 " ---- Browser Remote Controls: ----------------------------------------- {{{1
 if has("unix")
   if !exists("*LaunchBrowser")
@@ -1445,6 +1523,7 @@ endif
 
 endif " ! exists("b:did_html_mappings")
 
+
 " ---- ToolBar Buttons: ------------------------------------------------- {{{1
 if ! has("gui_running")
   augroup HTMLplugin
@@ -1452,13 +1531,14 @@ if ! has("gui_running")
   execute 'autocmd GUIEnter * source ' . expand('<sfile>:p')
   augroup END
 elseif exists("did_html_menus")
-  if &filetype ==? "html" || &filetype ==? "xhtml"
-    amenu enable HTML
-    amenu enable HTML.*
-    if exists('g:did_html_toolbar')
-      amenu enable ToolBar.*
-    endif
-  endif
+  "if &filetype ==? "html" || &filetype ==? "xhtml"
+  "  amenu enable HTML
+  "  amenu enable HTML.*
+  "  if exists('g:did_html_toolbar')
+  "    amenu enable ToolBar.*
+  "  endif
+  "endif
+  doautocmd HTML_menu_autos BufWinEnter *
 else
 
 if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gui_gtk")
@@ -1634,12 +1714,13 @@ if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gu
 endif  " (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") [...]
 " ----------------------------------------------------------------------------
 
+
 " ---- Menu Items: ------------------------------------------------------ {{{1
 
 augroup HTML_menu_autos
 au!
 autocmd BufLeave,BufWinLeave *
- \ if &filetype ==? "html" || &filetype ==? "xhtml" |
+ \ if &filetype ==? "html" || &filetype ==? "xhtml" || ! exists("b:did_html_mappings") |
    \ amenu disable HTML |
    \ amenu disable HTML.* |
    \ if exists('g:did_html_toolbar') |
@@ -1655,14 +1736,25 @@ autocmd BufLeave,BufWinLeave *
    \ endif |
  \ endif
 autocmd BufEnter,BufWinEnter *
- \ if &filetype ==? "html" || &filetype ==? "xhtml" |
+ \ if (&filetype ==? "html" || &filetype ==? "xhtml") |
    \ amenu enable HTML |
-   \ amenu enable HTML.* |
-   \ if exists('g:did_html_toolbar') |
-   \ amenu enable ToolBar.* |
+   \ if exists("b:did_html_mappings") |
+     \ amenu enable HTML.* |
+     \ amenu disable HTML.Enable\ Mappings |
+     \ if exists('g:did_html_toolbar') |
+       \ amenu enable ToolBar.* |
+     \ endif |
+   \ else |
+     \ amenu enable HTML.Enable\ Mappings |
    \ endif |
  \ endif
 augroup END
+
+amenu HTM&L.Disable\ Mappings<tab>:HTMLmappings\ disable :HTMLmappings disable<CR>
+amenu HTM&L.Enable\ Mappings<tab>:HTMLmappings\ enable :HTMLmappings enable<CR>
+amenu disable HTML.Enable\ Mappings
+
+ menu HTML.-sep1- <nul>
 
 exe 'amenu HTM&L.Template<tab>' . g:html_map_leader . 'html' g:html_map_leader . 'html'
 
@@ -1699,7 +1791,7 @@ elseif maparg(g:html_map_leader . 'ie', 'n') != ""
   exe 'amenu HTML.Preview.Internet\ Explorer<tab>' . g:html_map_leader . 'ie' g:html_map_leader . 'ie'
 endif
 
- menu HTML.-sep1- <nul>
+ menu HTML.-sep2- <nul>
 
 " Character Entities menu:   {{{2
 
@@ -2320,10 +2412,10 @@ exe 'nmenu HTML.Lists.Definition\ Body<tab>' . g:html_map_leader . 'dd' 'i' . g:
 
 " Tables menu:   {{{2
 
-exe 'nmenu HTML.Tables.Interactive\ Table<tab>' . g:html_map_leader . 'ta' g:html_map_leader . 'ta'
+exe 'nmenu HTML.Tables.Interactive\ Table<tab>' . g:html_map_leader . 'ta' g:html_map_leader . 'tA'
 exe 'imenu HTML.Tables.TABLE<tab>' . g:html_map_leader . 'ta' g:html_map_leader . 'ta'
 exe 'vmenu HTML.Tables.TABLE<tab>' . g:html_map_leader . 'ta' g:html_map_leader . 'ta'
-exe '"nmenu HTML.Tables.TABLE<tab>' . g:html_map_leader . 'ta' 'i' . g:html_map_leader . 'ta'
+exe 'nmenu HTML.Tables.TABLE<tab>' . g:html_map_leader . 'ta' 'i' . g:html_map_leader . 'ta'
 exe 'imenu HTML.Tables.Row<TAB>' . g:html_map_leader . 'tr' g:html_map_leader . 'tr'
 exe 'vmenu HTML.Tables.Row<TAB>' . g:html_map_leader . 'tr' g:html_map_leader . 'tr'
 exe 'nmenu HTML.Tables.Row<TAB>' . g:html_map_leader . 'tr' 'i' . g:html_map_leader . 'tr'
@@ -2388,7 +2480,14 @@ exe 'nmenu HTML.Forms.LABEL<TAB>' . g:html_map_leader . 'la' 'a' . g:html_map_le
 
 " }}}2
 
- menu HTML.-sep2- <nul>
+ menu HTML.-sep3- <nul>
+
+exe 'nmenu HTML.Doctype\ (transitional)<tab>' . g:html_map_leader . '4' g:html_map_leader . '4'
+exe 'nmenu HTML.Doctype\ (strict)<tab>' . g:html_map_leader . 's4' g:html_map_leader . 's4'
+exe 'imenu HTML.Content-Type<tab>' . g:html_map_leader . 'ct' g:html_map_leader . 'ct'
+exe 'nmenu HTML.Content-Type<tab>' . g:html_map_leader . 'ct' 'i' . g:html_map_leader . 'ct'
+
+ menu HTML.-sep4- <nul>
 
 exe 'imenu HTML.BODY<tab>' . g:html_map_leader . 'bd' g:html_map_leader . 'bd'
 exe 'vmenu HTML.BODY<tab>' . g:html_map_leader . 'bd' g:html_map_leader . 'bd'
@@ -2453,6 +2552,8 @@ exe 'imenu HTML.More\.\.\..ISINDEX<tab>' . g:html_map_leader . 'ii' g:html_map_l
 exe 'nmenu HTML.More\.\.\..ISINDEX<tab>' . g:html_map_leader . 'ii' 'i' . g:html_map_leader . 'ii'
 exe 'imenu HTML.More\.\.\..JavaScript<tab>' . g:html_map_leader . 'js' g:html_map_leader . 'js'
 exe 'nmenu HTML.More\.\.\..JavaScript<tab>' . g:html_map_leader . 'js' 'i' . g:html_map_leader . 'js'
+exe 'imenu HTML.More\.\.\..Sourced\ JavaScript<tab>' . g:html_map_leader . 'sj' g:html_map_leader . 'js'
+exe 'nmenu HTML.More\.\.\..Sourced\ JavaScript<tab>' . g:html_map_leader . 'sj' 'i' . g:html_map_leader . 'js'
 exe 'imenu HTML.More\.\.\..LINK\ HREF<tab>' . g:html_map_leader . 'lk' g:html_map_leader . 'lk'
 exe 'vmenu HTML.More\.\.\..LINK\ HREF<tab>' . g:html_map_leader . 'lk' g:html_map_leader . 'lk'
 exe 'nmenu HTML.More\.\.\..LINK\ HREF<tab>' . g:html_map_leader . 'lk' 'i' . g:html_map_leader . 'lk'
@@ -2476,6 +2577,7 @@ let did_html_menus = 1
 endif  " ! has("gui_running"))
 " ---------------------------------------------------------------------------
 
+
 " ---- Clean Up: -------------------------------------------------------- {{{1
 
 silent! unlet s:browsers
@@ -2485,4 +2587,4 @@ let &cpoptions = s:savecpo
 unlet s:savecpo
 
 " vim:ts=2:sw=2:expandtab:tw=78:fo=croq2:comments=b\:\":
-" vim600:fdm=marker:fdc=3:cms=\ "\ %s:
+" vim600:fdm=marker:fdc=4:cms=\ "\ %s:

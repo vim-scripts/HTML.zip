@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2007 Mar 24
+		Last change: 2007 Apr 10
 		Author: Christian J. Robinson
 
 
@@ -48,17 +48,17 @@ dependence on the syntax highlighting.)
 							*;;* *i_;;* *v_;;*
 ;;	Most of the mappings start with ; so ;; is mapped to insert a single
 	; character in insert mode, behave like a single ; in normal mode,
-	etc.  (This mapping is undefined if |g:html_map_leader| is not set to
-	';'.)
+	etc.  (This mapping is not defined if |g:html_map_leader| is not set
+	to ';'.)
 
 							*;&* *i_;&*
 ;&	The HTML |character-entities| insert mode mappings start with &, so
 	typing ;& in insert mode will insert a literal & character.  (See
 	|n_;&|)
 
-				*html-<TAB>* *html-tab* *html-CTRL-I*
-				*i_html-<TAB>* *i_html-tab* *i_html-CTRL-I*
-				*v_html-<TAB>* *v_html-tab* *v_html-CTRL-I*
+				*html-<Tab>* *html-tab* *html-CTRL-I*
+				*i_html-<Tab>* *i_html-tab* *i_html-CTRL-I*
+				*v_html-<Tab>* *v_html-tab* *v_html-CTRL-I*
 <Tab>	If your cursor is on a closing tag the tab key jumps you after the
 	tag.  Otherwise the tab key will jump you to an unfilled tag somewhere
 	in the file.  For example, if you had the tag:
@@ -83,20 +83,32 @@ dependence on the syntax highlighting.)
 	[I think the use of tab is acceptable because I do not like the idea
 	of hard tabs or indentation greater than one or two spaces in HTML.]
 
-					*i_;<tab>* *i_;tab* *i_;CTRL-I*
-					*n_;<tab>* *n_;tab* *n_;CTRL-I*
+					*i_;<Tab>* *i_;tab* *i_;CTRL-I*
+					*n_;<Tab>* *n_;tab* *n_;CTRL-I*
 ;<Tab>	If you want to insert a hard tab (; then the tab key).  If
 	|g:no_html_tab_mapping| is set this mapping replaces the normal
 	|html-tab| mapping instead.  (See |g:html_map_leader|)
 
 								*;html*
-;html	The ;html macro inserts a basic template at the top of the file.  If
-	you already have text in the file, you are asked if you want to
-	replace it or add the template anyway.
-	(See |g:html_map_leader|)
+;html	This macro inserts a basic template at the top of the file.  If you
+	already have text in the file, you are asked if you want to replace it
+	or add the template anyway.  (See |g:html_map_leader|)
 
 	See |g:html_template| for information on how to customize your
 	template.
+
+	*disable-HTML-macros*	*HTML-macros-disable*	*HTML-disable-macros*
+	*disable-HTML-mappings*	*HTML-mappings-disable*	*HTML-disable-mappings*
+							*:HTMLmappings*
+:HTML[mappings] {disable/enable}
+	This command allows you to disable and re-enable the HTML macros.
+	This is useful when you are editing inline PHP, JavaScript, etc. where
+	you would want to be able to type literal ";", "&" and tab characters
+	without interference.  (Also see |;;|, |;&| and |;<Tab>|)
+
+	Note that all of the mappings defined by this script are
+	disabled/enabled when this command is used regardless of what
+	|g:html_map_leader| is set to.
 
 ==============================================================================
 2. Customization variables.		*html-variables* *html-configuration*
@@ -132,7 +144,7 @@ to your |mapleader| or |maplocalleader|.  e.g.: >
 
 *g:no_html_tab_mapping*
 Set this variable if you do not want the tab key to be mapped in normal,
-visual and insert mode, ;<tab> will be used instead.  See |html-tab| and
+visual and insert mode, ;<Tab> will be used instead.  See |html-tab| and
 |i_;tab|.  This variable must be set before HTML.vim is sourced for the
 current buffer.  The contents of this variable do not matter, as long as it is
 set.  e.g.: >
@@ -228,9 +240,13 @@ This is replaced with the output of strftime("%r %Z") (e.g.: 05:59:34 PM MST)
 This is replaced with the output of strftime("%T %Z") (e.g.: 17:59:34 MST)
 
 %charset%					*%charset%*
-This is replaced by a string that's automatically detected based on the
+This is replaced by a string that is automatically detected based on the
 'fileencoding' or 'encoding' option.  This can be overridden, see
 |g:html_default_charset| and |g:html_charset|.  (Also see |html-author-notes|)
+
+%vimversion%					*%vimversion%*
+The current version of Vim, based on |v:version|.  For example, if v:version
+was "700" the %vimversion% token would contain "7.0".
 
 So if you had the template: >
  <HTML>
@@ -577,7 +593,7 @@ characters into your HTML document.  These are known as characters entities.
 	highlighted character.  For example, "foo bar" would become
 	"&#102;&#111;&#111;&#32;&#98;&#97;&#114;".  (See |i_;&|)
 
-							*n_;^* *v_;&*
+							*n_;^* *v_;^*
 ;^	This mapping will decode the &#...; elements of the provided string
 	into their actual characters.  The normal mode version of this macro
 	works differently from |;&| in that it requires a motion operator.
@@ -788,9 +804,9 @@ HTMLmapo({map}, {insert})					*HTMLmapo()*
 	that indicates whether to end in insert mode.
 
 HTMLnextInsertPoint([{mode}])				*HTMLnextInsertPoint()*
-	This is normally called by the |html-<TAB>| mapping, but it works the
-	same if you call it any other way.  The {mode} argument is either 'i'
-	or 'n' (default) which means |Insert| or |Normal|.  In insert mode, if
+	This is normally called by the |;<Tab>| mapping, but it works the same
+	if you call it any other way.  The {mode} argument is either 'i' or
+	'n' (default) which means |Insert| or |Normal|.  In insert mode, if
 	the cursor is on the start of a closing tag it places the cursor after
 	the tag.
 
@@ -810,9 +826,9 @@ The Content-Type charset auto detection value based on the 'fileencoding' /
 'encoding' option has a very incomplete translation table from the possible
 values that Vim uses--I could use help with this.
 
-I want to finally release a 1.0 version, but I'm not willing to until I have
+I want to finally release a 1.0 version, but I am not willing to until I have
 browser control mappings for operating systems other than *nix.  Unfortunately
-I need substantial help to create them for Windows and MacOS since I don't
+I need substantial help to create them for Windows and MacOS since I do not
 have access to either OS.
 
 I will never include mappings for certain tags, such as <BLINK></BLINK> and
