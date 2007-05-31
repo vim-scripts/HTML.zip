@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2007 May 18
+		Last change: 2007 May 30
 		Author: Christian J. Robinson
 
 
@@ -41,9 +41,9 @@ newline.
 							*html-smart-tag*
 Noted tags are "smart"--if syntax highlighting is enabled it can be used to
 detect whether to close then open a tag instead of open then close the tag.
-For example, if the cursor is in italicized text and type ;it, it will insert
-</I><I> instead of <I></I>.  (This can not be done on most tags due to its
-dependence on the syntax highlighting.)
+For example, if the cursor is in italicized text and you type ;it, it will
+insert </I><I> instead of <I></I>.  (This can not be done on most tags due to
+its dependence on the syntax highlighting.)
 
 							*;;* *i_;;* *v_;;*
 ;;	Most of the mappings start with ; so ;; is mapped to insert a single
@@ -96,6 +96,7 @@ dependence on the syntax highlighting.)
 
 	See |g:html_template| for information on how to customize the
 	template.
+
 
 	*disable-HTML-macros*	*HTML-macros-disable*	*HTML-disable-macros*
 	*disable-HTML-mappings*	*HTML-mappings-disable*	*HTML-disable-mappings*
@@ -158,8 +159,23 @@ sourced.  The contents of the variable do not matter, as
 long as it is set.  e.g.: >
 	:let g:no_html_toolbar = 'yes'
 
+*g:no_html_menu*
+Set this variable if you don't want the menu items to be defined at all.  This
+implies that |g:no_html_toolbar| is set as well.  This variable must be set
+before HTML.vim is sourced.  The contents of the variable do not matter, as
+long as it is set.  e.g.: >
+	:let g:no_html_menu = 'yes'
+
+*g:force_html_menu*
+Set this variable if you want the menu items to be defined even if you're not
+in the GUI.  This is useful if you want to use the menus in the console (see
+|console-menus|).  This variable is ignored if |g:no_html_menu| is set.  This
+variable must be set before HTML.vim is sourced.  The contents of the variable
+do not matter, as long as it is set.  e.g.: >
+	:let g:force_html_menu = 'yes'
+
 *g:html_template* *b:html_template*
-Set this to the location of your template file to be used by the ;html
+Set this to the location of your template file to be used by the |;html|
 mapping.  You can also set this on a per-buffer basis by using b:html_template
 instead.  If unset, a basic internal template will be used.
 
@@ -742,9 +758,9 @@ http://www.infynity.spodzone.com/vim/HTML/
 								*n_;nns*
 ;nns	Same as |;ns|, but start a new browser window.
 
-Note: If both Mozilla and Netscape are running, these mappings may behave
-somewhat unexpectedly, due to the fact that both Mozilla and Netscape use
-the same remote protocol IDs.
+Note: If Firefox and/or Mozilla and/or Netscape are running, these mappings
+may behave somewhat unexpectedly, due to the fact that Firefox, Mozilla and
+Netscape use the same remote protocol IDs.
 								*n_;oa*
 ;oa	Make Opera view the current file, starting Opera if it is not running.
 								*n_;noa*
@@ -757,7 +773,12 @@ the same remote protocol IDs.
 								*n_;nly*
 ;nly	Same as |;ly|, but in a new xterm.  This behaves like |;ly| if there
 	is no DISPLAY environmental variable.
-
+								*n_;w3*
+;w3	Use w3m to view the current file.  This behaves like |;nw3| if the Vim
+	GUI is running.
+								*n_;nw3*
+;nw3	Same as |;w3|, but in a new xterm.  This behaves like |;w3| if there
+	is no DISPLAY environmental variable.
 
 ==============================================================================
 6. Miscellaneous extras.				*html-misc*

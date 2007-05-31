@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: May 18, 2007
-" Version:     0.26.8
+" Last Change: May 30, 2007
+" Version:     0.27.1
 " Original Concept: Doug Renze
 "
 "
@@ -46,7 +46,7 @@
 "   just ;ie? (:silent!!start rundll32 url.dll,FileProtocolHandler <URL/File>)
 " - ;ns mapping for Win32 with "start netscape ..." ?
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.146 2007/05/18 17:29:01 infynity Exp $
+" $Id: HTML.vim,v 1.149 2007/05/31 04:09:09 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -1569,9 +1569,7 @@ call HTMLmap("inoremap", "&3.", "&hellip;")
 
 " ---- Browser Remote Controls: ----------------------------------------- {{{1
 if has("unix")
-  if !exists("*LaunchBrowser")
-    runtime! browser_launcher.vim
-  endif
+  runtime! browser_launcher.vim
 
   if exists("*LaunchBrowser")
     " Firefox: View current file, starting Netscape if it's not running:
@@ -1602,8 +1600,13 @@ if has("unix")
 
     " Lynx:  (This happens anyway if there's no DISPLAY environmental variable.)
     call HTMLmap("nnoremap","<lead>ly",":call LaunchBrowser('l',0)<CR>")
-    " Lynx in an xterm:      (This happens regardless if you're in the Vim GUI.)
+    " Lynx in an xterm:  (This happens regardless in the Vim GUI.)
     call HTMLmap("nnoremap", "<lead>nly", ":call LaunchBrowser('l',1)<CR>")
+
+    " w3m:
+    call HTMLmap("nnoremap","<lead>w3",":call LaunchBrowser('w',0)<CR>")
+    " w3m in an xterm:  (This happens regardless in the Vim GUI.)
+    call HTMLmap("nnoremap", "<lead>nw3", ":call LaunchBrowser('w',1)<CR>")
   endif
 elseif has("win32")
   " Internet Explorer:
@@ -1628,14 +1631,14 @@ endif " ! exists("b:did_html_mappings")
 
 
 " ---- ToolBar Buttons: ------------------------------------------------- {{{1
-if ! has("gui_running")
+if ! has("gui_running") && ! exists("g:force_html_menu")
   augroup HTMLplugin
   au!
   execute 'autocmd GUIEnter * source ' . expand('<sfile>:p <bar> autocmd! HTMLplugin GUIEnter *')
   augroup END
-elseif exists("did_html_menus")
+elseif exists("g:did_html_menus")
   call s:HTMLmenuControl()
-else
+elseif ! exists("g:no_html_menu")
 
 if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gui_gtk")
   \ || (v:version >= 600 && (has("gui_athena") || has("gui_motif") || has("gui_photon"))))
@@ -1787,7 +1790,10 @@ if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gu
       exe 'amenu         1.520 ToolBar.Opera'    g:html_map_leader . 'oa'
     endif
 
-    if s:browsers =~ 'l'
+    if s:browsers =~ 'w'
+      HTMLtmenu w3m      1.530 ToolBar.w3m       Launch\ w3m\ on\ Current\ File
+      exe 'amenu         1.530 ToolBar.w3m'      g:html_map_leader . 'w3'
+    elseif s:browsers =~ 'l'
       HTMLtmenu Lynx     1.530 ToolBar.Lynx      Launch\ Lynx\ on\ Current\ File
       exe 'amenu         1.530 ToolBar.Lynx'     g:html_map_leader . 'ly'
     endif
@@ -1856,6 +1862,9 @@ if exists("*LaunchBrowser")
   if s:browsers =~ 'l'
     exe 'amenu HTML.Preview.Lynx<tab>' . g:html_map_leader . 'ly' g:html_map_leader . 'ly'
   endif
+  if s:browsers =~ 'w'
+    exe 'amenu HTML.Preview.w3m<tab>' . g:html_map_leader . 'w3' g:html_map_leader . 'w3'
+  endif
 elseif maparg(g:html_map_leader . 'ie', 'n') != ""
   exe 'amenu HTML.Preview.Internet\ Explorer<tab>' . g:html_map_leader . 'ie' g:html_map_leader . 'ie'
 endif
@@ -1869,6 +1878,7 @@ let &encoding='latin1'
 
 nmenu HTML.Character\ Entities.Convert\ to\ Entity<tab>;\&         ;&
 vmenu HTML.Character\ Entities.Convert\ to\ Entity<tab>;\&         ;&
+vmenu HTML.Character\ Entities.Convert\ from\ Entities<tab>;^      ;^
  menu HTML.Character\ Entities.-sep0- <nul>
 imenu HTML.Character\ Entities.Ampersand<tab>\&\&                  &&
 imenu HTML.Character\ Entities.Greaterthan\ (>)<tab>\&>            &>
@@ -2466,9 +2476,6 @@ exe 'vmenu HTML.Lists.Unordered\ List<tab>' . g:html_map_leader . 'ul' g:html_ma
 exe 'nmenu HTML.Lists.Unordered\ List<tab>' . g:html_map_leader . 'ul' 'i' . g:html_map_leader . 'ul'
 exe 'imenu HTML.Lists.List\ Item<tab>' . g:html_map_leader . 'li' g:html_map_leader . 'li'
 exe 'nmenu HTML.Lists.List\ Item<tab>' . g:html_map_leader . 'li' 'i' . g:html_map_leader . 'li'
-exe 'imenu HTML.Lists.List\ Header<tab>' . g:html_map_leader . 'lh' g:html_map_leader . 'lh'
-exe 'vmenu HTML.Lists.List\ Header<tab>' . g:html_map_leader . 'lh' g:html_map_leader . 'lh'
-exe 'nmenu HTML.Lists.List\ Header<tab>' . g:html_map_leader . 'lh' 'i' . g:html_map_leader . 'lh'
  menu HTML.Lists.-sep1- <nul>
 exe 'imenu HTML.Lists.Definition\ List<tab>' . g:html_map_leader . 'dl' g:html_map_leader . 'dl'
 exe 'vmenu HTML.Lists.Definition\ List<tab>' . g:html_map_leader . 'dl' g:html_map_leader . 'dl'
@@ -2632,6 +2639,12 @@ exe 'nmenu HTML.More\.\.\..Linked\ CSS<tab>' . g:html_map_leader . 'ls' 'i' . g:
 exe 'imenu HTML.More\.\.\..META<tab>' . g:html_map_leader . 'me' g:html_map_leader . 'me'
 exe 'vmenu HTML.More\.\.\..META<tab>' . g:html_map_leader . 'me' g:html_map_leader . 'me'
 exe 'nmenu HTML.More\.\.\..META<tab>' . g:html_map_leader . 'me' 'i' . g:html_map_leader . 'me'
+exe 'imenu HTML.More\.\.\..NOSCRIPT<tab>' . g:html_map_leader . 'nj' g:html_map_leader . 'nj'
+exe 'vmenu HTML.More\.\.\..NOSCRIPT<tab>' . g:html_map_leader . 'nj' g:html_map_leader . 'nj'
+exe 'nmenu HTML.More\.\.\..NOSCRIPT<tab>' . g:html_map_leader . 'nj' 'i' . g:html_map_leader . 'nj'
+exe 'imenu HTML.More\.\.\..Generic\ Embedded\ Object<tab>' . g:html_map_leader . 'ob' g:html_map_leader . 'ob'
+exe 'vmenu HTML.More\.\.\..Generic\ Embedded\ Object<tab>' . g:html_map_leader . 'ob' g:html_map_leader . 'ob'
+exe 'nmenu HTML.More\.\.\..Generic\ Embedded\ Object<tab>' . g:html_map_leader . 'ob' 'i' . g:html_map_leader . 'ob'
 exe 'imenu HTML.More\.\.\..Quoted\ Text<tab>' . g:html_map_leader . 'qu' g:html_map_leader . 'qu'
 exe 'vmenu HTML.More\.\.\..Quoted\ Text<tab>' . g:html_map_leader . 'qu' g:html_map_leader . 'qu'
 exe 'nmenu HTML.More\.\.\..Quoted\ Text<tab>' . g:html_map_leader . 'qu' 'i' . g:html_map_leader . 'qu'
@@ -2642,7 +2655,7 @@ exe 'imenu HTML.More\.\.\..STYLE<tab>' . g:html_map_leader . 'cs' g:html_map_lea
 exe 'vmenu HTML.More\.\.\..STYLE<tab>' . g:html_map_leader . 'cs' g:html_map_leader . 'cs'
 exe 'nmenu HTML.More\.\.\..STYLE<tab>' . g:html_map_leader . 'cs' 'i' . g:html_map_leader . 'cs'
 
-let did_html_menus = 1
+let g:did_html_menus = 1
 endif  " ! has("gui_running"))
 " ---------------------------------------------------------------------------
 
