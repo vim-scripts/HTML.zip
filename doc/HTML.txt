@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2007 Jun 06
+		Last change: 2007 Jun 09
 		Author: Christian J. Robinson
 
 
@@ -32,7 +32,7 @@ The mappings are local to the buffer the script was sourced from, and the menu
 and toolbar are active only for buffers the script was sourced from.
 
 This help file follows the Vim help file standards.  To see what modes a
-mapping works in see the tags between the **'s.  For example, the ;; mapping
+mapping works in see the tags between the **'s.  For example, the |;;| mapping
 below works in normal, insert mode and visual mode.
 
 In the descriptions of the mappings I often use <CR> to mean a literal
@@ -51,13 +51,13 @@ NOTE: Some tags are synonyms and Vim can't distinguish between them.  For
 example, if you're within <I></I> and type |;em| it will assume you want
 </EM><EM> rather than <EM></EM>.
 
-							*;;* *i_;;* *v_;;*
+							*n_;;* *i_;;* *v_;;*
 ;;	Most of the mappings start with ; so ;; is mapped to insert a single
 	; character in insert mode, behave like a single ; in normal mode,
-	etc.  (This mapping is not defined if |g:html_map_leader| is not set
-	to ';'.)
+	etc.  (The semicolons in this mapping are changed to whatever
+	|g:html_map_leader| is set to.)
 
-							*;&* *i_;&*
+							*i_;&*
 ;&	The HTML |character-entities| insert mode mappings start with &, so
 	typing ;& in insert mode will insert a literal & character.  (See
 	|n_;&|)
@@ -132,7 +132,8 @@ Set this to a nonzero value if you prefer XHTML compatible tags to be defined.
 Setting this forces |b:html_tag_case| to "lowercase".  This is automatic if
 you are already editing a file that Vim detects as XHTML.  This variable must
 be set before HTML.vim is sourced for the current buffer.  You can also set
-this on a per-buffer basis by using b:do_xhtml_mappings instead.
+this on a per-buffer basis by using b:do_xhtml_mappings instead.  e.g.: >
+	:let g:do_xhtml_mappings = 'yes'
 
 *g:html_tag_case* *b:html_tag_case*
 This variable can be set to "l" / "lower" / "lowercase" or "u" / "upper" /
@@ -140,7 +141,8 @@ This variable can be set to "l" / "lower" / "lowercase" or "u" / "upper" /
 must be set before HTML.vim is sourced for the current buffer.  The default is
 "uppercase".  You can also set this on a per-buffer basis by using
 b:html_tag_case instead.  Note that this value is ignored when editing XHTML
-files (see |g:do_xhtml_mappings|).
+files (see |g:do_xhtml_mappings|).  e.g: >
+	:let g:html_tag_case = 'lowercase'
 
 *g:html_map_leader*
 This variable can be set to the character you want for the leader of the
@@ -223,7 +225,7 @@ be detected by the 'fileencoding' or 'encoding' options.  See |;ct| and
 *g:html_charset*
 If this variable is set it completely overrides the Content-Type charset
 detection for the |;ct| mapping and in the |html-tokens|.  Normally this
-should be left unset.  
+should be left unset.
 
 ------------------------------------------------------------------------------
 					*html-template-tokens* *html-tokens*
@@ -395,10 +397,10 @@ another character of your preference.  See |g:html_map_leader|.
 						*html-definition-list*
 							*i_;dl* *v_;dl* *n_;dl*
 ;dl	Definition list (<DL><CR></DL>). (|n_;|)
-							*i_;dt*
-;dt	Definition term (<DT>).
-							*i_;dd*
-;dd	Definition body (<DD>).
+							*i_;dt* *v_;dt* *n_;dt*
+;dt	Definition term (<DT></DT>). (|n_;|)
+							*i_;dd* *v_;dd* *n_;dd*
+;dd	Definition body (<DD></DD>). (|n_;|)
 							*i_;de* *v_;de* *n_;de*
 ;de	Deleted text (<DEL></DEL>). (|n_;|)
 							*i_;df* *v_;df* *n_;df*
@@ -535,7 +537,7 @@ another character of your preference.  See |g:html_map_leader|.
 							*html-table*
 							*i_;ta* *v_;ta* *n_;ta*
 ;ta	Table (<TABLE><CR></TABLE>). (|n_;|)
-							*;tA*
+							*n_;tA*
 ;tA	Interactive table; you will be interactively prompted for the table
 	rows, columns, and border width.
 							*i_;ca* *v_;ca* *n_;ca*
@@ -654,7 +656,7 @@ Less than (<)		&lt;		&<		*i_&<*
 					*i_&<space>* *i_&space* *i_;<space>*
 Space (non-breaking)	&nbsp;		&<space>/;<space>	*i_;space*
 Quotation mark (")	&quot;		&'		*i_&'*
-Cent			&cent;		&c|		*&cbar*
+Cent			&cent;		&c|		*i_&cbar*
 Pound			&pound;		&#		*i_&#*
 Yen			&yen;		&Y=		*i_&Y=*
 Left Angle Quote	&laquo;		&2<		*i_&2<*
@@ -845,7 +847,7 @@ HTMLmap({maptype}, {lhs}, {rhs} [, {re-indent}])	*HTMLmap()*
 	insert mode.  If the value is 1, the visually selected area is
 	re-selected, plus one line below, and re-indented.  A value of 2 does
 	the same without moving down a line.
-	
+
 	The special cases of 0 means the visual mapping enters visual mode,
 	and -1 tells the function not to add any special extra code to the
 	visual mapping.
