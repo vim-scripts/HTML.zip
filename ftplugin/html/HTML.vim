@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: June 09, 2007
-" Version:     0.27.6
+" Last Change: June 22, 2007
+" Version:     0.28
 " Original Concept: Doug Renze
 "
 "
@@ -42,11 +42,9 @@
 "        Doug Renze
 "
 " ---- TODO: ------------------------------------------------------------ {{{1
-" - Under Win32, make a mapping call the user's default browser instead of
-"   just ;ie? (:silent!!start rundll32 url.dll,FileProtocolHandler <URL/File>)
-" - ;ne mapping for Win32 with "start netscape ..." ?
+" - Specific browser mappings for Win32 with "start <browser> ..." ?
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.154 2007/06/09 22:21:17 infynity Exp $
+" $Id: HTML.vim,v 1.157 2007/06/22 18:20:28 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -200,6 +198,10 @@ function! HTMLmap(cmd, map, arg, ...)
   let map = substitute(a:map, "^<lead>\\c", g:html_map_leader, '')
 
   if a:cmd =~ '^v'
+    " If 'selection' is "exclusive" all the visual mode mappings need to
+    " behave slightly differently:
+    let arg = substitute(arg, "`>a\\C", "`>i<C-R>=<SID>VI()<CR>", 'g')
+
     if a:0 >= 1 && a:1 < 0
       execute a:cmd . " <buffer> <silent> " . map . " " . arg
     elseif a:0 >= 1 && a:1 >= 1
@@ -223,16 +225,8 @@ function! HTMLmap(cmd, map, arg, ...)
     let b:HTMLclearMappings = b:HTMLclearMappings . ":unmap <buffer> " . map . "\<CR>"
   endif
 
-  if ! exists('s:doing_internal_html_mappings')
-    if ! exists('b:HTMLextraMappings')
-      let b:HTMLextraMappings = ''
-    endif
-    let b:HTMLextraMappings = b:HTMLextraMappings .
-          \ ':call HTMLmap("' . a:cmd . '", "' . escape(a:map, '"\') .
-          \ '", "' . escape(a:arg, '"\') . (a:0 >= 1 ? ('", ' . a:1) : '"' ) . ") |"
-    "\<CR>\<ESC>\<C-R>\<C-O>
-  endif
-
+  call s:HTMLextraMappingsAdd(':call HTMLmap("' . a:cmd . '", "' . escape(a:map, '"\')
+    \ . '", "' . escape(a:arg, '"\') . (a:0 >= 1 ? ('", ' . a:1) : '"' ) . ')')
 endfunction
 
 " HTMLmapo()  {{{2
@@ -240,8 +234,8 @@ endfunction
 " Define a map that takes an operator to its corresponding visual mode
 " mapping:
 " Arguments:
-" 1 - String:  The mapping.
-" 2 - Boolean: Whether to enter insert mode after the mapping has executed.
+"  1 - String:  The mapping.
+"  2 - Boolean: Whether to enter insert mode after the mapping has executed.
 function! HTMLmapo(map, insert)
   if v:version < 700
     return
@@ -255,13 +249,20 @@ function! HTMLmapo(map, insert)
     \ . ':set operatorfunc=<SID>HTMLwrapRange<CR>g@'
 
   let b:HTMLclearMappings = b:HTMLclearMappings . ":nunmap <buffer> " . map . "\<CR>"
+  call s:HTMLextraMappingsAdd(':call HTMLmapo("' . escape(a:map, '"\') . '", ' . a:insert . ')')
+endfunction
 
+" s:HTMLextraMappingsAdd()  {{{2
+"
+" Add to the b:HTMLextraMappings variable if necessary:
+" Arguments:
+"  1 - String: The command necessary to re-define the mapping.
+function! s:HTMLextraMappingsAdd(arg)
   if ! exists('s:doing_internal_html_mappings')
     if ! exists('b:HTMLextraMappings')
       let b:HTMLextraMappings = ''
     endif
-    let b:HTMLextraMappings = b:HTMLextraMappings .
-          \ ':call HTMLmapo("' . escape(a:map, '"\') . '", ' . a:insert . ") |"
+    let b:HTMLextraMappings = b:HTMLextraMappings . a:arg . ' |'
   endif
 endfunction
 
@@ -291,6 +292,7 @@ function! s:HTMLwrapRange(type)
 endfunction
 
 " s:TO()  {{{2
+"
 " Used to make sure the 'showmatch' and 'indentexpr' options are off
 " temporarily to prevent the visual mappings from causing a (visual)bell or
 " inserting improperly:
@@ -308,6 +310,7 @@ function! s:TO(s)
 endfunction
 
 " s:TC()  {{{2
+"
 " Used to make sure the 'comments' option is off temporarily to prevent
 " certain mappings from inserting unwanted comment leaders:
 " Arguments:
@@ -318,6 +321,22 @@ function! s:TC(s)
     let s:savecom=&l:com | let &l:com=''
   else
     let &l:com=s:savecom | unlet s:savecom
+  endif
+endfunction
+
+" s:VI() {{{2
+"
+" Used by HTMLmap() to enter insert mode in Visual mappings in the right
+" place, depending on what 'selection' is set to:
+" Arguments:
+"   None
+" Return value:
+"   The proper movement command based on the value of 'selection'.
+function! s:VI()
+  if &selection == 'inclusive'
+    return "\<right>"
+  else
+    return "\<C-O>`>"
   endif
 endfunction
 
@@ -530,6 +549,11 @@ function! s:tag(tag, mode)
     let ret=s:HTMLconvertCase(s:HTMLtags{a:tag}{a:mode}{'c'})
   else
     let ret=s:HTMLconvertCase(s:HTMLtags{a:tag}{a:mode}{'o'})
+  endif
+  if a:mode == 'v'
+    " If 'selection' is "exclusive" all the visual mode mappings need to
+    " behave slightly differently:
+    let ret = substitute(ret, "`>a\\C", "`>i" . s:VI(), 'g')
   endif
   return ret
 endfunction
@@ -1639,16 +1663,8 @@ if has("unix")
     call HTMLmap("nnoremap", "<lead>nw3", ":call LaunchBrowser('w',1)<CR>")
   endif
 elseif has("win32")
-  " Internet Explorer:
-  "SetIfUnset html_internet_explorer C:\program\ files\internet\ explorer\iexplore
-  "function! HTMLstartExplorer(file)
-  "  if executable(g:html_internet_explorer)
-  "    exe '!start ' g:html_internet_explorer . ' ' . a:file
-  "  else
-  "    exe '!start explorer ' . a:file
-  "  endif
-  "endfunction
-  "call HTMLmap("nnoremap", "<lead>ie", ":call HTMLstartExplorer(expand('%:p'))<CR>")
+  " Run the default Windows browser:
+   call HTMLmap("nnoremap", "<lead>db", ":exe '!start RunDll32.exe shell32.dll,ShellExec_RunDLL ' . expand('%:p')<CR>")
 
   " This assumes that IE is installed and the file explorer will become IE
   " when given an URL to open:
@@ -1848,11 +1864,11 @@ if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gu
       HTMLmenu amenu     1.530 ToolBar.Lynx      ly
     endif
 
-  elseif maparg(g:html_map_leader . 'ie', 'n') != ""
+  elseif maparg(g:html_map_leader . 'db', 'n') != ""
     amenu 1.500 ToolBar.-sep50- <nul>
 
-    tmenu 1.510 ToolBar.IE Launch Internet Explorer on Current File
-    HTMLmenu amenu 1.510 ToolBar.IE ie
+    tmenu 1.510 ToolBar.Browser Launch Default Browser on Current File
+    HTMLmenu amenu 1.510 ToolBar.Browser db
   endif
 
   amenu 1.998 ToolBar.-sep99- <nul>
@@ -1915,7 +1931,8 @@ if exists("*LaunchBrowser")
   if s:browsers =~ 'w'
     HTMLmenu amenu - HTML.Preview.w3m                     w3
   endif
-elseif maparg(g:html_map_leader . 'ie', 'n') != ""
+elseif maparg(g:html_map_leader . 'db', 'n') != ""
+  HTMLmenu amenu - HTML.Preview.Default\ Browser    db
   HTMLmenu amenu - HTML.Preview.Internet\ Explorer  ie
 endif
 

@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2007 Jun 09
+		Last change: 2007 Jun 22
 		Author: Christian J. Robinson
 
 
@@ -745,6 +745,8 @@ You can use a browser to preview your current HTML document.  (See
 
 
 For Windows:
+								*n_;db*
+;db	Call the default browser on the current file.
 								*n_;ie*
 ;ie	Call Explorer on the current file.
 
@@ -818,8 +820,8 @@ HTMLencodeString({string} [, {...}])			*HTMLencodeString()*
 
 	See |n_;&| and |n_;%| for examples.
 
-	If you're using a version of Vim prior to 7 you need to have this
-	script sourced for the string to %XX conversion to work:
+	If you're using a version of Vim prior to 7 you must have this script
+	sourced for the string to %XX conversion to work:
 	http://www.infynity.spodzone.com/vim/ConvertBase.vim
 
 	Note that Unicode characters can not be safely converted to %XX hex
@@ -851,6 +853,9 @@ HTMLmap({maptype}, {lhs}, {rhs} [, {re-indent}])	*HTMLmap()*
 	The special cases of 0 means the visual mapping enters visual mode,
 	and -1 tells the function not to add any special extra code to the
 	visual mapping.
+
+	Note that more "magic" than what's documented here gets applied to the
+	mappings depending on their mode, the value of {re-indent} and so on.
 
 HTMLmapo({map}, {insert})					*HTMLmapo()*
 	Creates an operator-pending mapping wrapper for {map} that calls the
