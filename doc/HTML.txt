@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2007 Jun 22
+		Last change: 2007 Jun 26
 		Author: Christian J. Robinson
 
 
@@ -326,7 +326,7 @@ another character of your preference.  See |g:html_map_leader|.
 <	at the top of the file.  If the current buffer is XHTML, it will be >
 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 	 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<       (See |g:do_xhtml_mappings|)
+<	(See |g:do_xhtml_mappings|)
 							*n_;s4* *i_;s4*
 ;s4	Does the same as |;4|, but the document type is strict rather than
 	transitional.  (Note that these macros are meant for a transitional
@@ -335,7 +335,7 @@ another character of your preference.  See |g:html_map_leader|.
 ;ct	Insert <META HTTP-EQUIV="Content-Type" CONTENT="text/html;
 	charset=iso-8859-1"> at the current cursor position.
 
-	The actual value of the charset is auto detected based on the
+	The actual value of the charset is automatically detected based on the
 	'fileencoding' or 'encoding' option.  This can be overridden--see
 	|g:html_default_charset| and |g:html_charset|.
 	(See |html-author-notes|)
@@ -350,7 +350,7 @@ another character of your preference.  See |g:html_map_leader|.
 	places the cursor on the < of </A>.  If this is used in insert mode
 	rather than visual mode, the contents of the |clipboard| are placed
 	between the quotes. (|n_;|)
-							*i_;at* *v_at* *n_;at*
+							*i_;at* *v_;at* *n_;at*
 ;at	Like |;ah| but include TARGET="" in the tag. (|n_;|)
 							*i_;aT* *v_;aT* *n_;aT*
 ;aH	Like |;aH| but include TARGET="" in the tag. (|n_;|)
@@ -467,7 +467,7 @@ another character of your preference.  See |g:html_map_leader|.
 							*i_;sj*
 ;sj	<SCRIPT SRC="" TYPE="text/javascript" LANGUAGE="javascript"></SCRIPT>
 							*i_;ns* *v_;ns* *n_;ns*
-;ns     Alternate content for browsers with script handling turned off
+;ns	Alternate content for browsers with script handling turned off
 	(<NOSCRIPT><CR></NOSCRIPT>). (|n_;|)
 							*i_;li* *v_;li* *n_;li*
 ;li	List item (<LI></LI>) inside <UL> or <OL>. (|n_;|)
@@ -648,7 +648,7 @@ characters into the HTML buffer.  These are known as characters entities.
 
 The following mappings work in insert mode only.
 
-Name:			HTML:		Macro:              ~
+Name:			HTML:		Macro:
 --------------------------------------------------------------------
 Ampersand (&)		&amp;		&&		*i_&&*
 Greater than (>)	&gt;		&>		*i_&>*
@@ -675,9 +675,9 @@ Middle Dot		&middot;	&.		*i_&.*
 One Quarter		&frac14;	&14		*i_&14*
 One Half		&frac12;	&12		*i_&12*
 Three Quarters		&frac34;	&34		*i_&34*
-En dash                 &ndash;         &n-             *i_&n-*
-Em dash                 &mdash;         &m-/&--         *i_&m-* *i_&--*
-Ellipsis                &hellip;        &3.             *i_&3.*
+En dash			&ndash;		&n-		*i_&n-*
+Em dash			&mdash;		&m-/&--		*i_&m-* *i_&--*
+Ellipsis		&hellip;	&3.		*i_&3.*
 A-grave			&Agrave;	&A`		*i_&A`*
 a-grave			&agrave;	&a`		*i_&a`*
 E-grave			&Egrave;	&E`		*i_&E`*
@@ -881,8 +881,8 @@ SetIfUnset({variable}, {value})				*SetIfUnset()*
 
 Author's notes:						*html-author-notes*
 ---------------
-The Content-Type charset auto detection value based on the 'fileencoding' /
-'encoding' option has a very incomplete translation table from the possible
+The Content-Type charset automatic detection value based on the 'fileencoding'
+/ 'encoding' option has a very incomplete translation table from the possible
 values that Vim uses--I could use help with this.
 
 I want to finally release a 1.0 version, but I am not willing to until I have

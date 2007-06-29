@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: June 22, 2007
-" Version:     0.28
+" Last Change: June 26, 2007
+" Version:     0.28.2
 " Original Concept: Doug Renze
 "
 "
@@ -44,7 +44,7 @@
 " ---- TODO: ------------------------------------------------------------ {{{1
 " - Specific browser mappings for Win32 with "start <browser> ..." ?
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.157 2007/06/22 18:20:28 infynity Exp $
+" $Id: HTML.vim,v 1.160 2007/06/26 23:30:14 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -1686,21 +1686,6 @@ elseif exists("g:did_html_menus")
   call s:HTMLmenuControl()
 elseif ! exists("g:no_html_menu")
 
-if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gui_gtk")
-  \ || (v:version >= 600 && (has("gui_athena") || has("gui_motif") || has("gui_photon"))))
-
-  set guioptions+=T
-
-  " A kluge to overcome a problem with the GTK2 interface:
-  command! -nargs=+ HTMLtmenu call s:HTMLtmenu(<f-args>)
-  function! s:HTMLtmenu(icon, level, menu, tip)
-    if has('gui_gtk2') && v:version <= 602 && ! has('patch240')
-      exe 'tmenu icon=' . a:icon . ' ' . a:level . ' ' . a:menu . ' ' . a:tip
-    else
-      exe 'tmenu ' . a:level . ' ' . a:menu . ' ' . a:tip
-    endif
-  endfunction
-
   command! -nargs=+ HTMLmenu call s:HTMLleadmenu(<f-args>)
   function! s:HTMLleadmenu(type, level, name, item, ...)
     if a:0 == 1
@@ -1719,6 +1704,21 @@ if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gu
 
     exe a:type . ' ' . level . ' ' . name . '<tab>' . g:html_map_leader . a:item
       \ . ' ' . pre . g:html_map_leader . a:item
+  endfunction
+
+if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gui_gtk")
+  \ || (v:version >= 600 && (has("gui_athena") || has("gui_motif") || has("gui_photon"))))
+
+  set guioptions+=T
+
+  " A kluge to overcome a problem with the GTK2 interface:
+  command! -nargs=+ HTMLtmenu call s:HTMLtmenu(<f-args>)
+  function! s:HTMLtmenu(icon, level, menu, tip)
+    if has('gui_gtk2') && v:version <= 602 && ! has('patch240')
+      exe 'tmenu icon=' . a:icon . ' ' . a:level . ' ' . a:menu . ' ' . a:tip
+    else
+      exe 'tmenu ' . a:level . ' ' . a:menu . ' ' . a:tip
+    endif
   endfunction
 
   "tunmenu ToolBar
@@ -1885,6 +1885,20 @@ endif  " (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") [...
 
 " ---- Menu Items: ------------------------------------------------------ {{{1
 
+" Add to the PopUp menu:   {{{2
+nnoremenu 1.91 PopUp.Select\ Ta&g vat
+onoremenu 1.91 PopUp.Select\ Ta&g at
+vnoremenu 1.91 PopUp.Select\ Ta&g <C-C>vat
+inoremenu 1.91 PopUp.Select\ Ta&g <C-O>vat
+cnoremenu 1.91 PopUp.Select\ Ta&g <C-C>vat
+
+nnoremenu 1.92 PopUp.Select\ &Inner\ Ta&g vit
+onoremenu 1.92 PopUp.Select\ &Inner\ Ta&g it
+vnoremenu 1.92 PopUp.Select\ &Inner\ Ta&g <C-C>vit
+inoremenu 1.92 PopUp.Select\ &Inner\ Ta&g <C-O>vit
+cnoremenu 1.92 PopUp.Select\ &Inner\ Ta&g <C-C>vit
+" }}}2
+
 augroup HTML_menu_autos
 au!
 "autocmd BufLeave * call s:HTMLmenuControl()
@@ -1896,8 +1910,8 @@ amenu HTM&L.Enable\ Mappings<tab>:HTMLmappings\ enable :HTMLmappings enable<CR>
 amenu disable HTML.Enable\ Mappings
 
  menu HTML.-sep1- <nul>
-
-HTMLmenu amenu - HTM&L.Template html
+amenu HTML.HTML\ Help<TAB>:help\ HTML :help HTML<CR>
+ menu HTML.-sep2- <nul>
 
 if exists("*LaunchBrowser")
   let s:browsers = LaunchBrowser()
@@ -1936,7 +1950,11 @@ elseif maparg(g:html_map_leader . 'db', 'n') != ""
   HTMLmenu amenu - HTML.Preview.Internet\ Explorer  ie
 endif
 
- menu HTML.-sep2- <nul>
+ menu HTML.-sep3- <nul>
+
+HTMLmenu amenu - HTM&L.Template html
+
+ menu HTML.-sep4- <nul>
 
 " Character Entities menu:   {{{2
 
@@ -2624,14 +2642,14 @@ HTMLmenu nmenu - HTML.Forms.LABEL la i
 
 " }}}2
 
- menu HTML.-sep3- <nul>
+ menu HTML.-sep5- <nul>
 
 HTMLmenu nmenu - HTML.Doctype\ (transitional) 4 
 HTMLmenu nmenu - HTML.Doctype\ (strict) s4 
 HTMLmenu imenu - HTML.Content-Type ct 
 HTMLmenu nmenu - HTML.Content-Type ct i
 
- menu HTML.-sep4- <nul>
+ menu HTML.-sep6- <nul>
 
 HTMLmenu imenu - HTML.BODY bd 
 HTMLmenu vmenu - HTML.BODY bd 
@@ -2728,7 +2746,7 @@ delcommand HTMLmenu
 delfunction s:HTMLleadmenu
 
 let g:did_html_menus = 1
-endif  " ! has("gui_running"))
+endif  " ! has("gui_running") && ! exists("g:force_html_menu")
 " ---------------------------------------------------------------------------
 
 
