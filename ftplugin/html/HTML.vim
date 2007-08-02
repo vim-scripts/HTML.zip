@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: June 26, 2007
-" Version:     0.28.2
+" Last Change: July 30, 2007
+" Version:     0.29
 " Original Concept: Doug Renze
 "
 "
@@ -44,14 +44,22 @@
 " ---- TODO: ------------------------------------------------------------ {{{1
 " - Specific browser mappings for Win32 with "start <browser> ..." ?
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.160 2007/06/26 23:30:14 infynity Exp $
+" $Id: HTML.vim,v 1.165 2007/07/31 01:47:04 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
 if v:version < 600
   echoerr "HTML.vim no longer supports Vim versions prior to 6."
+  sleep 2
   finish
+elseif v:version < 700
+  let s:tmp =
+    \ "The HTML macros support for Vim versions prior to 7\n" .
+    \ "will be abandoned in future versions.\n\n" .
+    \ "You should seriously consider upgrading your version of Vim."
+  call confirm(s:tmp, "&Dismiss", 1, 'Warning')
+  unlet s:tmp
 endif
 
 " Save cpoptions and remove some junk that will throw us off (reset at the end
@@ -107,18 +115,43 @@ SetIfUnset g:html_default_charset iso-8859-1
 SetIfUnset g:html_authorname  -
 SetIfUnset g:html_authoremail -
 
-"call input(&filetype)
+" Detect whether to force uppper or lower case:  {{{2
 if &filetype ==? "xhtml"
       \ || (exists('g:do_xhtml_mappings') && g:do_xhtml_mappings != 0)
       \ || (exists('b:do_xhtml_mappings') && b:do_xhtml_mappings != 0)
   let b:do_xhtml_mappings = 1
 else
   let b:do_xhtml_mappings = 0
+
+  if exists('g:html_tag_case_autodetect') && g:html_tag_case_autodetect != 0
+        \ && (line('$') != 1 || getline(1) != "")
+    let s:byteoffset = line2byte(line('.')) + col('.') - 1
+
+    silent! go 1
+    let s:found_upper = search('\C<\(\s*/\)\?\s*\u\+\_[^<>]*>', 'w')
+    silent! go 1
+    let s:found_lower = search('\C<\(\s*/\)\?\s*\l\+\_[^<>]*>', 'w')
+
+    if s:found_upper && ! s:found_lower
+      let b:html_tag_case = 'uppercase'
+    elseif ! s:found_upper && s:found_lower
+      let b:html_tag_case = 'lowercase'
+    endif
+
+    if s:byteoffset == -1
+      go 1
+    else
+      execute ':go ' . s:byteoffset
+    endif
+
+    unlet s:byteoffset s:found_upper s:found_lower
+  endif
 endif
 
 if b:do_xhtml_mappings != 0
   let b:html_tag_case = 'lowercase'
 endif
+" }}}2
 
 call SetIfUnset('b:html_tag_case', g:html_tag_case)
 
@@ -195,7 +228,7 @@ function! HTMLmap(cmd, map, arg, ...)
     let arg = substitute(arg, ' />', '>', 'g')
   endif
 
-  let map = substitute(a:map, "^<lead>\\c", g:html_map_leader, '')
+  let map = substitute(a:map, '^<lead>\c', g:html_map_leader, '')
 
   if a:cmd =~ '^v'
     " If 'selection' is "exclusive" all the visual mode mappings need to
@@ -226,7 +259,7 @@ function! HTMLmap(cmd, map, arg, ...)
   endif
 
   call s:HTMLextraMappingsAdd(':call HTMLmap("' . a:cmd . '", "' . escape(a:map, '"\')
-    \ . '", "' . escape(a:arg, '"\') . (a:0 >= 1 ? ('", ' . a:1) : '"' ) . ')')
+        \ . '", "' . escape(a:arg, '"\') . (a:0 >= 1 ? ('", ' . a:1) : '"' ) . ')')
 endfunction
 
 " HTMLmapo()  {{{2
@@ -273,17 +306,17 @@ function! s:HTMLwrapRange(type)
   let &selection = "inclusive"
 
   if a:type == 'line'
-    exe "normal `[V`]" . b:htmltagaction
+    execute "normal `[V`]" . b:htmltagaction
   elseif a:type == 'block'
-    exe "normal `[\<C-V>`]" . b:htmltagaction
+    execute "normal `[\<C-V>`]" . b:htmltagaction
   else
-    exe "normal `[v`]" . b:htmltagaction
+    execute "normal `[v`]" . b:htmltagaction
   endif
 
   let &selection = sel_save
 
   if b:htmltaginsert == 1
-    exe "normal \<Right>"
+    execute "normal \<Right>"
     startinsert
   endif
 
@@ -293,9 +326,9 @@ endfunction
 
 " s:TO()  {{{2
 "
-" Used to make sure the 'showmatch' and 'indentexpr' options are off
-" temporarily to prevent the visual mappings from causing a (visual)bell or
-" inserting improperly:
+" Used to make sure the 'showmatch', 'indentexpr', and 'formatoptions' options
+" are off temporarily to prevent the visual mappings from causing a
+" (visual)bell or inserting improperly:
 " Arguments:
 "  1 - Integer: 0 - Turn options off.
 "               1 - Turn options back on, if they were on before.
@@ -303,9 +336,11 @@ function! s:TO(s)
   if a:s == 0
     let s:savesm=&l:sm | let &l:sm=0
     let s:saveinde=&l:inde | let &l:inde=''
+    let s:savefo=&l:fo | let &l:fo=''
   else
     let &l:sm=s:savesm | unlet s:savesm
     let &l:inde=s:saveinde | unlet s:saveinde
+    let &l:fo=s:savefo | unlet s:savefo
   endif
 endfunction
 
@@ -401,7 +436,7 @@ function! s:HTMLreIndent(first, last, extraline)
     endif
   endif
 
-  exe firstline . ',' . lastline . 'norm =='
+  execute firstline . ',' . lastline . 'norm =='
 endfunction
 
 " HTMLnextInsertPoint()  {{{2
@@ -424,9 +459,11 @@ endfunction
 "       the first line of the buffer when the cursor is on the first line and
 "       tab is successively pressed
 function! HTMLnextInsertPoint(...)
-  let saveerrmsg = v:errmsg
-  let v:errmsg = ""
-  let byteoffset = line2byte(line('.')) + col('.') - 1
+  let saveerrmsg  = v:errmsg
+  let v:errmsg    = ""
+  let saveruler   = &ruler   | let &ruler=0
+  let saveshowcmd = &showcmd | let &showcmd=0
+  let byteoffset  = line2byte(line('.')) + col('.') - 1
 
   " Tab in insert mode on the beginning of a closing tag jumps us to
   " after the tag:
@@ -469,12 +506,12 @@ function! HTMLnextInsertPoint(...)
   else
     normal 0
     silent! execute ':go ' . line2byte(line('.')) + col('.') - 2
-    exe 'silent normal! /<\([^ <>]\+\)\_[^<>]*>\(\n *\)\{0,2}<\/\1>\|<\_[^<>]*""\_[^<>]*>\|<!--\( \|\n *\)\{0,2}-->/;/>\(\n *\)\{0,2}<\|""\|<!--\( \|\n *\)\{0,2}-->/e' . "\<CR>"
+    execute 'silent! normal! /<\([^ <>]\+\)\_[^<>]*>\(\n *\)\{0,2}<\/\1>\|<\_[^<>]*""\_[^<>]*>\|<!--\( \|\n *\)\{0,2}-->/;/>\(\n *\)\{0,2}<\|""\|<!--\( \|\n *\)\{0,2}-->/e' . "\<CR>"
 
     " Handle cursor positioning for comments and/or open+close tags spanning
     " multiple lines:
     if getline('.') =~ '<!-- \+-->'
-      exe "normal F\<space>"
+      execute "normal F\<space>"
     elseif getline('.') =~ '^ *-->' && getline(line('.')-1) =~ '<!-- *$'
       normal 0
       normal t-
@@ -489,7 +526,8 @@ function! HTMLnextInsertPoint(...)
   endif
 
   let v:errmsg = saveerrmsg
-
+  let &ruler   = saveruler
+  let &showcmd = saveshowcmd
 endfunction
 
 " s:tag()  {{{2
@@ -628,27 +666,27 @@ function! HTMLgenerateTable()
     let c = 0
 
     if (border)
-        exe s:HTMLconvertCase("normal o<[{TABLE BORDER}]=" . border . ">\<ESC>")
+        execute s:HTMLconvertCase("normal o<[{TABLE BORDER}]=" . border . ">\<ESC>")
     else
-        exe s:HTMLconvertCase("normal o<[{TABLE}]>\<ESC>")
+        execute s:HTMLconvertCase("normal o<[{TABLE}]>\<ESC>")
     endif
 
     while r < rows
         let r = r + 1
         let c = 0
 
-        exe s:HTMLconvertCase("normal o<[{TR}]>\<ESC>")
+        execute s:HTMLconvertCase("normal o<[{TR}]>\<ESC>")
 
         while c < columns
             let c = c + 1
-            exe s:HTMLconvertCase("normal o<[{TD}]>\<CR></[{TD}]>\<ESC>")
+            execute s:HTMLconvertCase("normal o<[{TD}]>\<CR></[{TD}]>\<ESC>")
         endwhile
 
-        exe s:HTMLconvertCase("normal o</[{TR}]>\<ESC>")
+        execute s:HTMLconvertCase("normal o</[{TR}]>\<ESC>")
 
     endwhile
 
-    exe s:HTMLconvertCase("normal o</[{TABLE}]>\<ESC>")
+    execute s:HTMLconvertCase("normal o</[{TABLE}]>\<ESC>")
 
     if byteoffset == -1
       go 1
@@ -928,7 +966,7 @@ call HTMLmap("nnoremap", '<lead>' . g:html_map_leader, g:html_map_leader)
 " ...Make it easy to insert a & in insert mode:
 call HTMLmap("inoremap", "<lead>&", "&")
 
-if ! exists('g:no_html_tab_mapping')
+if ! exists('g:no_html_tab_mapping') || g:no_html_tab_mapping == 0
   " Allow hard tabs to be inserted:
   call HTMLmap("inoremap", "<lead><tab>", "<tab>")
   call HTMLmap("nnoremap", "<lead><tab>", "<tab>")
@@ -1614,9 +1652,11 @@ call HTMLmap("inoremap", "&.", "&middot;")
 call HTMLmap("inoremap", "&14", "&frac14;")
 call HTMLmap("inoremap", "&12", "&frac12;")
 call HTMLmap("inoremap", "&34", "&frac34;")
-call HTMLmap("inoremap", "&n-", "&ndash;")  " Math symbol.
-call HTMLmap("inoremap", "&m-", "&mdash;")  " Sentence break.
-call HTMLmap("inoremap", "&--", "&mdash;")  " ditto
+call HTMLmap("inoremap", "&n-", "&ndash;")  " Math symbol
+call HTMLmap("inoremap", "&2-", "&ndash;")  " ...
+call HTMLmap("inoremap", "&m-", "&mdash;")  " Sentence break
+call HTMLmap("inoremap", "&3-", "&mdash;")  " ...
+call HTMLmap("inoremap", "&--", "&mdash;")  " ...
 call HTMLmap("inoremap", "&3.", "&hellip;")
 " ----------------------------------------------------------------------------
 
@@ -1677,14 +1717,14 @@ endif " ! exists("b:did_html_mappings")
 
 
 " ---- ToolBar Buttons: ------------------------------------------------- {{{1
-if ! has("gui_running") && ! exists("g:force_html_menu")
+if ! has("gui_running") && ! (exists("g:force_html_menu") && g:force_html_menu != 0)
   augroup HTMLplugin
   au!
   execute 'autocmd GUIEnter * source ' . expand('<sfile>:p <bar> autocmd! HTMLplugin GUIEnter *')
   augroup END
 elseif exists("g:did_html_menus")
   call s:HTMLmenuControl()
-elseif ! exists("g:no_html_menu")
+elseif ! (exists("g:no_html_menu") && g:no_html_menu != 0)
 
   command! -nargs=+ HTMLmenu call s:HTMLleadmenu(<f-args>)
   function! s:HTMLleadmenu(type, level, name, item, ...)
@@ -1702,12 +1742,40 @@ elseif ! exists("g:no_html_menu")
 
     let name = escape(a:name, ' ')
 
-    exe a:type . ' ' . level . ' ' . name . '<tab>' . g:html_map_leader . a:item
+    execute a:type . ' ' . level . ' ' . name . '<tab>' . g:html_map_leader . a:item
       \ . ' ' . pre . g:html_map_leader . a:item
   endfunction
 
-if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gui_gtk")
-  \ || (v:version >= 600 && (has("gui_athena") || has("gui_motif") || has("gui_photon"))))
+if ! (exists('g:no_html_toolbar') && g:no_html_toolbar != 0)
+      \ && (has("toolbar") || has("win32") || has("gui_gtk")
+      \ || (v:version >= 600 && (has("gui_athena") || has("gui_motif") || has("gui_photon"))))
+
+  if (has("win32") && globpath(&rtp, 'bitmaps/Browser.bmp') == '')
+      \ || globpath(&rtp, 'bitmaps/Browser.xpm') == ''
+    let s:tmp = "Warning:\nYou need to install the Toolbar Bitmaps for the "
+    let s:tmp = s:tmp . fnamemodify(s:thisfile, ':t') . " plugin. "
+    let s:tmp = s:tmp . "See: http://www.infynity.spodzone.com/vim/HTML/#files\n"
+    let s:tmp = s:tmp . 'Or see ":help g:no_html_toolbar".'
+    if has('win32') || has('unix')
+      let s:tmp = confirm(s:tmp, "&Dismiss\nView &Help\nGet &Bitmaps", 1, 'Warning')
+    else
+      let s:tmp = confirm(s:tmp, "&Dismiss\nView &Help", 1, 'Warning')
+    endif
+
+    if s:tmp == 2
+      help g:no_html_toolbar
+      " Go to the previous window or everything gets messy:
+      wincmd p
+    elseif s:tmp == 3
+      if has('win32')
+        execute '!start RunDll32.exe shell32.dll,ShellExec_RunDLL http://www.infynity.spodzone.com/vim/HTML/#files'
+      else
+        call LaunchBrowser('default', 2, 'http://www.infynity.spodzone.com/vim/HTML/#files')
+      endif
+    endif
+
+    unlet s:tmp
+  endif
 
   set guioptions+=T
 
@@ -1715,9 +1783,9 @@ if (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") || has("gu
   command! -nargs=+ HTMLtmenu call s:HTMLtmenu(<f-args>)
   function! s:HTMLtmenu(icon, level, menu, tip)
     if has('gui_gtk2') && v:version <= 602 && ! has('patch240')
-      exe 'tmenu icon=' . a:icon . ' ' . a:level . ' ' . a:menu . ' ' . a:tip
+      execute 'tmenu icon=' . a:icon . ' ' . a:level . ' ' . a:menu . ' ' . a:tip
     else
-      exe 'tmenu ' . a:level . ' ' . a:menu . ' ' . a:tip
+      execute 'tmenu ' . a:level . ' ' . a:menu . ' ' . a:tip
     endif
   endfunction
 
@@ -1990,8 +2058,8 @@ imenu HTML.Character\ Entities.Middle\ Dot\ (·)<tab>\&\.           &.
 imenu HTML.Character\ Entities.One\ Quarter\ (¼)<tab>\&14          &14
 imenu HTML.Character\ Entities.One\ Half\ (½)<tab>\&12             &12
 imenu HTML.Character\ Entities.Three\ Quarters\ (¾)<tab>\&34       &34
-imenu HTML.Character\ Entities.En\ dash\ (-)<tab>\&n-              &n-
-imenu HTML.Character\ Entities.Em\ dash\ (--)<tab>\&m-/\&--        &m-
+imenu HTML.Character\ Entities.En\ dash\ (-)<tab>\&n-/\&2-         &n-
+imenu HTML.Character\ Entities.Em\ dash\ (--)<tab>\&m-/\&--/\&3-   &m-
 imenu HTML.Character\ Entities.Ellipsis\ (\.\.\.)<tab>\&3\.        &3.
 imenu HTML.Character\ Entities.-sep2- <nul>
 imenu HTML.Character\ Entities.Graves.A-grave\ (À)<tab>\&A` &A`
