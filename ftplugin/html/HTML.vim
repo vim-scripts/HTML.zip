@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: July 30, 2007
-" Version:     0.29
+" Last Change: August 08, 2007
+" Version:     0.29.2
 " Original Concept: Doug Renze
 "
 "
@@ -44,7 +44,7 @@
 " ---- TODO: ------------------------------------------------------------ {{{1
 " - Specific browser mappings for Win32 with "start <browser> ..." ?
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.165 2007/07/31 01:47:04 infynity Exp $
+" $Id: HTML.vim,v 1.168 2007/09/04 07:44:42 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -269,6 +269,8 @@ endfunction
 " Arguments:
 "  1 - String:  The mapping.
 "  2 - Boolean: Whether to enter insert mode after the mapping has executed.
+"               (A value greater than 1 tells the mapping not to move right one
+"               character.)
 function! HTMLmapo(map, insert)
   if v:version < 700
     return
@@ -279,10 +281,37 @@ function! HTMLmapo(map, insert)
   execute 'nnoremap <buffer> <silent> ' . map
     \ . " :let b:htmltagaction='" . map . "'<CR>"
     \ . ":let b:htmltaginsert=" . a:insert . "<CR>"
-    \ . ':set operatorfunc=<SID>HTMLwrapRange<CR>g@'
+    \ . ':set operatorfunc=<SID>WR<CR>g@'
 
   let b:HTMLclearMappings = b:HTMLclearMappings . ":nunmap <buffer> " . map . "\<CR>"
   call s:HTMLextraMappingsAdd(':call HTMLmapo("' . escape(a:map, '"\') . '", ' . a:insert . ')')
+endfunction
+
+" s:WR()  {{{2
+" Function set in 'operatorfunc' for mappings that take an operator:
+function! s:WR(type)
+  let sel_save = &selection
+  let &selection = "inclusive"
+
+  if a:type == 'line'
+    execute "normal `[V`]" . b:htmltagaction
+  elseif a:type == 'block'
+    execute "normal `[\<C-V>`]" . b:htmltagaction
+  else
+    execute "normal `[v`]" . b:htmltagaction
+  endif
+
+  let &selection = sel_save
+
+  if b:htmltaginsert
+    if b:htmltaginsert < 2
+      execute "normal \<Right>"
+    endif
+    startinsert
+  endif
+
+  " Leave these set so .-repeating of operator mappings works:
+  "unlet b:htmltagaction b:htmltaginsert
 endfunction
 
 " s:HTMLextraMappingsAdd()  {{{2
@@ -297,31 +326,6 @@ function! s:HTMLextraMappingsAdd(arg)
     endif
     let b:HTMLextraMappings = b:HTMLextraMappings . a:arg . ' |'
   endif
-endfunction
-
-" s:HTMLwrapRange()  {{{2
-" Function set in 'operatorfunc' for mappings that take an operator:
-function! s:HTMLwrapRange(type)
-  let sel_save = &selection
-  let &selection = "inclusive"
-
-  if a:type == 'line'
-    execute "normal `[V`]" . b:htmltagaction
-  elseif a:type == 'block'
-    execute "normal `[\<C-V>`]" . b:htmltagaction
-  else
-    execute "normal `[v`]" . b:htmltagaction
-  endif
-
-  let &selection = sel_save
-
-  if b:htmltaginsert == 1
-    execute "normal \<Right>"
-    startinsert
-  endif
-
-  " Leave these set so .-repeating of operator mappings works:
-  "unlet b:htmltagaction b:htmltaginsert
 endfunction
 
 " s:TO()  {{{2
@@ -494,7 +498,7 @@ function! HTMLnextInsertPoint(...)
 
   " Running the search twice is inefficient, but it squelches error
   " messages and the second search puts my cursor where it's needed...
-  if search('<\([^ <>]\+\)\_[^<>]*>\( \|\n *\)\{0,2}<\/\1>\|<\_[^<>]*""\_[^<>]*>\|<!--\( \|\n *\)\{0,2}-->', 'w') == 0
+  if search('<\([^ <>]\+\)\_[^<>]*>\_s*<\/\1>\|<\_[^<>]*""\_[^<>]*>\|<!--\_s*-->', 'w') == 0
     if byteoffset == -1
       go 1
     else
@@ -506,7 +510,7 @@ function! HTMLnextInsertPoint(...)
   else
     normal 0
     silent! execute ':go ' . line2byte(line('.')) + col('.') - 2
-    execute 'silent! normal! /<\([^ <>]\+\)\_[^<>]*>\(\n *\)\{0,2}<\/\1>\|<\_[^<>]*""\_[^<>]*>\|<!--\( \|\n *\)\{0,2}-->/;/>\(\n *\)\{0,2}<\|""\|<!--\( \|\n *\)\{0,2}-->/e' . "\<CR>"
+    execute 'silent! normal! /<\([^ <>]\+\)\_[^<>]*>\_s*<\/\1>\|<\_[^<>]*""\_[^<>]*>\|<!--\_s*-->/;/>\_s*<\|""\|<!--\_s*-->/e' . "\<CR>"
 
     " Handle cursor positioning for comments and/or open+close tags spanning
     " multiple lines:
@@ -805,7 +809,6 @@ endfunction
 " -- Template Creation Stuff: {{{2
 
 let s:internal_html_template=
-  \"<[{HTML}]>\n" .
   \" <[{HEAD}]>\n\n" .
   \"  <[{TITLE></TITLE}]>\n\n" .
   \"  <[{META NAME}]=\"Generator\" [{CONTENT}]=\"Vim %vimversion% (Vi IMproved editor; http://www.vim.org/)\" />\n" .
@@ -831,15 +834,20 @@ let s:internal_html_template=
   \" </[{BODY}]>\n" .
   \"</[{HTML}]>"
 
-let b:internal_html_template = s:HTMLconvertCase(s:internal_html_template)
-
 if b:do_xhtml_mappings != 0
   let b:internal_html_template = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n" .
         \ " \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n" .
-        \ b:internal_html_template
+        \ "<html xmlns=\"http://www.w3.org/1999/xhtml\">\n" .
+        \ s:internal_html_template
 else
+  let b:internal_html_template = "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n" .
+        \ " \"http://www.w3.org/TR/html4/loose.dtd\">\n" .
+        \ "<[{HTML}]>\n" .
+        \ s:internal_html_template
   let b:internal_html_template = substitute(b:internal_html_template, ' />', '>', 'g')
 endif
+
+let b:internal_html_template = s:HTMLconvertCase(b:internal_html_template)
 
 " HTMLtemplate()  {{{3
 "
@@ -1252,10 +1260,16 @@ call HTMLmap("inoremap", "<lead>hr", "<[{HR}] />")
 "       HR      Horizontal Rule         HTML 2.0 W/NETSCAPISM
 call HTMLmap("inoremap", "<lead>Hr", "<[{HR WIDTH}]=\"75%\" />")
 
-"       HTML                            HTML 3.0
-call HTMLmap("inoremap", "<lead>ht", "<[{HTML}]><CR></[{HTML}]><ESC>O")
-" Visual mapping:
-call HTMLmap("vnoremap", "<lead>ht", "<ESC>`>a<CR></[{HTML}]><C-O>`<<[{HTML}]><CR><ESC>", 1)
+"       HTML
+if b:do_xhtml_mappings == 0
+  call HTMLmap("inoremap", "<lead>ht", "<[{HTML}]><CR></[{HTML}]><ESC>O")
+  " Visual mapping:
+  call HTMLmap("vnoremap", "<lead>ht", "<ESC>`>a<CR></[{HTML}]><C-O>`<<[{HTML}]><CR><ESC>", 1)
+else
+  call HTMLmap("inoremap", "<lead>ht", "<html xmlns=\"http://www.w3.org/1999/xhtml\"><CR></html><ESC>O")
+  " Visual mapping:
+  call HTMLmap("vnoremap", "<lead>ht", "<ESC>`>a<CR></html><C-O>`<<html xmlns=\"http://www.w3.org/1999/xhtml\"><CR><ESC>", 1)
+endif
 " Motion mapping:
 call HTMLmapo('<lead>ht', 0)
 
