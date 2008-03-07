@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: August 08, 2007
-" Version:     0.29.2
+" Last Change: March 06, 2008
+" Version:     0.30
 " Original Concept: Doug Renze
 "
 "
@@ -42,9 +42,16 @@
 "        Doug Renze
 "
 " ---- TODO: ------------------------------------------------------------ {{{1
+"
 " - Specific browser mappings for Win32 with "start <browser> ..." ?
+" - Find a way to make "gv" after executing a visual mapping re-select the
+"   right text.  (Currently my extra code that wraps around the visual
+"   mappings can tweak the selected area significantly.)
+"   + This should probably exclude the newly created tags, so things like
+"     visual selection ;ta, then gv and ;tr, then gv and ;td work.
+"
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.168 2007/09/04 07:44:42 infynity Exp $
+" $Id: HTML.vim,v 1.170 2008/03/06 11:54:41 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -346,6 +353,13 @@ function! s:TO(s)
     let &l:inde=s:saveinde | unlet s:saveinde
     let &l:fo=s:savefo | unlet s:savefo
   endif
+
+  " A trick to make leading indent on the first line of visual-line
+  " selections is handled properly (turn it into a character-wise
+  " selection and exclude the leading indent):
+  if visualmode() ==# 'V'
+    exe "normal `<^v`>\<C-C>"
+  endif
 endfunction
 
 " s:TC()  {{{2
@@ -405,7 +419,8 @@ endfunction
 " s:HTMLreIndent()  {{{2
 "
 " Re-indent a region.  (Usually called by HTMLmap.)
-"  Nothing happens if filetype indenting isn't enabled.
+"  Nothing happens if filetype indenting isn't enabled or 'indentexpr' is
+"  unset.
 " Arguments:
 "  1 - Integer: Start of region.
 "  2 - Integer: End of region.
@@ -418,7 +433,7 @@ function! s:HTMLreIndent(first, last, extraline)
   let filetype_output = @x
   let @x = save_register
 
-  if filetype_output !~ "indent:ON"
+  if filetype_output =~ "indent:OFF" && &indentexpr == ''
     return
   endif
 
@@ -1475,18 +1490,27 @@ call HTMLmapo('<lead>ob', 0)
 " Table stuff:
 call HTMLmap("inoremap", "<lead>ca", "<[{CAPTION></CAPTION}]><C-O>F<")
 call HTMLmap("inoremap", "<lead>ta", "<[{TABLE}]><CR></[{TABLE}]><ESC>O")
+call HTMLmap("inoremap", "<lead>tH", "<[{THEAD}]><CR></[{THEAD}]><ESC>O")
+call HTMLmap("inoremap", "<lead>tb", "<[{TBODY}]><CR></[{TBODY}]><ESC>O")
+call HTMLmap("inoremap", "<lead>tf", "<[{TFOOT}]><CR></[{TFOOT}]><ESC>O")
 call HTMLmap("inoremap", "<lead>tr", "<[{TR}]><CR></[{TR}]><ESC>O")
 call HTMLmap("inoremap", "<lead>td", "<[{TD}]><CR></[{TD}]><ESC>O")
 call HTMLmap("inoremap", "<lead>th", "<[{TH></TH}]><C-O>F<")
 " Visual mappings:
 call HTMLmap("vnoremap", "<lead>ca", "<ESC>`>a<CR></[{CAPTION}]><C-O>`<<[{CAPTION}]><CR><ESC>", 1)
 call HTMLmap("vnoremap", "<lead>ta", "<ESC>`>a<CR></[{TABLE}]><C-O>`<<[{TABLE}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>tH", "<ESC>`>a<CR></[{THEAD}]><C-O>`<<[{THEAD}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>tb", "<ESC>`>a<CR></[{TBODY}]><C-O>`<<[{TBODY}]><CR><ESC>", 1)
+call HTMLmap("vnoremap", "<lead>tf", "<ESC>`>a<CR></[{TFOOT}]><C-O>`<<[{TFOOT}]><CR><ESC>", 1)
 call HTMLmap("vnoremap", "<lead>tr", "<ESC>`>a<CR></[{TR}]><C-O>`<<[{TR}]><CR><ESC>", 1)
 call HTMLmap("vnoremap", "<lead>td", "<ESC>`>a<CR></[{TD}]><C-O>`<<[{TD}]><CR><ESC>", 1)
 call HTMLmap("vnoremap", "<lead>th", "<ESC>`>a</[{TH}]><C-O>`<<[{TH}]><ESC>", 2)
 " Motion mappings:
 call HTMLmapo("<lead>ca", 0)
 call HTMLmapo("<lead>ta", 0)
+call HTMLmapo("<lead>tH", 0)
+call HTMLmapo("<lead>tb", 0)
+call HTMLmapo("<lead>tf", 0)
 call HTMLmapo("<lead>tr", 0)
 call HTMLmapo("<lead>td", 0)
 call HTMLmapo("<lead>th", 0)
