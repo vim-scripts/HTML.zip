@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: March 06, 2008
-" Version:     0.30
+" Last Change: April 10, 2008
+" Version:     0.32.2
 " Original Concept: Doug Renze
 "
 "
@@ -49,9 +49,10 @@
 "   mappings can tweak the selected area significantly.)
 "   + This should probably exclude the newly created tags, so things like
 "     visual selection ;ta, then gv and ;tr, then gv and ;td work.
+" - Add :HTMLmappingsreload/html/xhtml to the HTML menu?
 "
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.170 2008/03/06 11:54:41 infynity Exp $
+" $Id: HTML.vim,v 1.175 2008/04/10 19:28:16 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -81,31 +82,106 @@ let b:did_html_mappings_init = 1
 
 setlocal matchpairs+=<:>
 
-" SetIfUnset()  {{{2
+" ---- Init Functions: -------------------------------------------------- {{{2
+
+" s:BoolVar()  {{{3
 "
-" Set a global variable if it's not already set.
+" Given a string, test to see if a variable by that string name exists, and if
+" so, whether it's set to 1|true|yes / 0|false|no   (Actually, anything not
+" listed here also returns as 1.)
+"
 " Arguments:
-"  1 - String:  The variable name.
-"  2 - String:  The default value to use, "-" for the null string.
-" Return value:
-"  0 - The variable already existed.
-"  1 - The variable didn't exist and was set.
-function! SetIfUnset(var,val)
-  let var=a:var
-  if var !~? '^\w:'
-    let var = 'g:' . var
+"  1 - String:  The name of the variable to test (not its value!)
+" Return Value:
+"  1/0
+"
+" Limitations:
+"  This /will not/ work on function-local variable names.
+function! s:BoolVar(var)
+  if a:var =~ '^[bgstvw]:'
+    let var = a:var
+  else
+    let var = 'g:' . a:var
   endif
-  execute "let varisset = exists(\"" . var . "\")"
-  if (varisset == 0)
-    if (a:val == "-")
+
+  if s:IsSet(var)
+    execute "let varval = " . var
+    return s:Bool(varval)
+  else
+    return 0
+  endif
+endfunction
+
+" s:Bool() {{{3
+"
+" Helper to s:BoolVar() -- Test the string passed to it and return true/false
+" based on that string.
+"
+" Arguments:
+"  1 - String:  1|true|yes / 0|false|no
+" Return Value:
+"  1/0
+function! s:Bool(str)
+  return a:str !~? '^no$\|^false$\|^0$\|^$'
+endfunction
+
+" SetIfUnset()  {{{3
+"
+" Set a variable if it's not already set.
+"
+" Arguments:
+"  1       - String:  The variable name
+"  2 ... N - String:  The default value to use, "-" for the null string
+" Return Value:
+"  0  - The variable already existed
+"  1  - The variable didn't exist and was set
+"  -1 - An error occurred
+function! SetIfUnset(var, ...)
+  if a:var =~ '^[bgstvw]:'
+    let var = a:var
+  else
+    let var = 'g:' . a:var
+  endif
+
+  if a:0 == 0
+    echohl ErrorMsg
+    echomsg "E119: Not enough arguments for function: SetIfUnset"
+    echohl None
+    return -1
+  else
+    let i = 2
+    let val = a:1
+    while i <= a:0
+      execute "let val = val . ' ' . a:" . i
+      let i = i + 1
+    endwhile
+  endif
+
+  if ! s:IsSet(var)
+    if (val == "-")
       execute "let " . var . "= \"\""
     else
-      execute "let " . var . "= a:val"
+      execute "let " . var . "= val"
     endif
     return 1
   endif
   return 0
-endfunction  "}}}2
+endfunction
+
+" s:IsSet() {{{3
+"
+" Given a string, test to see if a variable by that string name exists.
+"
+" Arguments:
+"  1 - String:  The variable name
+" Return Value:
+"  1/0
+function! s:IsSet(str)
+  execute "let varisset = exists(\"" . a:str . "\")"
+  return varisset
+endfunction  "}}}3
+
+" ----------------------------------------------------------------------- }}}2
 
 command! -nargs=+ SetIfUnset call SetIfUnset(<f-args>)
 
@@ -122,15 +198,19 @@ SetIfUnset g:html_default_charset iso-8859-1
 SetIfUnset g:html_authorname  -
 SetIfUnset g:html_authoremail -
 
+if exists('b:html_tag_case')
+  let b:html_tag_case_save = b:html_tag_case
+endif
+
 " Detect whether to force uppper or lower case:  {{{2
 if &filetype ==? "xhtml"
-      \ || (exists('g:do_xhtml_mappings') && g:do_xhtml_mappings != 0)
-      \ || (exists('b:do_xhtml_mappings') && b:do_xhtml_mappings != 0)
+      \ || s:BoolVar('g:do_xhtml_mappings')
+      \ || s:BoolVar('b:do_xhtml_mappings')
   let b:do_xhtml_mappings = 1
 else
   let b:do_xhtml_mappings = 0
 
-  if exists('g:html_tag_case_autodetect') && g:html_tag_case_autodetect != 0
+  if s:BoolVar('g:html_tag_case_autodetect')
         \ && (line('$') != 1 || getline(1) != "")
     let s:byteoffset = line2byte(line('.')) + col('.') - 1
 
@@ -155,7 +235,7 @@ else
   endif
 endif
 
-if b:do_xhtml_mappings != 0
+if s:BoolVar('b:do_xhtml_mappings')
   let b:html_tag_case = 'lowercase'
 endif
 " }}}2
@@ -171,12 +251,13 @@ let s:thisfile = expand("<sfile>:p")
 " HTMLencodeString()  {{{2
 "
 " Encode the characters in a string into their HTML &#...; representations.
+"
 " Arguments:
 "  1 - String:  The string to encode.
 "  2 - String:  Optional, whether to decode rather than encode the string:
 "                d/decode: Decode the &#...; elements of the provided string
 "                anything else: Encode the string (default)
-" Return value:
+" Return Value:
 "  String:  The encoded string.
 function! HTMLencodeString(string, ...)
   let out = ''
@@ -216,6 +297,7 @@ endfunction
 " HTMLmap()  {{{2
 "
 " Define the HTML mappings with the appropriate case, plus some extra stuff:
+"
 " Arguments:
 "  1 - String:  Which map command to run.
 "  2 - String:  LHS of the map.
@@ -231,7 +313,7 @@ endfunction
 function! HTMLmap(cmd, map, arg, ...)
 
   let arg = s:HTMLconvertCase(a:arg)
-  if b:do_xhtml_mappings == 0
+  if ! s:BoolVar('b:do_xhtml_mappings')
     let arg = substitute(arg, ' />', '>', 'g')
   endif
 
@@ -273,6 +355,7 @@ endfunction
 "
 " Define a map that takes an operator to its corresponding visual mode
 " mapping:
+"
 " Arguments:
 "  1 - String:  The mapping.
 "  2 - Boolean: Whether to enter insert mode after the mapping has executed.
@@ -324,6 +407,7 @@ endfunction
 " s:HTMLextraMappingsAdd()  {{{2
 "
 " Add to the b:HTMLextraMappings variable if necessary:
+"
 " Arguments:
 "  1 - String: The command necessary to re-define the mapping.
 function! s:HTMLextraMappingsAdd(arg)
@@ -340,6 +424,7 @@ endfunction
 " Used to make sure the 'showmatch', 'indentexpr', and 'formatoptions' options
 " are off temporarily to prevent the visual mappings from causing a
 " (visual)bell or inserting improperly:
+"
 " Arguments:
 "  1 - Integer: 0 - Turn options off.
 "               1 - Turn options back on, if they were on before.
@@ -348,17 +433,24 @@ function! s:TO(s)
     let s:savesm=&l:sm | let &l:sm=0
     let s:saveinde=&l:inde | let &l:inde=''
     let s:savefo=&l:fo | let &l:fo=''
+
+    " A trick to make leading indent on the first line of visual-line
+    " selections is handled properly (turn it into a character-wise
+    " selection and exclude the leading indent):
+    if visualmode() ==# 'V'
+      let s:visualmode_save = visualmode()
+      exe "normal `<^v`>\<C-C>"
+    endif
   else
     let &l:sm=s:savesm | unlet s:savesm
     let &l:inde=s:saveinde | unlet s:saveinde
     let &l:fo=s:savefo | unlet s:savefo
-  endif
 
-  " A trick to make leading indent on the first line of visual-line
-  " selections is handled properly (turn it into a character-wise
-  " selection and exclude the leading indent):
-  if visualmode() ==# 'V'
-    exe "normal `<^v`>\<C-C>"
+    " Restore the last visual mode if it was changed:
+    if exists('s:visualmode_save')
+      exe "normal gv" . s:visualmode_save . "\<C-C>"
+      unlet s:visualmode_save
+    endif
   endif
 endfunction
 
@@ -366,6 +458,7 @@ endfunction
 "
 " Used to make sure the 'comments' option is off temporarily to prevent
 " certain mappings from inserting unwanted comment leaders:
+"
 " Arguments:
 "  1 - Integer: 0 - Turn options off.
 "               1 - Turn options back on, if they were on before.
@@ -381,9 +474,10 @@ endfunction
 "
 " Used by HTMLmap() to enter insert mode in Visual mappings in the right
 " place, depending on what 'selection' is set to:
+"
 " Arguments:
 "   None
-" Return value:
+" Return Value:
 "   The proper movement command based on the value of 'selection'.
 function! s:VI()
   if &selection == 'inclusive'
@@ -397,6 +491,7 @@ endfunction
 "
 " Convert special regions in a string to the appropriate case determined by
 " b:html_tag_case
+"
 " Arguments:
 "  1 - String: The string with the regions to convert surrounded by [{...}].
 " Return Value:
@@ -421,6 +516,7 @@ endfunction
 " Re-indent a region.  (Usually called by HTMLmap.)
 "  Nothing happens if filetype indenting isn't enabled or 'indentexpr' is
 "  unset.
+"
 " Arguments:
 "  1 - Integer: Start of region.
 "  2 - Integer: End of region.
@@ -461,13 +557,14 @@ endfunction
 " HTMLnextInsertPoint()  {{{2
 "
 " Position the cursor at the next point in the file that needs data.
+"
 " Arguments:
 "  1 - Character: Optional, the mode the function is being called from. 'n'
 "                 for normal, 'i' for insert.  If 'i' is used the function
 "                 enables an extra feature where if the cursor is on the start
 "                 of a closing tag it places the cursor after the tag.
 "                 Default is 'n'.
-" Return value:
+" Return Value:
 "  None.
 " Known problems:
 "  Due to the necessity of running the search twice (why doesn't Vim support
@@ -560,7 +657,7 @@ endfunction
 "  2 - Character: The mode:
 "                  'i' - Insert mode
 "                  'v' - Visual mode
-" Return value:
+" Return Value:
 "  The string to be executed to insert the tag.
 
 " -----------------------------------------------------------------------
@@ -622,7 +719,7 @@ endfunction
 "
 " Arguments:
 "  None
-" Return value:
+" Return Value:
 "  The value for the Content-Type charset based on 'fileencoding' or
 "  'encoding'.
 function! s:HTMLdetectCharset()
@@ -666,7 +763,7 @@ endfunction
 "
 " Arguments:
 "  None
-" Return value:
+" Return Value:
 "  None
 function! HTMLgenerateTable()
     let byteoffset = line2byte(line('.')) + col('.') - 1
@@ -720,13 +817,17 @@ endfunction
 " s:HTMLmappingsControl()  {{{2
 "
 " Disable/enable all the mappings defined by HTMLmap()/HTMLmapo().
+"
 " Arguments:
 "  1 - String:  Whether to disable or enable the mappings:
 "                d/disable: Clear the mappings
-"                e/enable: Redefine the mappings
-" Return value:
+"                e/enable:  Redefine the mappings
+"                r/reload:  Completely reload the script
+"                h/html:    Reload the mapppings in HTML mode
+"                x/xhtml:   Reload the mapppings in XHTML mode
+" Return Value:
 "  None
-function! s:HTMLmappingsControl(bool)
+silent! function! s:HTMLmappingsControl(dowhat)
   if ! exists('b:did_html_mappings_init')
     echohl ErrorMsg
     echomsg "The HTML mappings were not sourced for this buffer."
@@ -734,7 +835,11 @@ function! s:HTMLmappingsControl(bool)
     return
   endif
 
-  if a:bool =~? '^d\(isable\)\=\|off$'
+  if b:did_html_mappings_init < 0
+    unlet b:did_html_mappings_init
+  endif
+
+  if a:dowhat =~? '^d\(isable\)\=\|off$'
     if exists('b:did_html_mappings')
       silent execute b:HTMLclearMappings
       unlet b:did_html_mappings
@@ -746,7 +851,7 @@ function! s:HTMLmappingsControl(bool)
       echomsg "The HTML mappings are already disabled."
       echohl None
     endif
-  elseif a:bool =~? '^e\(nable\)\=\|on$'
+  elseif a:dowhat =~? '^e\(nable\)\=\|on$'
     if exists('b:did_html_mappings')
       echohl ErrorMsg
       echomsg "The HTML mappings are already enabled."
@@ -759,8 +864,30 @@ function! s:HTMLmappingsControl(bool)
         unlet s:doing_internal_html_mappings
       endif
     endif
+  elseif a:dowhat =~? '^r\(eload\|einit\)\=$'
+    HTMLmappings off
+    let b:did_html_mappings_init=-1
+    silent! unlet g:did_html_menus g:did_html_toolbar
+    silent! unmenu HTML
+    silent! unmenu! HTML
+    HTMLmappings on
+  elseif a:dowhat =~? '^h\(tml\)\=$'
+    if exists('b:html_tag_case_save')
+      let b:html_tag_case = b:html_tag_case_save
+    endif
+    let b:do_xhtml_mappings=0
+    HTMLmappings off
+    let b:did_html_mappings_init=-1
+    HTMLmappings on
+  elseif a:dowhat =~? '^x\(html\)\=$'
+    let b:do_xhtml_mappings=1
+    HTMLmappings off
+    let b:did_html_mappings_init=-1
+    HTMLmappings on
   else
-    echoerr "Invalid argument: " . a:bool
+    echohl ErrorMsg
+    echomsg "Invalid argument: " . a:dowhat
+    echohl None
   endif
 endfunction
 
@@ -770,12 +897,13 @@ command! -nargs=1 HTMLmappings call <SID>HTMLmappingsControl(<f-args>)
 " s:HTMLmenuControl()  {{{2
 "
 " Disable/enable the HTML menu and toolbar.
+"
 " Arguments:
 "  1 - String:  Optional, Whether to disable or enable the mappings:
 "                empty: Detect which to do
 "                "disable": Disable the menu and toolbar
 "                "enable": Enable the menu and toolbar
-" Return value:
+" Return Value:
 "  None
 function! s:HTMLmenuControl(...)
   if a:0 > 0
@@ -849,7 +977,7 @@ let s:internal_html_template=
   \" </[{BODY}]>\n" .
   \"</[{HTML}]>"
 
-if b:do_xhtml_mappings != 0
+if s:BoolVar('b:do_xhtml_mappings')
   let b:internal_html_template = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n" .
         \ " \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n" .
         \ "<html xmlns=\"http://www.w3.org/1999/xhtml\">\n" .
@@ -867,6 +995,7 @@ let b:internal_html_template = s:HTMLconvertCase(b:internal_html_template)
 " HTMLtemplate()  {{{3
 "
 " Determine whether to insert the HTML template:
+"
 " Arguments:
 "  None
 " Return Value:
@@ -896,6 +1025,7 @@ endfunction  " }}}3
 " s:HTMLtemplate2()  {{{3
 "
 " Actually insert the HTML template:
+"
 " Arguments:
 "  None
 " Return Value:
@@ -989,7 +1119,7 @@ call HTMLmap("nnoremap", '<lead>' . g:html_map_leader, g:html_map_leader)
 " ...Make it easy to insert a & in insert mode:
 call HTMLmap("inoremap", "<lead>&", "&")
 
-if ! exists('g:no_html_tab_mapping') || g:no_html_tab_mapping == 0
+if ! s:BoolVar('g:no_html_tab_mapping')
   " Allow hard tabs to be inserted:
   call HTMLmap("inoremap", "<lead><tab>", "<tab>")
   call HTMLmap("nnoremap", "<lead><tab>", "<tab>")
@@ -1022,7 +1152,7 @@ call HTMLmap("nnoremap", "<lead>html", ":if (HTMLtemplate()) \\| startinsert \\|
 "call HTMLmap("nnoremap", "<lead>4", "1GO<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\"><ESC>``")
 
 "       SGML Doctype Command
-if b:do_xhtml_mappings == 0
+if ! s:BoolVar('b:do_xhtml_mappings')
   " Transitional HTML (Looser):
   call HTMLmap("nnoremap", "<lead>4", ":call append(0, '<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"') \\\| call append(1, ' \"http://www.w3.org/TR/html4/loose.dtd\">')<CR>")
   " Strict HTML:
@@ -1276,7 +1406,7 @@ call HTMLmap("inoremap", "<lead>hr", "<[{HR}] />")
 call HTMLmap("inoremap", "<lead>Hr", "<[{HR WIDTH}]=\"75%\" />")
 
 "       HTML
-if b:do_xhtml_mappings == 0
+if ! s:BoolVar('b:do_xhtml_mappings')
   call HTMLmap("inoremap", "<lead>ht", "<[{HTML}]><CR></[{HTML}]><ESC>O")
   " Visual mapping:
   call HTMLmap("vnoremap", "<lead>ht", "<ESC>`>a<CR></[{HTML}]><C-O>`<<[{HTML}]><CR><ESC>", 1)
@@ -1595,17 +1725,19 @@ call HTMLmapo("<lead>lA", 1)
 
 " Convert the character under the cursor or the highlighted string to straight
 " HTML entities:
-call HTMLmap("nnoremap", "<lead>&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
 call HTMLmap("vnoremap", "<lead>&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
-call HTMLmapo("<lead>^", 0)
+"call HTMLmap("nnoremap", "<lead>&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
+call HTMLmapo("<lead>&", 0)
 
 " Convert the character under the cursor or the highlighted string to a %XX
 " string:
-call HTMLmap("nnoremap", "<lead>%", "s<C-R>=HTMLencodeString(@\", '%')<CR><Esc>")
 call HTMLmap("vnoremap", "<lead>%", "s<C-R>=HTMLencodeString(@\", '%')<CR><Esc>")
+"call HTMLmap("nnoremap", "<lead>%", "s<C-R>=HTMLencodeString(@\", '%')<CR><Esc>")
+call HTMLmapo("<lead>%", 0)
 
 " Decode a &#...; or %XX encoded string:
 call HTMLmap("vnoremap", "<lead>^", "s<C-R>=HTMLencodeString(@\", 'd')<CR><Esc>")
+call HTMLmapo("<lead>^", 0)
 
 call HTMLmap("inoremap", "&&", "&amp;")
 call HTMLmap("inoremap", "&cO", "&copy;")
@@ -1755,14 +1887,14 @@ endif " ! exists("b:did_html_mappings")
 
 
 " ---- ToolBar Buttons: ------------------------------------------------- {{{1
-if ! has("gui_running") && ! (exists("g:force_html_menu") && g:force_html_menu != 0)
+if ! has("gui_running") && ! s:BoolVar('g:force_html_menu')
   augroup HTMLplugin
   au!
   execute 'autocmd GUIEnter * source ' . expand('<sfile>:p <bar> autocmd! HTMLplugin GUIEnter *')
   augroup END
 elseif exists("g:did_html_menus")
   call s:HTMLmenuControl()
-elseif ! (exists("g:no_html_menu") && g:no_html_menu != 0)
+elseif ! s:BoolVar('g:no_html_menu')
 
   command! -nargs=+ HTMLmenu call s:HTMLleadmenu(<f-args>)
   function! s:HTMLleadmenu(type, level, name, item, ...)
@@ -1784,7 +1916,7 @@ elseif ! (exists("g:no_html_menu") && g:no_html_menu != 0)
       \ . ' ' . pre . g:html_map_leader . a:item
   endfunction
 
-if ! (exists('g:no_html_toolbar') && g:no_html_toolbar != 0)
+if ! s:BoolVar('g:no_html_toolbar')
       \ && (has("toolbar") || has("win32") || has("gui_gtk")
       \ || (v:version >= 600 && (has("gui_athena") || has("gui_motif") || has("gui_photon"))))
 
@@ -1828,8 +1960,8 @@ if ! (exists('g:no_html_toolbar') && g:no_html_toolbar != 0)
   endfunction
 
   "tunmenu ToolBar
-  unmenu ToolBar
-  unmenu! ToolBar
+  silent! unmenu ToolBar
+  silent! unmenu! ToolBar
 
   tmenu 1.10          ToolBar.Open      Open file
   amenu 1.10          ToolBar.Open      :browse e<CR>

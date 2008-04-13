@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2007 Dec 04
+		Last change: 2008 Apr 10
 		Author: Christian J. Robinson
 
 
@@ -118,6 +118,12 @@ example, if you're within <I></I> and type |;em| it will assume you want
 	script--are disabled/enabled when this command is used, regardless of
 	what |g:html_map_leader| is set to.
 
+	*reload-HTML-macros*	*HTML-macros-reload*	*HTML-reload-macros*
+	*reload-HTML-mappings*	*HTML-mappings-reload*	*HTML-reload-mappings*
+:HTML[mappings] {reload/html/xhtml}
+	You can also use the :HTMLmappings command to reload the entire HTML
+	macros script, or force the HTML macros into HTML or XHTML mode.
+
 ==============================================================================
 2. Customization variables.		*html-variables* *html-configuration*
 					*html-customization*
@@ -126,6 +132,9 @@ example, if you're within <I></I> and type |;em| it will assume you want
 You can set the following global Vim variables to control the behavior of the
 macros.  It is recommended you set these variables in your .vimrc--some of
 them are only effective if they are set before HTML.vim is sourced.
+
+Note that "nonzero" means anything besides "no", "false", 0, or "" (empty
+value)--case insensitive.
 
 *g:do_xhtml_mappings* *b:do_xhtml_mappings*
 Set this variable to a nonzero value if you prefer XHTML compatible tags to be
@@ -312,11 +321,11 @@ examples--the rest of the mappings that work in visual mode are similar.)
 
 						*html-operator-mappings*
 						*html-motion-mappings* *n_;*
-If you run Vim 7 or later the noted normal mode ;-mappings take a {motion}
-operator.  These mappings function as if you had visually highlighted the text
-covered by the motion and invoked the corresponding visual mapping.  (There is
-no reasonable way to get this functionality in versions prior to Vim 7, in
-which case the operator mappings will not be defined.)
+If you run Vim 7 or later the following noted normal mode ;-mappings take a
+{motion} operator.  These mappings function as if you had visually highlighted
+the text covered by the motion and invoked the corresponding visual mapping.
+(There is no reasonable way to get this functionality in versions prior to Vim
+7, in which case the operator mappings will not be defined.)
 
 If you are editing an XHTML file (see |g:do_xhtml_mappings|) the tags will be
 compatible with XHTML.
@@ -637,25 +646,26 @@ A number of mappings have been defined to allow insertion of special
 characters into the HTML buffer.  These are known as characters entities.
 
 							*n_;&* *v_;&*
-;&	This mapping converts the character under the cursor or the
-	highlighted text to its &#...; entity, where "..." is equivalent to
-	the ASCII decimal representation.  In visual mode it converts each
-	highlighted character.  For example, "foo bar" would become
-	"&#102;&#111;&#111;&#32;&#98;&#97;&#114;". (See |i_;&|)
+;&	This mapping converts the motion or visually selected characters to
+	their &#...; entities, where "..." is equivalent to the ASCII decimal
+	representation.  For example, "foo bar" would become
+	"&#102;&#111;&#111;&#32;&#98;&#97;&#114;". (See |i_;&|) (|n_;|)
 							*n_;%* *v_;%*
-;%	This mapping converts the character under the cursor or the
-	highlighted text to its %XX hexadecimal string for URIs  In visual
-	mode it converts each highlighted character.  For example, "foo bar"
-	would become "%66%6F%6F%20%62%61%72".
+;%	This mapping converts the motion or visually selected characters to
+	their %XX hexadecimal string for URIs.  For example, "foo bar" would
+	become "%66%6F%6F%20%62%61%72". (|n_;|)
 
 	If you're using a version of Vim prior to 7, you need to have this
 	script sourced for this mapping to work:
 	http://www.infynity.spodzone.com/vim/ConvertBase.vim
+
+Note: Previously the ;& and ;% normal mode mappings didn't require a motion
+and operated on the character "under" the cursor.  This was changed for
+multiple reasons.  Use ;&l or ;%l to emulate the old behavior.
+
 							*n_;^* *v_;^*
-;^	This mapping will decode the &#...; and %XX elements of the provided
-	string into their actual characters.  The normal mode version of this
-	macro works differently from |;&| and |;%| in that it requires a
-	motion operator.  (|n_;|)
+;^	This mapping will decode the &#...; and %XX elements of the motion or
+	visually selected characters their actual characters. (|n_;|)
 
 
 The following mappings work in insert mode only.
@@ -888,7 +898,8 @@ HTMLtemplate()						*HTMLtemplate()*
 SetIfUnset({variable}, {value})				*SetIfUnset()*
 	This function sets {variable} to {value} if the variable is not
 	already set.  A {value} of "-" makes sure the variable is set with an
-	empty string.
+	empty string.  This function will not work for function-local
+	variables. (|l:var|)
 
 
 Author's notes:						*html-author-notes*
