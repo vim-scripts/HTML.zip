@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: April 10, 2008
-" Version:     0.32.2
+" Last Change: April 26, 2008
+" Version:     0.33.1
 " Original Concept: Doug Renze
 "
 "
@@ -52,7 +52,7 @@
 " - Add :HTMLmappingsreload/html/xhtml to the HTML menu?
 "
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.175 2008/04/10 19:28:16 infynity Exp $
+" $Id: HTML.vim,v 1.177 2008/04/26 22:36:28 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -310,7 +310,19 @@ endfunction
 "                 2: re-selects the region and re-indents.
 "                 (Don't use these two arguments for maps that enter insert
 "                 mode!)
+let s:modes{'n'} = 'normal'
+let s:modes{'v'} = 'visual'
+let s:modes{'o'} = 'operator-pending'
+let s:modes{'i'} = 'insert'
+let s:modes{'c'} = 'command-line'
+let s:modes{'l'} = 'langmap'
 function! HTMLmap(cmd, map, arg, ...)
+  let mode = strpart(a:cmd, 0, 1)
+  if exists('s:modes{mode}') && maparg(a:map, mode) != ''
+    echohl WarningMsg
+    echomsg "WARNING: A mapping to \"" . a:map . "\" already exists for " . s:modes{mode} . " mode."
+    echohl None
+  endif
 
   let arg = s:HTMLconvertCase(a:arg)
   if ! s:BoolVar('b:do_xhtml_mappings')
@@ -319,7 +331,7 @@ function! HTMLmap(cmd, map, arg, ...)
 
   let map = substitute(a:map, '^<lead>\c', g:html_map_leader, '')
 
-  if a:cmd =~ '^v'
+  if mode == 'v'
     " If 'selection' is "exclusive" all the visual mode mappings need to
     " behave slightly differently:
     let arg = substitute(arg, "`>a\\C", "`>i<C-R>=<SID>VI()<CR>", 'g')
@@ -340,9 +352,8 @@ function! HTMLmap(cmd, map, arg, ...)
     execute a:cmd . " <buffer> <silent> " . map . " " . arg
   endif
 
-  if a:cmd =~ '^[cinv]'
-    let which = strpart(a:cmd, 0, 1)
-    let b:HTMLclearMappings = b:HTMLclearMappings . ':' . which . "unmap <buffer> " . map . "\<CR>"
+  if exists('s:modes{mode}')
+    let b:HTMLclearMappings = b:HTMLclearMappings . ':' . mode . "unmap <buffer> " . map . "\<CR>"
   else
     let b:HTMLclearMappings = b:HTMLclearMappings . ":unmap <buffer> " . map . "\<CR>"
   endif
@@ -1815,8 +1826,8 @@ call HTMLmap("inoremap", "&/", "&divide;")
 call HTMLmap("inoremap", "&o/", "&oslash;")
 call HTMLmap("inoremap", "&!", "&iexcl;")
 call HTMLmap("inoremap", "&?", "&iquest;")
-call HTMLmap("inoremap", "&de", "&deg;")
-call HTMLmap("inoremap", "&mu", "&micro;")
+call HTMLmap("inoremap", "&dg", "&deg;")
+call HTMLmap("inoremap", "&mi", "&micro;")
 call HTMLmap("inoremap", "&pa", "&para;")
 call HTMLmap("inoremap", "&.", "&middot;")
 call HTMLmap("inoremap", "&14", "&frac14;")
@@ -1828,6 +1839,74 @@ call HTMLmap("inoremap", "&m-", "&mdash;")  " Sentence break
 call HTMLmap("inoremap", "&3-", "&mdash;")  " ...
 call HTMLmap("inoremap", "&--", "&mdash;")  " ...
 call HTMLmap("inoremap", "&3.", "&hellip;")
+" Greek letters:
+"   ... Capital:
+call HTMLmap("inoremap", "&Al", "&Alpha;")
+call HTMLmap("inoremap", "&Be", "&Beta;")
+call HTMLmap("inoremap", "&Ga", "&Gamma;")
+call HTMLmap("inoremap", "&De", "&Delta;")
+call HTMLmap("inoremap", "&Ep", "&Epsilon;")
+call HTMLmap("inoremap", "&Ze", "&Zeta;")
+call HTMLmap("inoremap", "&Et", "&Eta;")
+call HTMLmap("inoremap", "&Th", "&Theta;")
+call HTMLmap("inoremap", "&Io", "&Iota;")
+call HTMLmap("inoremap", "&Ka", "&Kappa;")
+call HTMLmap("inoremap", "&Lm", "&Lambda;")
+call HTMLmap("inoremap", "&Mu", "&Mu;")
+call HTMLmap("inoremap", "&Nu", "&Nu;")
+call HTMLmap("inoremap", "&Xi", "&Xi;")
+call HTMLmap("inoremap", "&Oc", "&Omicron;")
+call HTMLmap("inoremap", "&Pi", "&Pi;")
+call HTMLmap("inoremap", "&Rh", "&Rho;")
+call HTMLmap("inoremap", "&Si", "&Sigma;")
+call HTMLmap("inoremap", "&Ta", "&Tau;")
+call HTMLmap("inoremap", "&Up", "&Upsilon;")
+call HTMLmap("inoremap", "&Ph", "&Phi;")
+call HTMLmap("inoremap", "&Ch", "&Chi;")
+call HTMLmap("inoremap", "&Ps", "&Psi;")
+"   ... Lowercase/small:
+call HTMLmap("inoremap", "&al;", "&alpha;")
+call HTMLmap("inoremap", "&be;", "&beta;")
+call HTMLmap("inoremap", "&ga;", "&gamma;")
+call HTMLmap("inoremap", "&de;", "&delta;")
+call HTMLmap("inoremap", "&ep;", "&epsilon;")
+call HTMLmap("inoremap", "&ze;", "&zeta;")
+call HTMLmap("inoremap", "&et;", "&eta;")
+call HTMLmap("inoremap", "&th;", "&theta;")
+call HTMLmap("inoremap", "&io;", "&iota;")
+call HTMLmap("inoremap", "&ka;", "&kappa;")
+call HTMLmap("inoremap", "&lm;", "&lambda;")
+call HTMLmap("inoremap", "&mu;", "&mu;")
+call HTMLmap("inoremap", "&nu;", "&nu;")
+call HTMLmap("inoremap", "&xi;", "&xi;")
+call HTMLmap("inoremap", "&oc;", "&omicron;")
+call HTMLmap("inoremap", "&pi;", "&pi;")
+call HTMLmap("inoremap", "&rh;", "&rho;")
+call HTMLmap("inoremap", "&si;", "&sigma;")
+call HTMLmap("inoremap", "&sf;", "&sigmaf;")
+call HTMLmap("inoremap", "&ta;", "&tau;")
+call HTMLmap("inoremap", "&up;", "&upsilon;")
+call HTMLmap("inoremap", "&ph;", "&phi;")
+call HTMLmap("inoremap", "&ch;", "&chi;")
+call HTMLmap("inoremap", "&ps;", "&psi;")
+call HTMLmap("inoremap", "&og;", "&omega;")
+call HTMLmap("inoremap", "&ts;", "&thetasym;")
+call HTMLmap("inoremap", "&uh;", "&upsih;")
+call HTMLmap("inoremap", "&pv;", "&piv;")
+" single-line arrows:
+call HTMLmap("inoremap", "&la", "&larr;")
+call HTMLmap("inoremap", "&ua", "&uarr;")
+call HTMLmap("inoremap", "&ra", "&rarr;")
+call HTMLmap("inoremap", "&da", "&darr;")
+call HTMLmap("inoremap", "&ha", "&harr;")
+"call HTMLmap("inoremap", "&ca", "&crarr;")
+" double-line arrows:
+call HTMLmap("inoremap", "&lA", "&lArr;")
+call HTMLmap("inoremap", "&uA", "&uArr;")
+call HTMLmap("inoremap", "&rA", "&rArr;")
+call HTMLmap("inoremap", "&dA", "&dArr;")
+call HTMLmap("inoremap", "&hA", "&hArr;")
+
 " ----------------------------------------------------------------------------
 
 
@@ -2221,8 +2300,8 @@ imenu HTML.Character\ Entities.Multiply\ (×)<tab>\&x               &x
 imenu HTML.Character\ Entities.Divide\ (÷)<tab>\&/                 &/
 imenu HTML.Character\ Entities.Inverted\ Exlamation\ (¡)<tab>\&!   &!
 imenu HTML.Character\ Entities.Inverted\ Question\ (¿)<tab>\&?     &?
-imenu HTML.Character\ Entities.Degree\ (°)<tab>\&de                &de
-imenu HTML.Character\ Entities.Micro/Greek\ mu\ (µ)<tab>\&mu       &mu
+imenu HTML.Character\ Entities.Degree\ (°)<tab>\&dg                &dg
+imenu HTML.Character\ Entities.Micro\ (µ)<tab>\&mi                 &mi
 imenu HTML.Character\ Entities.Paragraph\ (¶)<tab>\&pa             &pa
 imenu HTML.Character\ Entities.Middle\ Dot\ (·)<tab>\&\.           &.
 imenu HTML.Character\ Entities.One\ Quarter\ (¼)<tab>\&14          &14
@@ -2282,6 +2361,68 @@ imenu HTML.Character\ Entities.Umlauts.U-umlaut\ (Ü)<tab>\&U" &U"
 imenu HTML.Character\ Entities.Umlauts.u-umlaut\ (ü)<tab>\&u" &u"
 imenu HTML.Character\ Entities.Umlauts.y-umlaut\ (ÿ)<tab>\&y" &y"
 imenu HTML.Character\ Entities.Umlauts.Umlaut\ (¨)<tab>\&"    &"
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Alpha<tab>\&Al    &Al
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Beta<tab>\&Be     &Be
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Gamma<tab>\&Ga    &Ga
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Delta<tab>\&De    &De
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Epsilon<tab>\&Ep  &Ep
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Zeta<tab>\&Ze     &Ze
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Eta<tab>\&Et      &Et
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Theta<tab>\&Th    &Th
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Iota<tab>\&Io     &Io
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Kappa<tab>\&Ka    &Ka
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Lambda<tab>\&Lm   &Lm
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Mu<tab>\&Mu       &Mu
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Nu<tab>\&Nu       &Nu
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Xi<tab>\&Xi       &Xi
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Omicron<tab>\&Oc  &Oc
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Pi<tab>\&Pi       &Pi
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Rho<tab>\&Rh      &Rh
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Sigma<tab>\&Si    &Si
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Tau<tab>\&Ta      &Ta
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Upsilon<tab>\&Up  &Up
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Phi<tab>\&Ph      &Ph
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Chi<tab>\&Ch      &Ch
+imenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Psi<tab>\&Ps      &Ps
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.alpha<tab>\&al    &al
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.beta<tab>\&be     &be
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.gamma<tab>\&ga    &ga
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.delta<tab>\&de    &de
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.epsilon<tab>\&ep  &ep
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.zeta<tab>\&ze     &ze
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.eta<tab>\&et      &et
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.theta<tab>\&th    &th
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.iota<tab>\&io     &io
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.kappa<tab>\&ka    &ka
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.lambda<tab>\&lm   &lm
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.mu<tab>\&mu       &mu
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.nu<tab>\&nu       &nu
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.xi<tab>\&xi       &xi
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.omicron<tab>\&oc  &oc
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.pi<tab>\&pi       &pi
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.rho<tab>\&rh      &rh
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.sigma<tab>\&si    &si
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.sigmaf<tab>\&sf   &sf
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.tau<tab>\&ta      &ta
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.upsilon<tab>\&up  &up
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.phi<tab>\&ph      &ph
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.chi<tab>\&ch      &ch
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.psi<tab>\&ps      &ps
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.omega<tab>\&og    &og
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.thetasym<tab>\&ts &ts
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.upsih<tab>\&uh    &uh
+imenu HTML.Character\ Entities.Greek\ Letters.Lowercase.piv<tab>\&pv      &pv
+imenu HTML.Character\ Entities.Arrows.Left\ single\ arrow<tab>\&la       &la
+imenu HTML.Character\ Entities.Arrows.Right\ single\ arrow<tab>\&ra      &ra
+imenu HTML.Character\ Entities.Arrows.Up\ single\ arrow<tab>\&ua         &ua
+imenu HTML.Character\ Entities.Arrows.Down\ single\ arrow<tab>\&da       &da
+imenu HTML.Character\ Entities.Arrows.Left-right\ single\ arrow<tab>\&ha &ha
+imenu HTML.Character\ Entities.Arrows.-sep1-                             <nul>
+imenu HTML.Character\ Entities.Arrows.Left\ double\ arrow<tab>\&lA       &lA
+imenu HTML.Character\ Entities.Arrows.Right\ double\ arrow<tab>\&rA      &rA
+imenu HTML.Character\ Entities.Arrows.Up\ double\ arrow<tab>\&uA         &uA
+imenu HTML.Character\ Entities.Arrows.Down\ double\ arrow<tab>\&dA       &dA
+imenu HTML.Character\ Entities.Arrows.Left-right\ double\ arrow<tab>\&hA &hA
 imenu HTML.Character\ Entities.\ \ \ \ \ \ \ etc\.\.\..A-ring\ (Å)<tab>\&Ao      &Ao
 imenu HTML.Character\ Entities.\ \ \ \ \ \ \ etc\.\.\..a-ring\ (å)<tab>\&ao      &ao
 imenu HTML.Character\ Entities.\ \ \ \ \ \ \ etc\.\.\..AE-ligature\ (Æ)<tab>\&AE &AE
@@ -2310,8 +2451,8 @@ nmenu HTML.Character\ Entities.Multiply\ (×)<tab>\&x               i&x<ESC>
 nmenu HTML.Character\ Entities.Divide\ (÷)<tab>\&/                 i&/<ESC>
 nmenu HTML.Character\ Entities.Inverted\ Exlamation\ (¡)<tab>\&!   i&!<ESC>
 nmenu HTML.Character\ Entities.Inverted\ Question\ (¿)<tab>\&?     i&?<ESC>
-nmenu HTML.Character\ Entities.Degree\ (°)<tab>\&de                i&de<ESC>
-nmenu HTML.Character\ Entities.Micro/Greek\ mu\ (µ)<tab>\&mu       i&mu<ESC>
+nmenu HTML.Character\ Entities.Degree\ (°)<tab>\&dg                i&dg<ESC>
+nmenu HTML.Character\ Entities.Micro\ (µ)<tab>\&mi                 i&mi<ESC>
 nmenu HTML.Character\ Entities.Paragraph\ (¶)<tab>\&pa             i&pa<ESC>
 nmenu HTML.Character\ Entities.Middle\ Dot\ (·)<tab>\&\.           i&.<ESC>
 nmenu HTML.Character\ Entities.One\ Quarter\ (¼)<tab>\&14          i&14<ESC>
@@ -2370,6 +2511,67 @@ nmenu HTML.Character\ Entities.Umlauts.U-umlaut\ (Ü)<tab>\&U" i&U"<ESC>
 nmenu HTML.Character\ Entities.Umlauts.u-umlaut\ (ü)<tab>\&u" i&u"<ESC>
 nmenu HTML.Character\ Entities.Umlauts.y-umlaut\ (ÿ)<tab>\&y" i&y"<ESC>
 nmenu HTML.Character\ Entities.Umlauts.Umlaut\ (¨)<tab>\&"    i&"<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Alpha<tab>\&Al    i&Al<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Beta<tab>\&Be     i&Be<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Gamma<tab>\&Ga    i&Ga<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Delta<tab>\&De    i&De<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Epsilon<tab>\&Ep  i&Ep<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Zeta<tab>\&Ze     i&Ze<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Eta<tab>\&Et      i&Et<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Theta<tab>\&Th    i&Th<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Iota<tab>\&Io     i&Io<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Kappa<tab>\&Ka    i&Ka<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Lambda<tab>\&Lm   i&Lm<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Mu<tab>\&Mu       i&Mu<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Nu<tab>\&Nu       i&Nu<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Xi<tab>\&Xi       i&Xi<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Omicron<tab>\&Oc  i&Oc<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Pi<tab>\&Pi       i&Pi<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Rho<tab>\&Rh      i&Rh<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Sigma<tab>\&Si    i&Si<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Tau<tab>\&Ta      i&Ta<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Upsilon<tab>\&Up  i&Up<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Phi<tab>\&Ph      i&Ph<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Chi<tab>\&Ch      i&Ch<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Uppercase.Psi<tab>\&Ps      i&Ps<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.alpha<tab>\&al    i&al<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.beta<tab>\&be     i&be<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.gamma<tab>\&ga    i&ga<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.delta<tab>\&de    i&de<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.epsilon<tab>\&ep  i&ep<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.zeta<tab>\&ze     i&ze<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.eta<tab>\&et      i&et<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.theta<tab>\&th    i&th<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.iota<tab>\&io     i&io<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.kappa<tab>\&ka    i&ka<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.lambda<tab>\&lm   i&lm<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.mu<tab>\&mu       i&mu<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.nu<tab>\&nu       i&nu<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.xi<tab>\&xi       i&xi<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.omicron<tab>\&oc  i&oc<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.pi<tab>\&pi       i&pi<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.rho<tab>\&rh      i&rh<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.sigma<tab>\&si    i&si<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.sigmaf<tab>\&sf   i&sf<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.tau<tab>\&ta      i&ta<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.upsilon<tab>\&up  i&up<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.phi<tab>\&ph      i&ph<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.chi<tab>\&ch      i&ch<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.psi<tab>\&ps      i&ps<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.omega<tab>\&og    i&og<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.thetasym<tab>\&ts i&ts<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.upsih<tab>\&uh    i&uh<ESC>
+nmenu HTML.Character\ Entities.Greek\ Letters.Lowercase.piv<tab>\&pv      i&pv<ESC>
+nmenu HTML.Character\ Entities.Arrows.Left\ single\ arrow<tab>\&la       i&la<ESC>
+nmenu HTML.Character\ Entities.Arrows.Right\ single\ arrow<tab>\&ra      i&ra<ESC>
+nmenu HTML.Character\ Entities.Arrows.Up\ single\ arrow<tab>\&ua         i&ua<ESC>
+nmenu HTML.Character\ Entities.Arrows.Down\ single\ arrow<tab>\&da       i&da<ESC>
+nmenu HTML.Character\ Entities.Arrows.Left-right\ single\ arrow<tab>\&ha i&ha<ESC>
+nmenu HTML.Character\ Entities.Arrows.Left\ double\ arrow<tab>\&lA       i&lA<ESC>
+nmenu HTML.Character\ Entities.Arrows.Right\ double\ arrow<tab>\&rA      i&rA<ESC>
+nmenu HTML.Character\ Entities.Arrows.Up\ double\ arrow<tab>\&uA         i&uA<ESC>
+nmenu HTML.Character\ Entities.Arrows.Down\ double\ arrow<tab>\&dA       i&dA<ESC>
+nmenu HTML.Character\ Entities.Arrows.Left-right\ double\ arrow<tab>\&hA i&hA<ESC>
 nmenu HTML.Character\ Entities.\ \ \ \ \ \ \ etc\.\.\..A-ring\ (Å)<tab>\&Ao      i&Ao<ESC>
 nmenu HTML.Character\ Entities.\ \ \ \ \ \ \ etc\.\.\..a-ring\ (å)<tab>\&ao      i&ao<ESC>
 nmenu HTML.Character\ Entities.\ \ \ \ \ \ \ etc\.\.\..AE-ligature\ (Æ)<tab>\&AE i&AE<ESC>
