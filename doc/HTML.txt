@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2008 Apr 26
+		Last change: 2008 Apr 30
 		Author: Christian J. Robinson
 
 						*HTML.vim* *HTML-macros*
@@ -500,9 +500,6 @@ another character of your preference.  See |g:html_map_leader|.
 ;mi	Automatically add or update the WIDTH and HEIGHT attributes of an
 	<IMG> tag.
 
-	Warning: Currently the computed size can be incorrect sometimes due to
-	a quirk in how VimL represents newlines and NULs in strings.
-
 	This mapping is only defined if MangleImageTag.vim is installed,
 	available with installation instructions here:
 	http://www.infynity.spodzone.com/vim/HTML/
@@ -652,10 +649,6 @@ characters into the HTML buffer.  These are known as characters entities.
 ;%	This mapping converts the motion or visually selected characters to
 	their %XX hexadecimal string for URIs.  For example, "foo bar" would
 	become "%66%6F%6F%20%62%61%72". (|n_;|)
-
-	If you're using a version of Vim prior to 7, you need to have this
-	script sourced for this mapping to work:
-	http://www.infynity.spodzone.com/vim/ConvertBase.vim
 
 Note: Previously the ;& and ;% normal mode mappings didn't require a motion
 and operated on the character "under" the cursor.  This was changed for
@@ -906,10 +899,6 @@ HTMLencodeString({string} [, {...}])			*HTMLencodeString()*
 	of the provided string will be decoded into their actual characters.
 
 	See |n_;&| and |n_;%| for examples.
-
-	If you're using a version of Vim prior to 7 you must have this script
-	sourced for the string to %XX conversion to work:
-	http://www.infynity.spodzone.com/vim/ConvertBase.vim
 
 	Note that Unicode characters can not be safely converted to %XX hex
 	strings for URIs do to a limit in the specification.

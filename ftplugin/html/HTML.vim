@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: April 26, 2008
-" Version:     0.33.1
+" Last Change: April 29, 2008
+" Version:     0.34
 " Original Concept: Doug Renze
 "
 "
@@ -52,22 +52,22 @@
 " - Add :HTMLmappingsreload/html/xhtml to the HTML menu?
 "
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.177 2008/04/26 22:36:28 infynity Exp $
+" $Id: HTML.vim,v 1.179 2008/04/29 23:20:27 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
 
-if v:version < 600
-  echoerr "HTML.vim no longer supports Vim versions prior to 6."
+if v:version < 700
+  echoerr "HTML.vim no longer supports Vim versions prior to 7."
   sleep 2
   finish
-elseif v:version < 700
-  let s:tmp =
-    \ "The HTML macros support for Vim versions prior to 7\n" .
-    \ "will be abandoned in future versions.\n\n" .
-    \ "You should seriously consider upgrading your version of Vim."
-  call confirm(s:tmp, "&Dismiss", 1, 'Warning')
-  unlet s:tmp
+"elseif v:version < 700
+"  let s:tmp =
+"    \ "The HTML macros support for Vim versions prior to 7\n" .
+"    \ "will be abandoned in future versions.\n\n" .
+"    \ "You should seriously consider upgrading your version of Vim."
+"  call confirm(s:tmp, "&Dismiss", 1, 'Warning')
+"  unlet s:tmp
 endif
 
 " Save cpoptions and remove some junk that will throw us off (reset at the end
@@ -212,12 +212,9 @@ else
 
   if s:BoolVar('g:html_tag_case_autodetect')
         \ && (line('$') != 1 || getline(1) != "")
-    let s:byteoffset = line2byte(line('.')) + col('.') - 1
 
-    silent! go 1
-    let s:found_upper = search('\C<\(\s*/\)\?\s*\u\+\_[^<>]*>', 'w')
-    silent! go 1
-    let s:found_lower = search('\C<\(\s*/\)\?\s*\l\+\_[^<>]*>', 'w')
+    let s:found_upper = search('\C<\(\s*/\)\?\s*\u\+\_[^<>]*>', 'wn')
+    let s:found_lower = search('\C<\(\s*/\)\?\s*\l\+\_[^<>]*>', 'wn')
 
     if s:found_upper && ! s:found_lower
       let b:html_tag_case = 'uppercase'
@@ -225,13 +222,7 @@ else
       let b:html_tag_case = 'lowercase'
     endif
 
-    if s:byteoffset == -1
-      go 1
-    else
-      execute ':go ' . s:byteoffset
-    endif
-
-    unlet s:byteoffset s:found_upper s:found_lower
+    unlet s:found_upper s:found_lower
   endif
 endif
 
@@ -268,28 +259,15 @@ function! HTMLencodeString(string, ...)
       let out = substitute(out, '%\(\x\{2}\)', '\=nr2char("0x".submatch(1))', 'g')
       return out
     elseif a:1 == '%'
-      if v:version >= 700
-        let out = substitute(a:string, '\(.\)', '\=printf("%%%02X", char2nr(submatch(1)))', 'g')
-      else
-        let out = substitute(a:string, '\(.\)', '\="%".ConvertToBase(char2nr(submatch(1)), 16)', 'g')
-      endif
+      let out = substitute(a:string, '\(.\)', '\=printf("%%%02X", char2nr(submatch(1)))', 'g')
       return out
     endif
   endif
 
-  if v:version >= 700
-    let string = split(a:string, '\zs')
-    for c in string
-      let out = out . '&#' . char2nr(c) . ';'
-    endfor
-  else
-    let len = strlen(a:string)
-    let c = 0
-    while c < len
-      let out = out . '&#' . char2nr(a:string[c]) . ';'
-      let c = c + 1
-    endwhile
-  endif
+  let string = split(a:string, '\zs')
+  for c in string
+    let out = out . '&#' . char2nr(c) . ';'
+  endfor
 
   return out
 endfunction
@@ -373,10 +351,6 @@ endfunction
 "               (A value greater than 1 tells the mapping not to move right one
 "               character.)
 function! HTMLmapo(map, insert)
-  if v:version < 700
-    return
-  endif
-
   let map = substitute(a:map, "^<lead>", g:html_map_leader, '')
 
   execute 'nnoremap <buffer> <silent> ' . map
@@ -565,6 +539,18 @@ function! s:HTMLreIndent(first, last, extraline)
   execute firstline . ',' . lastline . 'norm =='
 endfunction
 
+" s:ByteOffset()  {{{2
+"
+" Return the byte number of the current position.
+"
+" Arguments:
+"  None
+" Return Value:
+"  The byte offset
+function! s:ByteOffset()
+  return line2byte(line('.')) + col('.') - 1
+endfunction
+
 " HTMLnextInsertPoint()  {{{2
 "
 " Position the cursor at the next point in the file that needs data.
@@ -590,7 +576,7 @@ function! HTMLnextInsertPoint(...)
   let v:errmsg    = ""
   let saveruler   = &ruler   | let &ruler=0
   let saveshowcmd = &showcmd | let &showcmd=0
-  let byteoffset  = line2byte(line('.')) + col('.') - 1
+  let byteoffset  = s:ByteOffset()
 
   " Tab in insert mode on the beginning of a closing tag jumps us to
   " after the tag:
@@ -621,6 +607,7 @@ function! HTMLnextInsertPoint(...)
 
   " Running the search twice is inefficient, but it squelches error
   " messages and the second search puts my cursor where it's needed...
+
   if search('<\([^ <>]\+\)\_[^<>]*>\_s*<\/\1>\|<\_[^<>]*""\_[^<>]*>\|<!--\_s*-->', 'w') == 0
     if byteoffset == -1
       go 1
@@ -632,7 +619,7 @@ function! HTMLnextInsertPoint(...)
     endif
   else
     normal 0
-    silent! execute ':go ' . line2byte(line('.')) + col('.') - 2
+    silent! execute ':go ' . s:ByteOffset() - 1
     execute 'silent! normal! /<\([^ <>]\+\)\_[^<>]*>\_s*<\/\1>\|<\_[^<>]*""\_[^<>]*>\|<!--\_s*-->/;/>\_s*<\|""\|<!--\_s*-->/e' . "\<CR>"
 
     " Handle cursor positioning for comments and/or open+close tags spanning
@@ -777,7 +764,7 @@ endfunction
 " Return Value:
 "  None
 function! HTMLgenerateTable()
-    let byteoffset = line2byte(line('.')) + col('.') - 1
+    let byteoffset = s:ByteOffset()
 
     let rows    = inputdialog("Number of rows: ") + 0
     let columns = inputdialog("Number of columns: ") + 0
@@ -1995,9 +1982,7 @@ elseif ! s:BoolVar('g:no_html_menu')
       \ . ' ' . pre . g:html_map_leader . a:item
   endfunction
 
-if ! s:BoolVar('g:no_html_toolbar')
-      \ && (has("toolbar") || has("win32") || has("gui_gtk")
-      \ || (v:version >= 600 && (has("gui_athena") || has("gui_motif") || has("gui_photon"))))
+if ! s:BoolVar('g:no_html_toolbar') && has("toolbar")
 
   if (has("win32") && globpath(&rtp, 'bitmaps/Browser.bmp') == '')
       \ || globpath(&rtp, 'bitmaps/Browser.xpm') == ''
@@ -2028,114 +2013,104 @@ if ! s:BoolVar('g:no_html_toolbar')
 
   set guioptions+=T
 
-  " A kluge to overcome a problem with the GTK2 interface:
-  command! -nargs=+ HTMLtmenu call s:HTMLtmenu(<f-args>)
-  function! s:HTMLtmenu(icon, level, menu, tip)
-    if has('gui_gtk2') && v:version <= 602 && ! has('patch240')
-      execute 'tmenu icon=' . a:icon . ' ' . a:level . ' ' . a:menu . ' ' . a:tip
-    else
-      execute 'tmenu ' . a:level . ' ' . a:menu . ' ' . a:tip
-    endif
-  endfunction
-
   "tunmenu ToolBar
   silent! unmenu ToolBar
   silent! unmenu! ToolBar
 
-  tmenu 1.10          ToolBar.Open      Open file
-  amenu 1.10          ToolBar.Open      :browse e<CR>
-  tmenu 1.20          ToolBar.Save      Save current file
-  amenu 1.20          ToolBar.Save      :w<CR>
-  tmenu 1.30          ToolBar.SaveAll   Save all files
-  amenu 1.30          ToolBar.SaveAll   :wa<CR>
+  tmenu 1.10      ToolBar.Open      Open file
+  amenu 1.10      ToolBar.Open      :browse e<CR>
+  tmenu 1.20      ToolBar.Save      Save current file
+  amenu 1.20      ToolBar.Save      :w<CR>
+  tmenu 1.30      ToolBar.SaveAll   Save all files
+  amenu 1.30      ToolBar.SaveAll   :wa<CR>
 
-   menu 1.50          ToolBar.-sep1-    <nul>
+   menu 1.50      ToolBar.-sep1-    <nul>
 
-  HTMLtmenu Template  1.60  ToolBar.Template   Create\ Template
-  HTMLmenu amenu      1.60  ToolBar.Template   html
+  tmenu           1.60  ToolBar.Template   Create Template
+  HTMLmenu amenu  1.60  ToolBar.Template   html
 
-   menu               1.65  ToolBar.-sep2-     <nul>
+   menu           1.65  ToolBar.-sep2-     <nul>
 
-  HTMLtmenu Paragraph 1.70  ToolBar.Paragraph  Create\ Paragraph
-  HTMLmenu imenu      1.70  ToolBar.Paragraph  pp
-  HTMLmenu vmenu      1.70  ToolBar.Paragraph  pp
-  HTMLmenu nmenu      1.70  ToolBar.Paragraph  pp i
-  HTMLtmenu Break     1.80  ToolBar.Break      Line\ Break
-  HTMLmenu imenu      1.80  ToolBar.Break      br
-  HTMLmenu vmenu      1.80  ToolBar.Break      br
-  HTMLmenu nmenu      1.80  ToolBar.Break      br i
+  tmenu           1.70  ToolBar.Paragraph  Create Paragraph
+  HTMLmenu imenu  1.70  ToolBar.Paragraph  pp
+  HTMLmenu vmenu  1.70  ToolBar.Paragraph  pp
+  HTMLmenu nmenu  1.70  ToolBar.Paragraph  pp i
+  tmenu           1.80  ToolBar.Break      Line Break
+  HTMLmenu imenu  1.80  ToolBar.Break      br
+  HTMLmenu vmenu  1.80  ToolBar.Break      br
+  HTMLmenu nmenu  1.80  ToolBar.Break      br i
 
-   menu               1.85  ToolBar.-sep3-     <nul>
+   menu           1.85  ToolBar.-sep3-     <nul>
 
-  HTMLtmenu Link      1.90  ToolBar.Link       Create\ Hyperlink
-  HTMLmenu imenu      1.90  ToolBar.Link       ah
-  HTMLmenu vmenu      1.90  ToolBar.Link       ah
-  HTMLmenu nmenu      1.90  ToolBar.Link       ah i
-  HTMLtmenu Target    1.100 ToolBar.Target     Create\ Target\ (Named\ Anchor)
-  HTMLmenu imenu      1.100 ToolBar.Target     an
-  HTMLmenu vmenu      1.100 ToolBar.Target     an
-  HTMLmenu nmenu      1.100 ToolBar.Target     an i
-  HTMLtmenu Image     1.110 ToolBar.Image      Insert\ Image
-  HTMLmenu imenu      1.110 ToolBar.Image      im
-  HTMLmenu vmenu      1.110 ToolBar.Image      im
-  HTMLmenu nmenu      1.110 ToolBar.Image      im i
+  tmenu           1.90  ToolBar.Link       Create Hyperlink
+  HTMLmenu imenu  1.90  ToolBar.Link       ah
+  HTMLmenu vmenu  1.90  ToolBar.Link       ah
+  HTMLmenu nmenu  1.90  ToolBar.Link       ah i
+  tmenu           1.100 ToolBar.Target     Create Target (Named Anchor)
+  HTMLmenu imenu  1.100 ToolBar.Target     an
+  HTMLmenu vmenu  1.100 ToolBar.Target     an
+  HTMLmenu nmenu  1.100 ToolBar.Target     an i
+  tmenu           1.110 ToolBar.Image      Insert Image
+  HTMLmenu imenu  1.110 ToolBar.Image      im
+  HTMLmenu vmenu  1.110 ToolBar.Image      im
+  HTMLmenu nmenu  1.110 ToolBar.Image      im i
 
-   menu               1.115 ToolBar.-sep4-     <nul>
+   menu           1.115 ToolBar.-sep4-     <nul>
 
-  HTMLtmenu Hline     1.120 ToolBar.Hline      Create\ Horizontal\ Rule
-  HTMLmenu imenu      1.120 ToolBar.Hline      hr
-  HTMLmenu nmenu      1.120 ToolBar.Hline      hr i
+  tmenu           1.120 ToolBar.Hline      Create Horizontal Rule
+  HTMLmenu imenu  1.120 ToolBar.Hline      hr
+  HTMLmenu nmenu  1.120 ToolBar.Hline      hr i
 
-   menu               1.125 ToolBar.-sep5-     <nul>
+   menu           1.125 ToolBar.-sep5-     <nul>
 
-  HTMLtmenu Table     1.130 ToolBar.Table      Create\ Table
-  HTMLmenu imenu      1.130 ToolBar.Table     tA <ESC>
-  HTMLmenu nmenu      1.130 ToolBar.Table     tA
+  tmenu           1.130 ToolBar.Table      Create Table
+  HTMLmenu imenu  1.130 ToolBar.Table     tA <ESC>
+  HTMLmenu nmenu  1.130 ToolBar.Table     tA
 
-   menu               1.135 ToolBar.-sep6-     <nul>
+   menu           1.135 ToolBar.-sep6-     <nul>
 
-  HTMLtmenu Blist     1.140 ToolBar.Blist      Create\ Bullet\ List
-  exe 'imenu          1.140 ToolBar.Blist'     g:html_map_leader . 'ul' . g:html_map_leader . 'li'
-  exe 'vmenu          1.140 ToolBar.Blist'     g:html_map_leader . 'uli' . g:html_map_leader . 'li<ESC>'
-  exe 'nmenu          1.140 ToolBar.Blist'     'i' . g:html_map_leader . 'ul' . g:html_map_leader . 'li'
-  HTMLtmenu Nlist     1.150 ToolBar.Nlist      Create\ Numbered\ List
-  exe 'imenu          1.150 ToolBar.Nlist'     g:html_map_leader . 'ol' . g:html_map_leader . 'li'
-  exe 'vmenu          1.150 ToolBar.Nlist'     g:html_map_leader . 'oli' . g:html_map_leader . 'li<ESC>'
-  exe 'nmenu          1.150 ToolBar.Nlist'     'i' . g:html_map_leader . 'ol' . g:html_map_leader . 'li'
-  HTMLtmenu Litem     1.160 ToolBar.Litem      Add\ List\ Item
-  HTMLmenu imenu      1.160 ToolBar.Litem      li
-  HTMLmenu nmenu      1.160 ToolBar.Litem      li i
+  tmenu           1.140 ToolBar.Blist      Create Bullet List
+  exe 'imenu      1.140 ToolBar.Blist'     g:html_map_leader . 'ul' . g:html_map_leader . 'li'
+  exe 'vmenu      1.140 ToolBar.Blist'     g:html_map_leader . 'uli' . g:html_map_leader . 'li<ESC>'
+  exe 'nmenu      1.140 ToolBar.Blist'     'i' . g:html_map_leader . 'ul' . g:html_map_leader . 'li'
+  tmenu           1.150 ToolBar.Nlist      Create Numbered List
+  exe 'imenu      1.150 ToolBar.Nlist'     g:html_map_leader . 'ol' . g:html_map_leader . 'li'
+  exe 'vmenu      1.150 ToolBar.Nlist'     g:html_map_leader . 'oli' . g:html_map_leader . 'li<ESC>'
+  exe 'nmenu      1.150 ToolBar.Nlist'     'i' . g:html_map_leader . 'ol' . g:html_map_leader . 'li'
+  tmenu           1.160 ToolBar.Litem      Add List Item
+  HTMLmenu imenu  1.160 ToolBar.Litem      li
+  HTMLmenu nmenu  1.160 ToolBar.Litem      li i
 
-   menu               1.165 ToolBar.-sep7-     <nul>
+   menu           1.165 ToolBar.-sep7-     <nul>
 
-  HTMLtmenu Bold      1.170 ToolBar.Bold       Bold
-  HTMLmenu imenu      1.170 ToolBar.Bold       bo
-  HTMLmenu vmenu      1.170 ToolBar.Bold       bo
-  HTMLmenu nmenu      1.170 ToolBar.Bold       bo i
-  HTMLtmenu Italic    1.180 ToolBar.Italic     Italic
-  HTMLmenu imenu      1.180 ToolBar.Italic     it
-  HTMLmenu vmenu      1.180 ToolBar.Italic     it
-  HTMLmenu nmenu      1.180 ToolBar.Italic     it i
-  HTMLtmenu Underline 1.190 ToolBar.Underline  Underline
-  HTMLmenu imenu      1.190 ToolBar.Underline  un
-  HTMLmenu vmenu      1.190 ToolBar.Underline  un
-  HTMLmenu nmenu      1.190 ToolBar.Underline  un i
+  tmenu           1.170 ToolBar.Bold       Bold
+  HTMLmenu imenu  1.170 ToolBar.Bold       bo
+  HTMLmenu vmenu  1.170 ToolBar.Bold       bo
+  HTMLmenu nmenu  1.170 ToolBar.Bold       bo i
+  tmenu           1.180 ToolBar.Italic     Italic
+  HTMLmenu imenu  1.180 ToolBar.Italic     it
+  HTMLmenu vmenu  1.180 ToolBar.Italic     it
+  HTMLmenu nmenu  1.180 ToolBar.Italic     it i
+  tmenu           1.190 ToolBar.Underline  Underline
+  HTMLmenu imenu  1.190 ToolBar.Underline  un
+  HTMLmenu vmenu  1.190 ToolBar.Underline  un
+  HTMLmenu nmenu  1.190 ToolBar.Underline  un i
 
-   menu               1.195 ToolBar.-sep8-    <nul>
+   menu           1.195 ToolBar.-sep8-    <nul>
 
-  tmenu               1.200 ToolBar.Cut       Cut to clipboard
-  vmenu               1.200 ToolBar.Cut       "*x
-  tmenu               1.210 ToolBar.Copy      Copy to clipboard
-  vmenu               1.210 ToolBar.Copy      "*y
-  tmenu               1.220 ToolBar.Paste     Paste from Clipboard
-  nmenu               1.220 ToolBar.Paste     i<C-R>*<Esc>
-  vmenu               1.220 ToolBar.Paste     "-xi<C-R>*<Esc>
-  menu!               1.220 ToolBar.Paste     <C-R>*
+  tmenu           1.200 ToolBar.Cut       Cut to clipboard
+  vmenu           1.200 ToolBar.Cut       "*x
+  tmenu           1.210 ToolBar.Copy      Copy to clipboard
+  vmenu           1.210 ToolBar.Copy      "*y
+  tmenu           1.220 ToolBar.Paste     Paste from Clipboard
+  nmenu           1.220 ToolBar.Paste     i<C-R>*<Esc>
+  vmenu           1.220 ToolBar.Paste     "-xi<C-R>*<Esc>
+  menu!           1.220 ToolBar.Paste     <C-R>*
 
-   menu               1.225 ToolBar.-sep9-    <nul>
+   menu           1.225 ToolBar.-sep9-    <nul>
 
-  tmenu               1.230 ToolBar.Find      Find...
-  tmenu               1.240 ToolBar.Replace   Find & Replace
+  tmenu           1.230 ToolBar.Find      Find...
+  tmenu           1.240 ToolBar.Replace   Find & Replace
 
   if has("win32") || has("win16") || has("gui_gtk") || has("gui_motif")
     amenu 1.250 ToolBar.Find    :promptfind<CR>
@@ -2158,42 +2133,39 @@ if ! s:BoolVar('g:no_html_toolbar')
     let s:browsers = LaunchBrowser()
 
     if s:browsers =~ 'f'
-      HTMLtmenu Firefox  1.510 ToolBar.Firefox   Launch\ Firefox\ on\ Current\ File
-      HTMLmenu amenu     1.510 ToolBar.Firefox   ff
+      tmenu           1.510 ToolBar.Firefox   Launch Firefox on Current File
+      HTMLmenu amenu  1.510 ToolBar.Firefox   ff
     elseif s:browsers =~ 'm'
-      HTMLtmenu Mozilla  1.510 ToolBar.Mozilla   Launch\ Mozilla\ on\ Current\ File
-      HTMLmenu amenu     1.510 ToolBar.Mozilla   mo
+      tmenu           1.510 ToolBar.Mozilla   Launch Mozilla on Current File
+      HTMLmenu amenu  1.510 ToolBar.Mozilla   mo
     elseif s:browsers =~ 'n'
-      HTMLtmenu Netscape 1.510 ToolBar.Netscape  Launch\ Netscape\ on\ Current\ File
-      HTMLmenu amenu     1.510 ToolBar.Netscape  ne
+      tmenu           1.510 ToolBar.Netscape  Launch Netscape on Current File
+      HTMLmenu amenu  1.510 ToolBar.Netscape  ne
     endif
 
     if s:browsers =~ 'o'
-      HTMLtmenu Opera    1.520 ToolBar.Opera     Launch\ Opera\ on\ Current\ File
-      HTMLmenu amenu     1.520 ToolBar.Opera     oa
+      tmenu           1.520 ToolBar.Opera     Launch Opera on Current File
+      HTMLmenu amenu  1.520 ToolBar.Opera     oa
     endif
 
     if s:browsers =~ 'w'
-      HTMLtmenu w3m      1.530 ToolBar.w3m       Launch\ w3m\ on\ Current\ File
-      HTMLmenu amenu     1.530 ToolBar.w3m       w3
+      tmenu           1.530 ToolBar.w3m       Launch w3m on Current File
+      HTMLmenu amenu  1.530 ToolBar.w3m       w3
     elseif s:browsers =~ 'l'
-      HTMLtmenu Lynx     1.530 ToolBar.Lynx      Launch\ Lynx\ on\ Current\ File
-      HTMLmenu amenu     1.530 ToolBar.Lynx      ly
+      tmenu           1.530 ToolBar.Lynx      Launch Lynx on Current File
+      HTMLmenu amenu  1.530 ToolBar.Lynx      ly
     endif
 
   elseif maparg(g:html_map_leader . 'db', 'n') != ""
     amenu 1.500 ToolBar.-sep50- <nul>
 
-    tmenu 1.510 ToolBar.Browser Launch Default Browser on Current File
+    tmenu          1.510 ToolBar.Browser Launch Default Browser on Current File
     HTMLmenu amenu 1.510 ToolBar.Browser db
   endif
 
   amenu 1.998 ToolBar.-sep99- <nul>
   tmenu 1.999 ToolBar.Help    HTML Help
   amenu 1.999 ToolBar.Help    :help HTML<CR>
-
-  delcommand HTMLtmenu
-  delfunction s:HTMLtmenu
 
   let did_html_toolbar = 1
 endif  " (! exists('g:no_html_toolbar')) && (has("toolbar") || has("win32") [...]
@@ -2278,7 +2250,7 @@ HTMLmenu amenu - HTM&L.Template html
 let b:save_encoding=&encoding
 let &encoding='latin1'
 
-nmenu HTML.Character\ Entities.Convert\ to\ Entity<tab>;\&         ;&
+nmenu HTML.Character\ Entities.Convert\ to\ Entity<tab>;\&         ;&l
 vmenu HTML.Character\ Entities.Convert\ to\ Entity<tab>;\&         ;&
 vmenu HTML.Character\ Entities.Convert\ from\ Entities<tab>;^      ;^
  menu HTML.Character\ Entities.-sep0- <nul>
