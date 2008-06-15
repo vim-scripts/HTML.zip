@@ -121,6 +121,14 @@ if exists("*LaunchBrowser")
 	finish
 endif
 
+function! s:ShellEscape(str)
+	if exists('*shellescape')
+		return shellescape(a:str)
+	else
+		return "'" . substitute(a:str, "'", "'\\\\''", 'g') . "'"
+	endif
+endfunction
+
 " LaunchBrowser() {{{1
 "
 " Usage:
@@ -195,10 +203,10 @@ function! LaunchBrowser(...)
 		BMESG Launching lynx...
 
 		if (has("gui_running") || new) && strlen($DISPLAY)
-			let command='xterm -T Lynx -e lynx ' . file . ' &'
+			let command='xterm -T Lynx -e lynx ' . s:ShellEscape(file) . ' &'
 		else
 			sleep 1
-			execute "!lynx " . file
+			execute "!lynx " . s:ShellEscape(file)
 
 			if v:shell_error
 				BERROR Unable to launch lynx.
@@ -211,10 +219,10 @@ function! LaunchBrowser(...)
 		BMESG Launching w3m...
 
 		if (has("gui_running") || new) && strlen($DISPLAY)
-			let command='xterm -T w3m -e w3m ' . file . ' &'
+			let command='xterm -T w3m -e w3m ' . s:ShellEscape(file) . ' &'
 		else
 			sleep 1
-			execute "!w3m " . file
+			execute "!w3m " . s:ShellEscape(file)
 
 			if v:shell_error
 				BERROR Unable to launch w3m.
@@ -226,13 +234,13 @@ function! LaunchBrowser(...)
 	if (which ==? 'o') " {{{
 		if new == 2
 			BMESG Opening new Opera tab...
-			let command="sh -c \"trap '' HUP; " . s:Browsers['which'][1] . " -remote 'openURL(" . file . ",new-page)' &\""
+			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " -remote 'openURL('" . s:ShellEscape(file) . "',new-page)' &\""
 		elseif new
 			BMESG Opening new Opera window...
-			let command="sh -c \"trap '' HUP; " . s:Browsers['which'][1] . " -remote 'openURL(" . file . ",new-window)' &\""
+			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " -remote 'openURL('" . s:ShellEscape(file) . "',new-window)' &\""
 		else
 			BMESG Sending remote command to Opera...
-			let command="sh -c \"trap '' HUP; " . s:Browsers['which'][1] . " " . file . " &\""
+			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . s:ShellEscape(file) . " &\""
 		endif
 	endif " }}}
 
@@ -261,17 +269,17 @@ function! LaunchBrowser(...)
 	if (which ==? 'f') " {{{
 		if ! FirefoxRunning
 			BMESG Launching firefox, please wait...
-			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . file . " &\""
+			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . s:ShellEscape(file) . " &\""
 		else
 			if new == 2
 				BMESG Opening new Firefox tab...
-				let command=s:NetscapeRemoteCmd . " -remote \"openURL(" . file . ",new-tab)\""
+				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "',new-tab)'"
 			elseif new
 				BMESG Opening new Firefox window...
-				let command=s:NetscapeRemoteCmd . " -remote \"openURL(" . file . ",new-window)\""
+				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "',new-window)'"
 			else
 				BMESG Sending remote command to Firefox...
-				let command=s:NetscapeRemoteCmd . " -remote \"openURL(" . file . ")\""
+				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "')'"
 			endif
 		endif
 	endif " }}}
@@ -279,17 +287,17 @@ function! LaunchBrowser(...)
 	if (which ==? 'm') " {{{
 		if ! MozillaRunning
 			BMESG Launching mozilla, please wait...
-			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . file . " &\""
+			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . s:ShellEscape(file) . " &\""
 		else
 			if new == 2
 				BMESG Opening new Mozilla tab...
-				let command=s:NetscapeRemoteCmd . " -remote \"openURL(" . file . ",new-tab)\""
+				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "',new-tab)'"
 			elseif new
 				BMESG Opening new Mozilla window...
-				let command=s:NetscapeRemoteCmd . " -remote \"openURL(" . file . ",new-window)\""
+				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "',new-window)'"
 			else
 				BMESG Sending remote command to Mozilla...
-				let command=s:NetscapeRemoteCmd . " -remote \"openURL(" . file . ")\""
+				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "')'"
 			endif
 		endif
 	endif " }}}
@@ -297,21 +305,21 @@ function! LaunchBrowser(...)
 	if (which ==? 'n') " {{{
 		if ! NetscapeRunning
 			BMESG Launching netscape, please wait...
-			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . file . " &\""
+			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . s:ShellEscape(file) . " &\""
 		else
 			if new
 				BMESG Opening new Netscape window...
-				let command=s:NetscapeRemoteCmd . " -remote \"openURL(" . file . ",new-window)\""
+				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "',new-window)'"
 			else
 				BMESG Sending remote command to Netscape...
-				let command=s:NetscapeRemoteCmd . " -remote \"openURL(" . file . ")\""
+				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "')'"
 			endif
 		endif
 	endif " }}}
 
 	if exists('l:command')
 
-		if s:NetscapeRemoteCmd =~ 'mozilla-xremote-client'
+		if command =~ 'mozilla-xremote-client'
 			let command = substitute(command, '-remote', '-a ' . s:Browsers[which][0], '')
 		endif
 

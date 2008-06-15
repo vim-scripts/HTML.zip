@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <infynity@onewest.net>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: June 06, 2008
-" Version:     0.34.8
+" Last Change: June 14, 2008
+" Version:     0.35.1
 " Original Concept: Doug Renze
 "
 "
@@ -52,7 +52,7 @@
 " - Add :HTMLmappingsreload/html/xhtml to the HTML menu?
 "
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.200 2008/06/06 18:37:21 infynity Exp $
+" $Id: HTML.vim,v 1.202 2008/06/15 05:46:29 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -1167,6 +1167,19 @@ function! s:ColorSelect(bufnr, ...)
   echo color
 endfunction
 
+function! s:ShellEscape(str) " {{{2
+	if exists('*shellescape')
+		return shellescape(a:str)
+	else
+    if has('unix')
+      return "'" . substitute(a:str, "'", "'\\\\''", 'g') . "'"
+    else
+      " Don't know how to properly escape for 'doze, so don't bother:
+      return a:str
+    endif
+	endif
+endfunction
+
 " ---- Template Creation Stuff: {{{2
 
 " HTMLtemplate()  {{{3
@@ -2172,11 +2185,11 @@ if has("unix")
   endif
 elseif has("win32") || has('win64')
   " Run the default Windows browser:
-   call HTMLmap("nnoremap", "<lead>db", ":exe '!start RunDll32.exe shell32.dll,ShellExec_RunDLL ' . expand('%:p')<CR>")
+   call HTMLmap("nnoremap", "<lead>db", ":exe '!start RunDll32.exe shell32.dll,ShellExec_RunDLL ' . <SID>ShellEscape(expand('%:p'))<CR>")
 
   " This assumes that IE is installed and the file explorer will become IE
   " when given an URL to open:
-  call HTMLmap("nnoremap", "<lead>ie", ":exe '!start explorer ' . expand('%:p')<CR>")
+  call HTMLmap("nnoremap", "<lead>ie", ":exe '!start explorer ' . <SID>ShellEscape(expand('%:p'))<CR>")
 endif
 
 " ----------------------------------------------------------------------------
