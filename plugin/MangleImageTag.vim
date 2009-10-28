@@ -3,7 +3,7 @@
 " Requirements:
 "       VIM 7 or later
 "
-" Copyright (C) 2004-2008 Christian J. Robinson <infynity@onewest.net>
+" Copyright (C) 2004-2008 Christian J. Robinson <heptite@gmail.com>
 "
 " Based on "mangleImageTag" by Devin Weaver <ktohg@tritarget.com>
 "
@@ -22,8 +22,11 @@
 " Place - Suite 330, Boston, MA 02111-1307, USA.
 "
 " RCS info: -------------------------------------------------------------- {{{
-" $Id: MangleImageTag.vim,v 1.12 2008/05/30 00:53:28 infynity Exp $
+" $Id: MangleImageTag.vim,v 1.13 2009/06/23 14:04:35 infynity Exp $
 " $Log: MangleImageTag.vim,v $
+" Revision 1.13  2009/06/23 14:04:35  infynity
+" *** empty log message ***
+"
 " Revision 1.12  2008/05/30 00:53:28  infynity
 " - Clarify an error message
 " - Don't move the cursor when updating the tag

@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2008 Jun 06
+		Last change: 2009 Sep 21
 		Author: Christian J. Robinson
 
 						*HTML.vim* *HTML-macros*
@@ -184,10 +184,11 @@ call the |HTMLmap()| function elsewhere you will still get a warning message
 when there's an already existing mapping and the mapping will still be
 overridden.
 
-*g:no_html_maps*
+*g:no_html_maps* *b:no_html_maps*
 Set this variable a regular expression to match against mappings.  If a
 mapping to be defined matches this regular expression it will not be defined.
-This pattern will not undergo |g:html_map_leader| and
+You can also set this on a per-buffer basis by using b:no_html_maps instead.
+The patterns are case sensitive, will not undergo |g:html_map_leader| and
 |g:html_map_entity_leader| substitution, and must be set before HTML.vim is
 sourced.  e.g., to suppress the <A HREF>, <IMG SRC> and the centered headers
 tags: >
@@ -813,6 +814,7 @@ C-cedilla		&Ccedil;	&C,		*i_&C,*
 c-cedilla		&ccedil;	&c,		*i_&c,*
 O-slash			&Oslash;	&O/		*i_&O/*
 o-slash			&oslash;	&o/		*i_&o/*
+Szlig			&szlig;		&sz		*i_&sz*
 Left single arrow	&larr;		&la		*i_&la*
 Right single arrow	&rarr;		&ra		*i_&ra*
 Up single arrow		&uarr;		&ua		*i_&ua*
@@ -888,14 +890,48 @@ You can use a browser to preview your current HTML document.  (See
 |html-author-notes|)
 
 
-For Windows:
+
+For Windows:				*browser-control-windows*
 								*n_;db*
 ;db	Call the default browser on the current file.
 								*n_;ie*
 ;ie	Call Explorer on the current file.
 
 
-For Unix:
+For Mac OS X:				*browser-control-macos*
+
+The following mappings are only defined if you have properly installed the
+browser_launcher.vim script, available with installation instructions here:
+http://www.infynity.spodzone.com/vim/HTML/
+
+Opening new tabs and windows depends on the built-in Graphic User Interface
+Scripting architecture of Mac OS X which comes disabled by default. You can
+activate GUI Scripting by selecting the checkbox "Enable access for assistive
+devices" in the Universal Access preference pane.
+								*n_;db*
+;db	Call the default browser on the current file.
+								*n_;ff*
+;ff	Make Firefox view the current file, starting Firefox if it is not
+	running.
+								*n_;nff*
+;nff	Same as |;ff|, but start a new browser window.
+								*n_;tff*
+;tff	Same as |;nff|, but open a new tab.
+								*n_;oa*
+;oa	Make Opera view the current file, starting Opera if it is not running.
+								*n_;noa*
+;noa	Same as |;oa|, but start a new browser window.
+								*n_;toa*
+;toa	Same as |;noa|, but open a new tab.
+								*n_;sf*
+;sf	Make Safari view the current file, starting Safari if it is not running.
+								*n_;nsf*
+;nsf	Same as |;sf|, but start a new browser window.
+								*n_;tsf*
+;tsf	Same as |;nsf|, but open a new tab.
+
+
+For Unix:				*browser-control-unix*
 
 The following mappings are only defined if you have properly installed the
 browser_launcher.vim script, available with installation instructions here:

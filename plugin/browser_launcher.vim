@@ -2,11 +2,12 @@
 "
 " Vim script to launch/control browsers
 "
-" Copyright ????-2008 Christian J. Robinson <infynity@onewest.net>
+" Copyright ????-2009 Christian J. Robinson <heptite@gmail.com>
 "
 " Distributable under the terms of the GNU GPL.
 "
 " Currently supported browsers:
+" Unix:
 "  - Firefox  (remote [new window / new tab] / launch)  [1]
 "  - Mozilla  (remote [new window / new tab] / launch)  [1]
 "  - Netscape (remote [new window] / launch)            [1]
@@ -15,28 +16,40 @@
 "              window if DISPLAY is set.)
 "  - w3m      (Under the current TTY if not running the GUI, or a new xterm
 "              window if DISPLAY is set.)
+" MacOS:
+"  - Firefox  (remote [new window / new tab] / launch)
+"  - Opera    (remote [new window / new tab] / launch)
+"  - Safari   (remote [new window / new tab] / launch)
+"  - Default
+"
+" Windows:
+"  None currently -- the HTML.vim script has mappings that runs system
+"  commands directly.
 "
 " TODO:
 "
-"  Support more browsers?
-"   - links  (text browser)
+"  - Support more browsers?
+"    + links  (text browser)
 "
-"  Defaulting to lynx if the the GUI isn't available may be undesirable.
+"    Note: Various browsers such as galeon, nautilus, phoenix, &c use the
+"    same HTML rendering engine as mozilla/firefox, so supporting them
+"    isn't as important.
 "
-"  Note: Various browsers such as galeon, nautilus, phoenix, &c use the
-"        same HTML rendering engine as mozilla/firefox, so supporting them
-"        isn't as important.
+"  - Defaulting to lynx if the the GUI isn't available on Unix may be
+"    undesirable.
 "
-"  BUGS:
-"  * [1] The remote control for firefox/mozilla/netscape will probably
-"    default to firefox if more than one is running.
+"  - Support for Windows.
 "
-"  * Since the commands to start the browsers are run in the backgorund
-"    there's no way to actually get v:shell_error, so execution errors
-"    aren't actually seen when not issuing a command to an already running
-"    browser.
+" BUGS:
+"  * [1] On Unix, the remote control for firefox/mozilla/netscape will
+"    probably default to firefox if more than one is running.
 "
-"  * The code is a mess.  Oh well.
+"  * On Unix, Since the commands to start the browsers are run in the
+"    backgorund when possible there's no way to actually get v:shell_error,
+"    so execution errors aren't actually seen when not issuing a command to
+"    an already running browser.
+"
+"  * The code is a mess and mostly needs to be rethought.  Oh well.
 "
 "--------------------------------------------------------------------------
 
@@ -47,9 +60,185 @@ endif
 command! -nargs=+ BERROR :echohl ErrorMsg | echomsg <q-args> | echohl None
 command! -nargs=+ BMESG :echohl Todo | echo <q-args> | echohl None
 
-" Attempt to detect which browsers are installed:  {{{1
+function! s:ShellEscape(str) " {{{
+	if exists('*shellescape')
+		return shellescape(a:str)
+	else
+		return "'" . substitute(a:str, "'", "'\\\\''", 'g') . "'"
+	endif
+endfunction " }}}
 
-if has('unix')
+
+if has('mac') || has('macunix')  " {{{1
+
+	"BERROR Currently there's no browser control support for Macintosh.
+	"BERROR See ":help html-author-notes"
+
+
+	" The following code is provided by Israel Chauca Fuentes
+	" <israelvarios()fastmail!fm>:
+
+	function! s:MacAppExists(app) " {{{
+		 silent! call system("/usr/bin/osascript -e 'get id of application \"" .
+				\ a:app . "\"' 2>&1 >/dev/null")
+		if v:shell_error
+			return 0
+		endif
+		return 1
+	endfunction " }}}
+
+	function! s:UseAppleScript() " {{{
+		return system("/usr/bin/osascript -e " .
+			 \ "'tell application \"System Events\" to set UI_enabled " .
+			 \ "to UI elements enabled' 2>/dev/null") ==? "true\n" ? 1 : 0
+	endfunction " }}}
+
+	function! OpenInMacApp(app, ...) " {{{
+		if (! s:MacAppExists(a:app) && a:app !=? 'default')
+			exec 'BERROR ' . a:app . " not found."
+			return 0
+		endif
+
+		if a:0 >= 1 && a:0 <= 2
+			let new = a:1
+		else
+			let new = 0
+		endif
+
+		let file = expand('%:p')
+
+		" Can we open new tabs and windows?
+		let use_AS = s:UseAppleScript()
+
+		" Why we can't open new tabs and windows:
+		let as_msg = "This feature utilizes the built-in Graphic User " .
+				\ "Interface Scripting architecture of Mac OS X which is " .
+				\ "currently disabled. You can activate GUI Scripting by " .
+				\ "selecting the checkbox \"Enable access for assistive " .
+				\ "devices\" in the Universal Access preference pane."
+
+		if (a:app ==? 'safari') " {{{
+			if new != 0 && use_AS
+				if new == 2
+					let torn = 't'
+					BMESG Opening file in new Safari tab...
+				else
+					let torn = 'n'
+					BMESG Opening file in new Safari window...
+				endif
+				let script = '-e "tell application \"safari\"" ' .
+				\ '-e "activate" ' .
+				\ '-e "tell application \"System Events\"" ' .
+				\ '-e "tell process \"safari\"" ' .
+				\ '-e "keystroke \"' . torn . '\" using {command down}" ' .
+				\ '-e "end tell" ' .
+				\ '-e "end tell" ' .
+				\ '-e "delay 0.3" ' .
+				\ '-e "tell window 1" ' .
+				\ '-e ' . s:ShellEscape("set (URL of last tab) to \"" . file . "\"") . ' ' .
+				\ '-e "end tell" ' .
+				\ '-e "end tell" '
+
+				let command = "/usr/bin/osascript " . script
+
+			else
+				if new != 0
+					" Let the user know what's going on:
+					exec 'BERROR ' . as_msg
+				endif
+				BMESG Opening file in Safari...
+				let command = "/usr/bin/open -a safari " . s:ShellEscape(file)
+			endif
+		endif "}}}
+
+		if (a:app ==? 'firefox') " {{{
+			if new != 0 && use_AS
+				if new == 2
+
+					let torn = 't'
+					BMESG Opening file in new Firefox tab...
+				else
+
+					let torn = 'n'
+					BMESG Opening file in new Firefox window...
+				endif
+				let script = '-e "tell application \"firefox\"" ' .
+				\ '-e "activate" ' .
+				\ '-e "tell application \"System Events\"" ' .
+				\ '-e "tell process \"firefox\"" ' .
+				\ '-e "keystroke \"' . torn . '\" using {command down}" ' .
+				\ '-e "delay 0.8" ' .
+				\ '-e "keystroke \"l\" using {command down}" ' .
+				\ '-e "keystroke \"a\" using {command down}" ' .
+				\ '-e ' . s:ShellEscape("keystroke \"" . file . "\" & return") . " " .
+				\ '-e "end tell" ' .
+				\ '-e "end tell" ' .
+				\ '-e "end tell" '
+
+				let command = "/usr/bin/osascript " . script
+
+			else
+				if new != 0
+					" Let the user know wath's going on:
+					exec 'BERROR ' . as_msg
+
+				endif
+				BMESG Opening file in Firefox...
+				let command = "/usr/bin/open -a firefox " . s:ShellEscape(file)
+			endif
+		endif " }}}
+
+		if (a:app ==? 'opera') " {{{
+			if new != 0 && use_AS
+				if new == 2
+
+					let torn = 't'
+					BMESG Opening file in new Opera tab...
+				else
+
+					let torn = 'n'
+					BMESG Opening file in new Opera window...
+				endif
+				let script = '-e "tell application \"Opera\"" ' .
+				\ '-e "activate" ' .
+				\ '-e "tell application \"System Events\"" ' .
+				\ '-e "tell process \"opera\"" ' .
+				\ '-e "keystroke \"' . torn . '\" using {command down}" ' .
+				\ '-e "end tell" ' .
+				\ '-e "end tell" ' .
+				\ '-e "delay 0.5" ' .
+				\ '-e ' . s:ShellEscape("set URL of front document to \"" . file . "\"") . " " .
+				\ '-e "end tell" '
+
+				let command = "/usr/bin/osascript " . script
+
+			else
+				if new != 0
+					" Let the user know what's going on:
+					exec 'BERROR ' . as_msg
+
+				endif
+				BMESG Opening file in Opera...
+				let command = "/usr/bin/open -a opera " . s:ShellEscape(file)
+			endif
+		endif " }}}
+
+		if (a:app ==? 'default')
+
+			BMESG Opening file in default browser...
+			let command = "/usr/bin/open " . s:ShellEscape(file)
+		endif
+
+		if (! exists('command'))
+
+			exe 'BMESG Opening ' . substitute(a:app, '^.', '\U&', '') . '...'
+			let command = "open -a " . a:app . " " . s:ShellEscape(file)
+		endif
+
+		call system(command . " 2>&1 >/dev/null")
+	endfunction " }}}
+
+elseif has('unix') " {{{1
 
 	let s:Browsers = {}
 	let s:BrowsersExist = 'fmnolw'
@@ -91,7 +280,7 @@ if has('unix')
 		endif
 	endif
 
-elseif has('win32') || has('win64')
+elseif has('win32') || has('win64')  " {{{1
 
 	BERROR Currently there's no browser control support for Windows.
 	BERROR See ":help html-author-notes"
@@ -108,26 +297,12 @@ elseif has('win32') || has('win64')
 	"	let s:NetscapeRemoteCmd = s:Browsers['f'][1]
 	"endif
 
-elseif has('mac') || has('macunix')
+endif " }}}1
 
-	BERROR Currently there's no browser control support for Macintosh.
-	BERROR See ":help html-author-notes"
 
-endif
-
-" }}}1
-
-if exists("*LaunchBrowser")
+if exists("*LaunchBrowser") || exists("*OpenInMacApp")
 	finish
 endif
-
-function! s:ShellEscape(str)
-	if exists('*shellescape')
-		return shellescape(a:str)
-	else
-		return "'" . substitute(a:str, "'", "'\\\\''", 'g') . "'"
-	endif
-endfunction
 
 " LaunchBrowser() {{{1
 "
@@ -343,4 +518,4 @@ function! LaunchBrowser(...)
 	return 0
 endfunction " }}}1
 
-" vim: set ts=2 sw=2 ai nu tw=75 fo=croq2 fdm=marker fdc=3:
+" vim: set ts=2 sw=2 ai nu tw=75 fo=croq2 fdm=marker fdc=4:

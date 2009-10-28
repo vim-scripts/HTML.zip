@@ -1,9 +1,9 @@
 " ---- Author & Copyright: ---------------------------------------------- {{{1
 "
-" Author:      Christian J. Robinson <infynity@onewest.net>
+" Author:      Christian J. Robinson <heptite@gmail.com>
 " URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: June 14, 2008
-" Version:     0.35.1
+" Last Change: September 19, 2009
+" Version:     0.36.1
 " Original Concept: Doug Renze
 "
 "
@@ -52,7 +52,7 @@
 " - Add :HTMLmappingsreload/html/xhtml to the HTML menu?
 "
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.202 2008/06/15 05:46:29 infynity Exp $
+" $Id: HTML.vim,v 1.210 2009/09/19 19:43:45 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -391,8 +391,9 @@ endfunction
 "
 " (Note that suppression only works for the internal mappings.)
 function! s:MapCheck(map, mode)
-  if exists('g:no_html_maps') && exists('s:doing_internal_html_mappings')
-        \ && a:map =~# g:no_html_maps
+  if exists('s:doing_internal_html_mappings') &&
+        \ ( (exists('g:no_html_maps') && a:map =~# g:no_html_maps) ||
+        \   (exists('b:no_html_maps') && a:map =~# b:no_html_maps) )
     return 3
   elseif exists('s:modes[a:mode]') && maparg(a:map, a:mode) != ''
     if s:BoolVar('g:no_html_map_override') && exists('s:doing_internal_html_mappings')
@@ -666,7 +667,7 @@ function! HTMLnextInsertPoint(...)
     endif
   else
     normal 0
-    silent! execute ':go ' . s:ByteOffset() - 1
+    silent! execute ':go ' . (s:ByteOffset() - 1)
     execute 'silent! normal! /<\([^ <>]\+\)\_[^<>]*>\_s*<\/\1>\|<\_[^<>]*""\_[^<>]*>\|<!--\_s*-->/;/>\_s*<\|""\|<!--\_s*-->/e' . "\<CR>"
 
     " Handle cursor positioning for comments and/or open+close tags spanning
@@ -1108,7 +1109,7 @@ function! s:ShowColors(...)
         \'+++ <enter> or <double click> = Select color under cursor +++',
       \])
   exe 0
-  exe '1,3center ' . (maxw + 13) * 2
+  exe '1,3center ' . ((maxw + 13) * 2)
 
   setlocal nomodifiable
 
@@ -2056,6 +2057,7 @@ call HTMLmap("inoremap", "<elead>2>", "&raquo;")
 call HTMLmap("inoremap", '<elead>"', "&uml;")
 call HTMLmap("inoremap", "<elead>/", "&divide;")
 call HTMLmap("inoremap", "<elead>o/", "&oslash;")
+call HTMLmap("inoremap", "<elead>sz", "&szlig;")
 call HTMLmap("inoremap", "<elead>!", "&iexcl;")
 call HTMLmap("inoremap", "<elead>?", "&iquest;")
 call HTMLmap("inoremap", "<elead>dg", "&deg;")
@@ -2143,7 +2145,34 @@ call HTMLmap("inoremap", "<elead>hA", "&hArr;")
 
 
 " ---- Browser Remote Controls: ----------------------------------------- {{{1
-if has("unix")
+if has('mac') || has('macunix')
+  runtime! browser_launcher.vim
+
+  " Run the default Mac browser:
+  call HTMLmap("nnoremap", "<lead>db", ":call OpenInMacApp('default')<CR>")
+
+  " Firefox: View current file, starting Firefox if it's not running:
+  call HTMLmap("nnoremap", "<lead>ff", ":call OpenInMacApp('firefox',0)<CR>")
+  " Firefox: Open a new window, and view the current file:
+  call HTMLmap("nnoremap", "<lead>nff", ":call OpenInMacApp('firefox',1)<CR>")
+  " Firefox: Open a new tab, and view the current file:
+  call HTMLmap("nnoremap", "<lead>tff", ":call OpenInMacApp('firefox',2)<CR>")
+
+  " Opera: View current file, starting Opera if it's not running:
+  call HTMLmap("nnoremap", "<lead>oa", ":call OpenInMacApp('opera',0)<CR>")
+  " Opera: View current file in a new window, starting Opera if it's not running:
+  call HTMLmap("nnoremap", "<lead>noa", ":call OpenInMacApp('opera',1)<CR>")
+  " Opera: Open a new tab, and view the current file:
+  call HTMLmap("nnoremap", "<lead>toa", ":call OpenInMacApp('opera',2)<CR>")
+
+  " Safari: View current file, starting Safari if it's not running:
+  call HTMLmap("nnoremap", "<lead>sf", ":call OpenInMacApp('safari')<CR>")
+  " Safari: Open a new window, and view the current file:
+  call HTMLmap("nnoremap", "<lead>nsf", ":call OpenInMacApp('safari',1)<CR>")
+  " Safari: Open a new tab, and view the current file:
+  call HTMLmap("nnoremap", "<lead>tsf", ":call OpenInMacApp('safari',2)<CR>")
+
+elseif has("unix")
   runtime! browser_launcher.vim
 
   if exists("*LaunchBrowser")
@@ -2491,6 +2520,23 @@ if exists("*LaunchBrowser")
   if s:browsers =~ 'w'
     HTMLmenu amenu - HTML.&Preview.&w3m                    w3
   endif
+elseif exists("*OpenInMacApp")
+  HTMLmenu amenu - HTML.&Preview.&Firefox                ff
+  HTMLmenu amenu - HTML.&Preview.Firefox\ (New\ Window)  nff
+  HTMLmenu amenu - HTML.&Preview.Firefox\ (New\ Tab)     tff
+  amenu HTML.Preview.-sep1-                              <nop>
+
+  HTMLmenu amenu - HTML.&Preview.&Opera                  oa
+  HTMLmenu amenu - HTML.&Preview.Opera\ (New\ Window)    noa
+  HTMLmenu amenu - HTML.&Preview.Opera\ (New\ Tab)       toa
+  amenu HTML.Preview.-sep2-                              <nop>
+
+  HTMLmenu amenu - HTML.&Preview.&Safari                 sf
+  HTMLmenu amenu - HTML.&Preview.Safari\ (New\ Window)   nsf
+  HTMLmenu amenu - HTML.&Preview.Safari\ (New\ Tab)      tsf
+  amenu HTML.Preview.-sep3-                              <nop>
+
+  HTMLmenu amenu - HTML.&Preview.&Default\ Browser    db
 elseif maparg(g:html_map_leader . 'db', 'n') != ''
   HTMLmenu amenu - HTML.&Preview.&Default\ Browser    db
   HTMLmenu amenu - HTML.&Preview.&Internet\ Explorer  ie
@@ -2504,13 +2550,18 @@ HTMLmenu amenu - HTML.Template html
 
 " Character Entities menu:   {{{2
 
-let b:save_encoding=&encoding
-let &encoding='latin1'
+"let b:save_encoding=&encoding
+"let &encoding='latin1'
+scriptencoding latin1
 
 command! -nargs=+ HTMLemenu call s:EntityMenu(<f-args>)
 function! s:EntityMenu(name, item, ...)
   if a:0 >= 1 && a:1 != '-'
-    let symb = ' (' . a:1 . ')'
+    if a:1 == '\-'
+      let symb = ' (-)'
+    else
+      let symb = ' (' . a:1 . ')'
+    endif
   else
     let symb = ''
   endif
@@ -2566,7 +2617,7 @@ HTMLemenu HTML.Character\ Entities.Middle\ Dot          .        ·
 HTMLemenu HTML.Character\ Entities.One\ Quarter         14       ¼
 HTMLemenu HTML.Character\ Entities.One\ Half            12       ½
 HTMLemenu HTML.Character\ Entities.Three\ Quarters      34       ¾
-HTMLemenu HTML.Character\ Entities.En\ dash             n-       -
+HTMLemenu HTML.Character\ Entities.En\ dash             n-       \-
 HTMLemenu HTML.Character\ Entities.Em\ dash             m-       --
 HTMLemenu HTML.Character\ Entities.Ellipsis             3.       ...
  menu HTML.Character\ Entities.-sep2- <nul>
@@ -2691,8 +2742,9 @@ HTMLemenu HTML.Character\ Entities.\ \ \ \ \ \ \ &etc\.\.\..c-cedilla   c, ç
 HTMLemenu HTML.Character\ Entities.\ \ \ \ \ \ \ &etc\.\.\..O-slash     O/ Ø
 HTMLemenu HTML.Character\ Entities.\ \ \ \ \ \ \ &etc\.\.\..o-slash     o/ ø
 
-let &encoding=b:save_encoding
-unlet b:save_encoding
+"let &encoding=b:save_encoding
+"unlet b:save_encoding
+scriptencoding
 
 " Colors menu:   {{{2
 
