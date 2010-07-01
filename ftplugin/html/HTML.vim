@@ -1,9 +1,9 @@
 " ---- Author & Copyright: ---------------------------------------------- {{{1
 "
 " Author:      Christian J. Robinson <heptite@gmail.com>
-" URL:         http://www.infynity.spodzone.com/vim/HTML/
-" Last Change: September 19, 2009
-" Version:     0.36.1
+" URL:         http://christianrobinson.name/vim/HTML/
+" Last Change: June 11, 2010
+" Version:     0.36.3
 " Original Concept: Doug Renze
 "
 "
@@ -52,7 +52,7 @@
 " - Add :HTMLmappingsreload/html/xhtml to the HTML menu?
 "
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.210 2009/09/19 19:43:45 infynity Exp $
+" $Id: HTML.vim,v 1.214 2010/06/11 17:26:25 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -80,6 +80,8 @@ let s:doing_internal_html_mappings = 1
 if ! exists("b:did_html_mappings_init")
 let b:did_html_mappings_init = 1
 
+let s:savecb=&clipboard
+silent! set clipboard+=html
 setlocal matchpairs+=<:>
 
 " ---- Init Functions: -------------------------------------------------- {{{2
@@ -493,13 +495,42 @@ endfunction
 " certain mappings from inserting unwanted comment leaders.
 "
 " Arguments:
-"  1 - Integer: 0 - Turn options off.
-"               1 - Turn options back on, if they were on before.
+"  1 - Integer: 0 - Turn option off.
+"               1 - Turn option back on, if they were on before.
 function! s:TC(s)
   if a:s == 0
     let s:savecom=&l:com | let &l:com=''
   else
     let &l:com=s:savecom | unlet s:savecom
+  endif
+endfunction
+
+" s:TCB()  {{{2
+"
+" Used to turn off/on the inclusion of "html" in the 'clipboard' option when
+" switching buffers.
+"
+" Arguments:
+"  1 - Integer: 0 - Remove 'html' if it was removed before.
+"               1 - Add 'html'.
+"               2 - Auto detect which to do.
+function! s:TCB(i)
+  if a:i == 2
+    if exists("b:did_html_mappings")
+      let i=1
+    else
+      let i=0
+    endif
+  else
+    let i=a:i
+  endif
+  if i == 0
+    let &clipboard=s:savecb
+  else
+    if &clipboard !~? 'html'
+      let s:savecb=&clipboard
+    endif
+    silent! set clipboard+=html
   endif
 endfunction
 
@@ -980,7 +1011,7 @@ command! -nargs=1 HTMLmappings call <SID>MappingsControl(<f-args>)
 " Disable/enable the HTML menu and toolbar.
 "
 " Arguments:
-"  1 - String:  Optional, Whether to disable or enable the mappings:
+"  1 - String:  Optional, Whether to disable or enable the menus:
 "                empty: Detect which to do
 "                "disable": Disable the menu and toolbar
 "                "enable": Enable the menu and toolbar
@@ -1787,9 +1818,9 @@ call HTMLmap("vnoremap", "<lead>cs", "<ESC>`>a<CR> --><CR></[{STYLE}]><C-O>`<<[{
 call HTMLmapo('<lead>cs', 0)
 
 "       Linked CSS stylesheet
-call HTMLmap("inoremap", "<lead>ls", "<[{LINK REL}]=\"stylesheet\" [{TYPE}]=\"text/css\" [{HREF}]=\"\"><C-O>F\"")
+call HTMLmap("inoremap", "<lead>ls", "<[{LINK REL}]=\"stylesheet\" [{TYPE}]=\"text/css\" [{HREF}]=\"\" /><C-O>F\"")
 " Visual mapping:
-call HTMLmap("vnoremap", "<lead>ls", "<ESC>`>a\"><C-O>`<<[{LINK REL}]=\"stylesheet\" [{TYPE}]=\"text/css\" [{HREF}]=\"<ESC>", 2)
+call HTMLmap("vnoremap", "<lead>ls", "<ESC>`>a\" /><C-O>`<<[{LINK REL}]=\"stylesheet\" [{TYPE}]=\"text/css\" [{HREF}]=\"<ESC>", 2)
 " Motion mapping:
 call HTMLmapo('<lead>ls', 0)
 
@@ -1846,7 +1877,7 @@ call HTMLmapo('<lead>va', 0)
 call HTMLmap("inoremap", "<lead>js", "<C-O>:call <SID>TC(0)<CR><[{SCRIPT TYPE}]=\"text/javascript\"><CR><!--<CR>// --><CR></[{SCRIPT}]><ESC>:call <SID>TC(1)<CR>kko")
 
 "       Sourced JavaScript
-call HTMLmap("inoremap", "<lead>sj", "<[{SCRIPT SRC}]=\"\" [{TYPE}]=\"text/javascript\"></[{SCRIPT}]><C-O>5F\"")
+call HTMLmap("inoremap", "<lead>sj", "<[{SCRIPT SRC}]=\"\" [{TYPE}]=\"text/javascript\"></[{SCRIPT}]><C-O>3F\"")
 
 "       EMBED
 call HTMLmap("inoremap", "<lead>eb", "<[{EMBED SRC=\"\" WIDTH=\"\" HEIGHT}]=\"\" /><CR><[{NOEMBED></NOEMBED}]><ESC>k$5F\"i")
@@ -2262,7 +2293,7 @@ if ! s:BoolVar('g:no_html_toolbar') && has("toolbar")
       \ || globpath(&rtp, 'bitmaps/Browser.xpm') == ''
     let s:tmp = "Warning:\nYou need to install the Toolbar Bitmaps for the "
           \ . fnamemodify(s:thisfile, ':t') . " plugin. "
-          \ . "See: http://www.infynity.spodzone.com/vim/HTML/#files\n"
+          \ . "See: http://christianrobinson.name/vim/HTML/#files\n"
           \ . 'Or see ":help g:no_html_toolbar".'
     if has('win32') || has('win64') || has('unix')
       let s:tmp = confirm(s:tmp, "&Dismiss\nView &Help\nGet &Bitmaps", 1, 'Warning')
@@ -2276,9 +2307,9 @@ if ! s:BoolVar('g:no_html_toolbar') && has("toolbar")
       wincmd p
     elseif s:tmp == 3
       if has('win32') || has('win64')
-        execute '!start RunDll32.exe shell32.dll,ShellExec_RunDLL http://www.infynity.spodzone.com/vim/HTML/\#files'
+        execute '!start RunDll32.exe shell32.dll,ShellExec_RunDLL http://christianrobinson.name/vim/HTML/\#files'
       else
-        call LaunchBrowser('default', 2, 'http://www.infynity.spodzone.com/vim/HTML/#files')
+        call LaunchBrowser('default', 2, 'http://christianrobinson.name/vim/HTML/#files')
       endif
     endif
 
@@ -2465,7 +2496,7 @@ cnoremenu 1.92 PopUp.Select\ &Inner\ Ta&g <C-C>vit
 augroup HTMLmenu
 au!
 "autocmd BufLeave * call s:MenuControl()
-autocmd BufEnter,WinEnter * call s:MenuControl()
+autocmd BufEnter,WinEnter * call s:MenuControl() | call s:TCB(2)
 augroup END
 
 amenu HTM&L.HTML\ Help<TAB>:help\ HTML\.txt :help HTML.txt<CR>

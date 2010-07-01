@@ -2,13 +2,14 @@
 "
 " Vim script to launch/control browsers
 "
-" Copyright ????-2009 Christian J. Robinson <heptite@gmail.com>
+" Copyright ????-2010 Christian J. Robinson <heptite@gmail.com>
 "
 " Distributable under the terms of the GNU GPL.
 "
 " Currently supported browsers:
 " Unix:
 "  - Firefox  (remote [new window / new tab] / launch)  [1]
+"    (This can also be Iceweasel for Debian installs.)
 "  - Mozilla  (remote [new window / new tab] / launch)  [1]
 "  - Netscape (remote [new window] / launch)            [1]
 "  - Opera    (remote [new window / new tab] / launch)
@@ -28,6 +29,9 @@
 "
 " TODO:
 "
+"  - Phase out support for "mozilla" and "netscape" since they're so old
+"    now that nobody should be using them.
+"
 "  - Support more browsers?
 "    + links  (text browser)
 "
@@ -38,7 +42,7 @@
 "  - Defaulting to lynx if the the GUI isn't available on Unix may be
 "    undesirable.
 "
-"  - Support for Windows.
+"  - Support for Windows (sortof exists in HTML.vim now).
 "
 " BUGS:
 "  * [1] On Unix, the remote control for firefox/mozilla/netscape will
@@ -49,7 +53,7 @@
 "    so execution errors aren't actually seen when not issuing a command to
 "    an already running browser.
 "
-"  * The code is a mess and mostly needs to be rethought.  Oh well.
+"  * This code is a mess and mostly needs to be rethought.  Oh well.
 "
 "--------------------------------------------------------------------------
 
@@ -57,8 +61,8 @@ if v:version < 700
 	finish
 endif
 
-command! -nargs=+ BERROR :echohl ErrorMsg | echomsg <q-args> | echohl None
-command! -nargs=+ BMESG :echohl Todo | echo <q-args> | echohl None
+command! -nargs=+ BRCERROR :echohl ErrorMsg | echomsg <q-args> | echohl None
+command! -nargs=+ BRCMESG :echohl Todo | echo <q-args> | echohl None
 
 function! s:ShellEscape(str) " {{{
 	if exists('*shellescape')
@@ -71,8 +75,8 @@ endfunction " }}}
 
 if has('mac') || has('macunix')  " {{{1
 
-	"BERROR Currently there's no browser control support for Macintosh.
-	"BERROR See ":help html-author-notes"
+	"BRCERROR Currently there's no browser control support for Macintosh.
+	"BRCERROR See ":help html-author-notes"
 
 
 	" The following code is provided by Israel Chauca Fuentes
@@ -95,7 +99,7 @@ if has('mac') || has('macunix')  " {{{1
 
 	function! OpenInMacApp(app, ...) " {{{
 		if (! s:MacAppExists(a:app) && a:app !=? 'default')
-			exec 'BERROR ' . a:app . " not found."
+			exec 'BRCERROR ' . a:app . " not found."
 			return 0
 		endif
 
@@ -121,10 +125,10 @@ if has('mac') || has('macunix')  " {{{1
 			if new != 0 && use_AS
 				if new == 2
 					let torn = 't'
-					BMESG Opening file in new Safari tab...
+					BRCMESG Opening file in new Safari tab...
 				else
 					let torn = 'n'
-					BMESG Opening file in new Safari window...
+					BRCMESG Opening file in new Safari window...
 				endif
 				let script = '-e "tell application \"safari\"" ' .
 				\ '-e "activate" ' .
@@ -144,9 +148,9 @@ if has('mac') || has('macunix')  " {{{1
 			else
 				if new != 0
 					" Let the user know what's going on:
-					exec 'BERROR ' . as_msg
+					exec 'BRCERROR ' . as_msg
 				endif
-				BMESG Opening file in Safari...
+				BRCMESG Opening file in Safari...
 				let command = "/usr/bin/open -a safari " . s:ShellEscape(file)
 			endif
 		endif "}}}
@@ -156,11 +160,11 @@ if has('mac') || has('macunix')  " {{{1
 				if new == 2
 
 					let torn = 't'
-					BMESG Opening file in new Firefox tab...
+					BRCMESG Opening file in new Firefox tab...
 				else
 
 					let torn = 'n'
-					BMESG Opening file in new Firefox window...
+					BRCMESG Opening file in new Firefox window...
 				endif
 				let script = '-e "tell application \"firefox\"" ' .
 				\ '-e "activate" ' .
@@ -180,10 +184,10 @@ if has('mac') || has('macunix')  " {{{1
 			else
 				if new != 0
 					" Let the user know wath's going on:
-					exec 'BERROR ' . as_msg
+					exec 'BRCERROR ' . as_msg
 
 				endif
-				BMESG Opening file in Firefox...
+				BRCMESG Opening file in Firefox...
 				let command = "/usr/bin/open -a firefox " . s:ShellEscape(file)
 			endif
 		endif " }}}
@@ -193,11 +197,11 @@ if has('mac') || has('macunix')  " {{{1
 				if new == 2
 
 					let torn = 't'
-					BMESG Opening file in new Opera tab...
+					BRCMESG Opening file in new Opera tab...
 				else
 
 					let torn = 'n'
-					BMESG Opening file in new Opera window...
+					BRCMESG Opening file in new Opera window...
 				endif
 				let script = '-e "tell application \"Opera\"" ' .
 				\ '-e "activate" ' .
@@ -215,23 +219,23 @@ if has('mac') || has('macunix')  " {{{1
 			else
 				if new != 0
 					" Let the user know what's going on:
-					exec 'BERROR ' . as_msg
+					exec 'BRCERROR ' . as_msg
 
 				endif
-				BMESG Opening file in Opera...
+				BRCMESG Opening file in Opera...
 				let command = "/usr/bin/open -a opera " . s:ShellEscape(file)
 			endif
 		endif " }}}
 
 		if (a:app ==? 'default')
 
-			BMESG Opening file in default browser...
+			BRCMESG Opening file in default browser...
 			let command = "/usr/bin/open " . s:ShellEscape(file)
 		endif
 
 		if (! exists('command'))
 
-			exe 'BMESG Opening ' . substitute(a:app, '^.', '\U&', '') . '...'
+			exe 'BRCMESG Opening ' . substitute(a:app, '^.', '\U&', '') . '...'
 			let command = "open -a " . a:app . " " . s:ShellEscape(file)
 		endif
 
@@ -241,9 +245,10 @@ if has('mac') || has('macunix')  " {{{1
 elseif has('unix') " {{{1
 
 	let s:Browsers = {}
+	" Set this manually, since the first in the list is the default:
 	let s:BrowsersExist = 'fmnolw'
 
-	let s:Browsers['f'] = ['firefox',  0]
+	let s:Browsers['f'] = [['firefox', 'iceweasel'],  0]
 	let s:Browsers['m'] = ['mozilla',  0]
 	let s:Browsers['n'] = ['netscape', 0]
 	let s:Browsers['o'] = ['opera',    0]
@@ -251,15 +256,26 @@ elseif has('unix') " {{{1
 	let s:Browsers['w'] = ['w3m',      0]
 
 	for s:temp1 in keys(s:Browsers)
-		let s:temp2 = system("which " . s:Browsers[s:temp1][0])
+		for s:temp2 in (type(s:Browsers[s:temp1][0]) == type([]) ? s:Browsers[s:temp1][0] : [s:Browsers[s:temp1][0]])
+			let s:temp3 = system("which " . s:temp2)
+			if v:shell_error == 0
+				break
+			endif
+		endfor
+
 		if v:shell_error == 0
-			let s:Browsers[s:temp1][1] = substitute(s:temp2, "\n$", '', '')
+			let s:Browsers[s:temp1][0] = s:temp2
+			let s:Browsers[s:temp1][1] = substitute(s:temp3, "\n$", '', '')
 		else
 			let s:BrowsersExist = substitute(s:BrowsersExist, s:temp1, '', 'g')
 		endif
 	endfor
 
-	unlet s:temp1 s:temp2
+	"for [key, value] in items(s:Browsers)
+	"	echomsg key . ': ' . join(value, ', ')
+	"endfor
+
+	unlet s:temp1 s:temp2 s:temp3
 
 	let s:NetscapeRemoteCmd = substitute(system("which mozilla-xremote-client"), "\n$", '', '')
 	if v:shell_error != 0
@@ -273,8 +289,8 @@ elseif has('unix') " {{{1
 		elseif s:Browsers['n'][1] != 0
 			let s:NetscapeRemoteCmd = s:Browsers['n'][1]
 		else
-			"BERROR Can't set up remote-control preview code.
-			"BERROR (netscape-remote/firefox/mozilla/netscape not installed?)
+			"BRCERROR Can't set up remote-control preview code.
+			"BRCERROR (netscape-remote/firefox/mozilla/netscape not installed?)
 			"finish
 			let s:NetscapeRemoteCmd = 'false'
 		endif
@@ -282,8 +298,8 @@ elseif has('unix') " {{{1
 
 elseif has('win32') || has('win64')  " {{{1
 
-	BERROR Currently there's no browser control support for Windows.
-	BERROR See ":help html-author-notes"
+	BRCERROR Currently there's no browser control support for Windows.
+	BRCERROR See ":help html-author-notes"
 	
 	"let s:Browsers = {}
 	"let s:BrowsersExist = ''
@@ -355,7 +371,7 @@ function! LaunchBrowser(...)
 	endif
 
 	if err
-		exe 'BERROR E119: Wrong number of arguments for function: '
+		exe 'BRCERROR E119: Wrong number of arguments for function: '
 					\ . substitute(expand('<sfile>'), '^function ', '', '')
 		return 0
 	endif
@@ -366,16 +382,18 @@ function! LaunchBrowser(...)
 
 	if s:BrowsersExist !~? which
 		if exists('s:Browsers[which]')
-			exe 'BERROR ' . s:Browsers[which][0] . ' not found'
+			exe 'BRCERROR '
+						\ . (type(s:Browsers[which][0]) == type([]) ? s:Browsers[which][0][0] : s:Browsers[which][0])
+						\ . ' not found'
 		else
-			exe 'BERROR Unknown browser ID: ' . which
+			exe 'BRCERROR Unknown browser ID: ' . which
 		endif
 
 		return 0
 	endif
 
 	if has('unix') && (! strlen($DISPLAY) || which ==? 'l') " {{{
-		BMESG Launching lynx...
+		BRCMESG Launching lynx...
 
 		if (has("gui_running") || new) && strlen($DISPLAY)
 			let command='xterm -T Lynx -e lynx ' . s:ShellEscape(file) . ' &'
@@ -384,14 +402,14 @@ function! LaunchBrowser(...)
 			execute "!lynx " . s:ShellEscape(file)
 
 			if v:shell_error
-				BERROR Unable to launch lynx.
+				BRCERROR Unable to launch lynx.
 				return 0
 			endif
 		endif
 	endif " }}}
 
 	if (which ==? 'w') " {{{
-		BMESG Launching w3m...
+		BRCMESG Launching w3m...
 
 		if (has("gui_running") || new) && strlen($DISPLAY)
 			let command='xterm -T w3m -e w3m ' . s:ShellEscape(file) . ' &'
@@ -400,7 +418,7 @@ function! LaunchBrowser(...)
 			execute "!w3m " . s:ShellEscape(file)
 
 			if v:shell_error
-				BERROR Unable to launch w3m.
+				BRCERROR Unable to launch w3m.
 				return 0
 			endif
 		endif
@@ -408,13 +426,13 @@ function! LaunchBrowser(...)
 
 	if (which ==? 'o') " {{{
 		if new == 2
-			BMESG Opening new Opera tab...
+			BRCMESG Opening new Opera tab...
 			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " -remote 'openURL('" . s:ShellEscape(file) . "',new-page)' &\""
 		elseif new
-			BMESG Opening new Opera window...
+			BRCMESG Opening new Opera window...
 			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " -remote 'openURL('" . s:ShellEscape(file) . "',new-window)' &\""
 		else
-			BMESG Sending remote command to Opera...
+			BRCMESG Sending remote command to Opera...
 			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . s:ShellEscape(file) . " &\""
 		endif
 	endif " }}}
@@ -443,17 +461,17 @@ function! LaunchBrowser(...)
 
 	if (which ==? 'f') " {{{
 		if ! FirefoxRunning
-			BMESG Launching firefox, please wait...
+			BRCMESG Launching firefox, please wait...
 			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . s:ShellEscape(file) . " &\""
 		else
 			if new == 2
-				BMESG Opening new Firefox tab...
+				BRCMESG Opening new Firefox tab...
 				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "',new-tab)'"
 			elseif new
-				BMESG Opening new Firefox window...
+				BRCMESG Opening new Firefox window...
 				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "',new-window)'"
 			else
-				BMESG Sending remote command to Firefox...
+				BRCMESG Sending remote command to Firefox...
 				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "')'"
 			endif
 		endif
@@ -461,17 +479,17 @@ function! LaunchBrowser(...)
 
 	if (which ==? 'm') " {{{
 		if ! MozillaRunning
-			BMESG Launching mozilla, please wait...
+			BRCMESG Launching mozilla, please wait...
 			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . s:ShellEscape(file) . " &\""
 		else
 			if new == 2
-				BMESG Opening new Mozilla tab...
+				BRCMESG Opening new Mozilla tab...
 				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "',new-tab)'"
 			elseif new
-				BMESG Opening new Mozilla window...
+				BRCMESG Opening new Mozilla window...
 				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "',new-window)'"
 			else
-				BMESG Sending remote command to Mozilla...
+				BRCMESG Sending remote command to Mozilla...
 				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "')'"
 			endif
 		endif
@@ -479,20 +497,25 @@ function! LaunchBrowser(...)
 
 	if (which ==? 'n') " {{{
 		if ! NetscapeRunning
-			BMESG Launching netscape, please wait...
+			BRCMESG Launching netscape, please wait...
 			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . s:ShellEscape(file) . " &\""
 		else
 			if new
-				BMESG Opening new Netscape window...
+				BRCMESG Opening new Netscape window...
 				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "',new-window)'"
 			else
-				BMESG Sending remote command to Netscape...
+				BRCMESG Sending remote command to Netscape...
 				let command=s:NetscapeRemoteCmd . " -remote 'openURL('" . s:ShellEscape(file) . "')'"
 			endif
 		endif
 	endif " }}}
 
 	if exists('l:command')
+
+		if l:command =~# '^false'
+			BERROR Remote command is impossible, probably because the browser you are trying to control does not exist.
+			return 0
+		endif
 
 		if command =~ 'mozilla-xremote-client'
 			let command = substitute(command, '-remote', '-a ' . s:Browsers[which][0], '')
@@ -506,7 +529,7 @@ function! LaunchBrowser(...)
 		call system(command)
 
 		if has('unix') && v:shell_error
-			exe 'BERROR Command failed: ' . command
+			exe 'BRCERROR Command failed: ' . command
 			return 0
 		endif
 
@@ -514,7 +537,7 @@ function! LaunchBrowser(...)
 	endif
 
 	" Should never get here...if we do, something went wrong:
-	BERROR Something went wrong, shouln't ever get here...
+	BRCERROR Something went wrong, shouln't ever get here...
 	return 0
 endfunction " }}}1
 
