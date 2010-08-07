@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2010 Jun 02
+		Last change: 2010 Jul 31
 		Author: Christian J. Robinson
 
 						*HTML.vim* *HTML-macros*
@@ -750,15 +750,20 @@ Registered		&reg;		&rO		*i_&rO*
 Trademark		&trade;		&tm		*i_&tm*
 Multiply		&times;		&x		*i_&x*
 Divide			&divide;	&/		*i_&/*
+Plus/Minus		&plusmn;	&+-		*i_&+-*
 Inverted Exclamation	&iexcl;		&!		*i_&!*
 Inverted Question	&iquest;	&?		*i_&?*
 Degree			&deg;		&dg		*i_&dg*
 Micro			&micro;		&mi		*i_&mi*
 Paragraph		&para;		&pa		*i_&pa*
+Section			&sect;		&se		*i_&se*
 Middle Dot		&middot;	&.		*i_&.*
 One Quarter		&frac14;	&14		*i_&14*
 One Half		&frac12;	&12		*i_&12*
 Three Quarters		&frac34;	&34		*i_&34*
+Superscript 1		&sup1;		&1^		*i_&1^*
+Superscript 2		&sup2;		&2^		*i_&2^*
+Superscript 3		&sup3;		&3^		*i_&3^*
 En dash			&ndash;		&n-/&2-		*i_&n-* *i_&2-*
 Em dash			&mdash;		&m-/&--/&3-	*i_&m-* *i_&--* *i_3-*
 Ellipsis		&hellip;	&3.		*i_&3.*
@@ -1043,7 +1048,7 @@ HTMLmap({maptype}, {lhs}, {rhs} [, {re-indent}])	*HTMLmap()*
 	Note that more "magic" than what's documented here gets applied to the
 	mappings depending on their mode, the value of {re-indent} and so on.
 
-HTMLmapo({map}, {insert})					*HTMLmapo()*
+HTMLmapo({map}, {insert})				*HTMLmapo()*
 	Creates an operator-pending mapping wrapper for {map} that calls the
 	visual mapping by the same name.  {insert} is a boolean value (0 or 1)
 	that indicates whether to end in insert mode.

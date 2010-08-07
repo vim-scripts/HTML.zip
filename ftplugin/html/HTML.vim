@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <heptite@gmail.com>
 " URL:         http://christianrobinson.name/vim/HTML/
-" Last Change: June 11, 2010
-" Version:     0.36.3
+" Last Change: July 31, 2010
+" Version:     0.36.4
 " Original Concept: Doug Renze
 "
 "
@@ -52,7 +52,7 @@
 " - Add :HTMLmappingsreload/html/xhtml to the HTML menu?
 "
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.214 2010/06/11 17:26:25 infynity Exp $
+" $Id: HTML.vim,v 1.217 2010/07/31 22:56:45 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -2076,7 +2076,6 @@ call HTMLmap("inoremap", "<elead>o'", "&oacute;")
 call HTMLmap("inoremap", "<elead>o^", "&ocirc;")
 call HTMLmap("inoremap", "<elead>o~", "&otilde;")
 call HTMLmap("inoremap", '<elead>o"', "&ouml;")
-call HTMLmap("inoremap", "<elead>x", "&times;")
 call HTMLmap("inoremap", "<elead>u`", "&ugrave;")
 call HTMLmap("inoremap", "<elead>u'", "&uacute;")
 call HTMLmap("inoremap", "<elead>u^", "&ucirc;")
@@ -2086,15 +2085,21 @@ call HTMLmap("inoremap", '<elead>y"', "&yuml;")
 call HTMLmap("inoremap", "<elead>2<", "&laquo;")
 call HTMLmap("inoremap", "<elead>2>", "&raquo;")
 call HTMLmap("inoremap", '<elead>"', "&uml;")
-call HTMLmap("inoremap", "<elead>/", "&divide;")
 call HTMLmap("inoremap", "<elead>o/", "&oslash;")
 call HTMLmap("inoremap", "<elead>sz", "&szlig;")
 call HTMLmap("inoremap", "<elead>!", "&iexcl;")
 call HTMLmap("inoremap", "<elead>?", "&iquest;")
 call HTMLmap("inoremap", "<elead>dg", "&deg;")
+call HTMLmap("inoremap", "<elead>1^", "&sup1;")
+call HTMLmap("inoremap", "<elead>2^", "&sup2;")
+call HTMLmap("inoremap", "<elead>3^", "&sup3;")
 call HTMLmap("inoremap", "<elead>mi", "&micro;")
 call HTMLmap("inoremap", "<elead>pa", "&para;")
+call HTMLmap("inoremap", "<elead>se", "&sect;")
 call HTMLmap("inoremap", "<elead>.", "&middot;")
+call HTMLmap("inoremap", "<elead>x", "&times;")
+call HTMLmap("inoremap", "<elead>/", "&divide;")
+call HTMLmap("inoremap", "<elead>+-", "&plusmn;")
 call HTMLmap("inoremap", "<elead>14", "&frac14;")
 call HTMLmap("inoremap", "<elead>12", "&frac12;")
 call HTMLmap("inoremap", "<elead>34", "&frac34;")
@@ -2331,7 +2336,7 @@ if ! s:BoolVar('g:no_html_toolbar') && has("toolbar")
 
    menu 1.50      ToolBar.-sep1-    <nul>
 
-  tmenu           1.60  ToolBar.Template   Create Template
+  tmenu           1.60  ToolBar.Template   Insert Template
   HTMLmenu amenu  1.60  ToolBar.Template   html
 
    menu           1.65  ToolBar.-sep2-     <nul>
@@ -2632,76 +2637,83 @@ HTMLemenu HTML.Character\ Entities.Quotation\ mark      '        "
 HTMLemenu HTML.Character\ Entities.Cent                 c\|      ¢
 HTMLemenu HTML.Character\ Entities.Pound                #        £
 HTMLemenu HTML.Character\ Entities.Yen                  Y=       ¥
-HTMLemenu HTML.Character\ Entities.Left\ Angle\ Quote   2<       «
-HTMLemenu HTML.Character\ Entities.Right\ Angle\ Quote  2>       »
+ menu HTML.Character\ Entities.-sep2- <nul>
 HTMLemenu HTML.Character\ Entities.Copyright            cO       ©
 HTMLemenu HTML.Character\ Entities.Registered           rO       ®
 HTMLemenu HTML.Character\ Entities.Trademark            tm       TM
-HTMLemenu HTML.Character\ Entities.Multiply             x        ×
-HTMLemenu HTML.Character\ Entities.Divide / ÷
+ menu HTML.Character\ Entities.-sep3- <nul>
+HTMLemenu HTML.Character\ Entities.Left\ Angle\ Quote   2<       «
+HTMLemenu HTML.Character\ Entities.Right\ Angle\ Quote  2>       »
 HTMLemenu HTML.Character\ Entities.Inverted\ Exlamation !        ¡
 HTMLemenu HTML.Character\ Entities.Inverted\ Question   ?        ¿
-HTMLemenu HTML.Character\ Entities.Degree               dg       °
-HTMLemenu HTML.Character\ Entities.Micro                mi       µ
 HTMLemenu HTML.Character\ Entities.Paragraph            pa       ¶
+HTMLemenu HTML.Character\ Entities.Section              se       §
 HTMLemenu HTML.Character\ Entities.Middle\ Dot          .        ·
-HTMLemenu HTML.Character\ Entities.One\ Quarter         14       ¼
-HTMLemenu HTML.Character\ Entities.One\ Half            12       ½
-HTMLemenu HTML.Character\ Entities.Three\ Quarters      34       ¾
 HTMLemenu HTML.Character\ Entities.En\ dash             n-       \-
 HTMLemenu HTML.Character\ Entities.Em\ dash             m-       --
 HTMLemenu HTML.Character\ Entities.Ellipsis             3.       ...
- menu HTML.Character\ Entities.-sep2- <nul>
-HTMLemenu HTML.Character\ Entities.&Graves.A-grave A` À
-HTMLemenu HTML.Character\ Entities.&Graves.a-grave a` à
-HTMLemenu HTML.Character\ Entities.&Graves.E-grave E` È
-HTMLemenu HTML.Character\ Entities.&Graves.e-grave e` è
-HTMLemenu HTML.Character\ Entities.&Graves.I-grave I` Ì
-HTMLemenu HTML.Character\ Entities.&Graves.i-grave i` ì
-HTMLemenu HTML.Character\ Entities.&Graves.O-grave O` Ò
-HTMLemenu HTML.Character\ Entities.&Graves.o-grave o` ò
-HTMLemenu HTML.Character\ Entities.&Graves.U-grave U` Ù
-HTMLemenu HTML.Character\ Entities.&Graves.u-grave u` ù
-HTMLemenu HTML.Character\ Entities.&Acutes.A-acute A' Á
-HTMLemenu HTML.Character\ Entities.&Acutes.a-acute a' á
-HTMLemenu HTML.Character\ Entities.&Acutes.E-acute E' É
-HTMLemenu HTML.Character\ Entities.&Acutes.e-acute e' é
-HTMLemenu HTML.Character\ Entities.&Acutes.I-acute I' Í
-HTMLemenu HTML.Character\ Entities.&Acutes.i-acute i' í
-HTMLemenu HTML.Character\ Entities.&Acutes.O-acute O' Ó
-HTMLemenu HTML.Character\ Entities.&Acutes.o-acute o' ó
-HTMLemenu HTML.Character\ Entities.&Acutes.U-acute U' Ú
-HTMLemenu HTML.Character\ Entities.&Acutes.u-acute u' ú
-HTMLemenu HTML.Character\ Entities.&Acutes.Y-acute Y' Ý
-HTMLemenu HTML.Character\ Entities.&Acutes.y-acute y' ý
-HTMLemenu HTML.Character\ Entities.&Tildes.A-tilde A~ Ã
-HTMLemenu HTML.Character\ Entities.&Tildes.a-tilde a~ ã
-HTMLemenu HTML.Character\ Entities.&Tildes.N-tilde N~ Ñ
-HTMLemenu HTML.Character\ Entities.&Tildes.n-tilde n~ ñ
-HTMLemenu HTML.Character\ Entities.&Tildes.O-tilde O~ Õ
-HTMLemenu HTML.Character\ Entities.&Tildes.o-tilde o~ õ
-HTMLemenu HTML.Character\ Entities.&Circumflexes.A-circumflex A^ Â
-HTMLemenu HTML.Character\ Entities.&Circumflexes.a-circumflex a^ â
-HTMLemenu HTML.Character\ Entities.&Circumflexes.E-circumflex E^ Ê
-HTMLemenu HTML.Character\ Entities.&Circumflexes.e-circumflex e^ ê
-HTMLemenu HTML.Character\ Entities.&Circumflexes.I-circumflex I^ Î
-HTMLemenu HTML.Character\ Entities.&Circumflexes.i-circumflex i^ î
-HTMLemenu HTML.Character\ Entities.&Circumflexes.O-circumflex O^ Ô
-HTMLemenu HTML.Character\ Entities.&Circumflexes.o-circumflex o^ ô
-HTMLemenu HTML.Character\ Entities.&Circumflexes.U-circumflex U^ Û
-HTMLemenu HTML.Character\ Entities.&Circumflexes.u-circumflex u^ û
-HTMLemenu HTML.Character\ Entities.&Umlauts.A-umlaut A" Ä
-HTMLemenu HTML.Character\ Entities.&Umlauts.a-umlaut a" ä
-HTMLemenu HTML.Character\ Entities.&Umlauts.E-umlaut E" Ë
-HTMLemenu HTML.Character\ Entities.&Umlauts.e-umlaut e" ë
-HTMLemenu HTML.Character\ Entities.&Umlauts.I-umlaut I" Ï
-HTMLemenu HTML.Character\ Entities.&Umlauts.i-umlaut i" ï
-HTMLemenu HTML.Character\ Entities.&Umlauts.O-umlaut O" Ö
-HTMLemenu HTML.Character\ Entities.&Umlauts.o-umlaut o" ö
-HTMLemenu HTML.Character\ Entities.&Umlauts.U-umlaut U" Ü
-HTMLemenu HTML.Character\ Entities.&Umlauts.u-umlaut u" ü
-HTMLemenu HTML.Character\ Entities.&Umlauts.y-umlaut y" ÿ
-HTMLemenu HTML.Character\ Entities.&Umlauts.Umlaut   "  ¨
+ menu HTML.Character\ Entities.-sep5- <nul>
+HTMLemenu HTML.Character\ Entities.Math.Multiply        x   ×
+HTMLemenu HTML.Character\ Entities.Math.Divide          /   ÷
+HTMLemenu HTML.Character\ Entities.Math.Plus/Minus      +-  ±
+HTMLemenu HTML.Character\ Entities.Math.One\ Quarter    14  ¼
+HTMLemenu HTML.Character\ Entities.Math.One\ Half       12  ½
+HTMLemenu HTML.Character\ Entities.Math.Three\ Quarters 34  ¾
+HTMLemenu HTML.Character\ Entities.Math.Superscript\ 1  1^  ¹
+HTMLemenu HTML.Character\ Entities.Math.Superscript\ 2  2^  ²
+HTMLemenu HTML.Character\ Entities.Math.Superscript\ 3  3^  ³
+HTMLemenu HTML.Character\ Entities.Math.Degree          dg  °
+HTMLemenu HTML.Character\ Entities.Math.Micro           mi  µ
+HTMLemenu HTML.Character\ Entities.&Graves.A-grave  A`  À
+HTMLemenu HTML.Character\ Entities.&Graves.a-grave  a`  à
+HTMLemenu HTML.Character\ Entities.&Graves.E-grave  E`  È
+HTMLemenu HTML.Character\ Entities.&Graves.e-grave  e`  è
+HTMLemenu HTML.Character\ Entities.&Graves.I-grave  I`  Ì
+HTMLemenu HTML.Character\ Entities.&Graves.i-grave  i`  ì
+HTMLemenu HTML.Character\ Entities.&Graves.O-grave  O`  Ò
+HTMLemenu HTML.Character\ Entities.&Graves.o-grave  o`  ò
+HTMLemenu HTML.Character\ Entities.&Graves.U-grave  U`  Ù
+HTMLemenu HTML.Character\ Entities.&Graves.u-grave  u`  ù
+HTMLemenu HTML.Character\ Entities.&Acutes.A-acute  A'  Á
+HTMLemenu HTML.Character\ Entities.&Acutes.a-acute  a'  á
+HTMLemenu HTML.Character\ Entities.&Acutes.E-acute  E'  É
+HTMLemenu HTML.Character\ Entities.&Acutes.e-acute  e'  é
+HTMLemenu HTML.Character\ Entities.&Acutes.I-acute  I'  Í
+HTMLemenu HTML.Character\ Entities.&Acutes.i-acute  i'  í
+HTMLemenu HTML.Character\ Entities.&Acutes.O-acute  O'  Ó
+HTMLemenu HTML.Character\ Entities.&Acutes.o-acute  o'  ó
+HTMLemenu HTML.Character\ Entities.&Acutes.U-acute  U'  Ú
+HTMLemenu HTML.Character\ Entities.&Acutes.u-acute  u'  ú
+HTMLemenu HTML.Character\ Entities.&Acutes.Y-acute  Y'  Ý
+HTMLemenu HTML.Character\ Entities.&Acutes.y-acute  y'  ý
+HTMLemenu HTML.Character\ Entities.&Tildes.A-tilde  A~  Ã
+HTMLemenu HTML.Character\ Entities.&Tildes.a-tilde  a~  ã
+HTMLemenu HTML.Character\ Entities.&Tildes.N-tilde  N~  Ñ
+HTMLemenu HTML.Character\ Entities.&Tildes.n-tilde  n~  ñ
+HTMLemenu HTML.Character\ Entities.&Tildes.O-tilde  O~  Õ
+HTMLemenu HTML.Character\ Entities.&Tildes.o-tilde  o~  õ
+HTMLemenu HTML.Character\ Entities.&Circumflexes.A-circumflex  A^  Â
+HTMLemenu HTML.Character\ Entities.&Circumflexes.a-circumflex  a^  â
+HTMLemenu HTML.Character\ Entities.&Circumflexes.E-circumflex  E^  Ê
+HTMLemenu HTML.Character\ Entities.&Circumflexes.e-circumflex  e^  ê
+HTMLemenu HTML.Character\ Entities.&Circumflexes.I-circumflex  I^  Î
+HTMLemenu HTML.Character\ Entities.&Circumflexes.i-circumflex  i^  î
+HTMLemenu HTML.Character\ Entities.&Circumflexes.O-circumflex  O^  Ô
+HTMLemenu HTML.Character\ Entities.&Circumflexes.o-circumflex  o^  ô
+HTMLemenu HTML.Character\ Entities.&Circumflexes.U-circumflex  U^  Û
+HTMLemenu HTML.Character\ Entities.&Circumflexes.u-circumflex  u^  û
+HTMLemenu HTML.Character\ Entities.&Umlauts.A-umlaut  A"  Ä
+HTMLemenu HTML.Character\ Entities.&Umlauts.a-umlaut  a"  ä
+HTMLemenu HTML.Character\ Entities.&Umlauts.E-umlaut  E"  Ë
+HTMLemenu HTML.Character\ Entities.&Umlauts.e-umlaut  e"  ë
+HTMLemenu HTML.Character\ Entities.&Umlauts.I-umlaut  I"  Ï
+HTMLemenu HTML.Character\ Entities.&Umlauts.i-umlaut  i"  ï
+HTMLemenu HTML.Character\ Entities.&Umlauts.O-umlaut  O"  Ö
+HTMLemenu HTML.Character\ Entities.&Umlauts.o-umlaut  o"  ö
+HTMLemenu HTML.Character\ Entities.&Umlauts.U-umlaut  U"  Ü
+HTMLemenu HTML.Character\ Entities.&Umlauts.u-umlaut  u"  ü
+HTMLemenu HTML.Character\ Entities.&Umlauts.y-umlaut  y"  ÿ
+HTMLemenu HTML.Character\ Entities.&Umlauts.Umlaut    "   ¨
 HTMLemenu HTML.Character\ Entities.Greek\ &Letters.&Uppercase.Alpha    Al
 HTMLemenu HTML.Character\ Entities.Greek\ &Letters.&Uppercase.Beta     Be
 HTMLemenu HTML.Character\ Entities.Greek\ &Letters.&Uppercase.Gamma    Ga
