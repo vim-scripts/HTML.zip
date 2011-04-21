@@ -61,6 +61,7 @@ if v:version < 700
 	finish
 endif
 
+command! -nargs=+ BRCWARN :echohl WarningMsg | echomsg <q-args> | echohl None
 command! -nargs=+ BRCERROR :echohl ErrorMsg | echomsg <q-args> | echohl None
 command! -nargs=+ BRCMESG :echohl Todo | echo <q-args> | echohl None
 
@@ -99,7 +100,7 @@ if has('mac') || has('macunix')  " {{{1
 
 	function! OpenInMacApp(app, ...) " {{{
 		if (! s:MacAppExists(a:app) && a:app !=? 'default')
-			exec 'BRCERROR ' . a:app . " not found."
+			exec 'BRCERROR ' . a:app . " not found"
 			return 0
 		endif
 
@@ -246,14 +247,14 @@ elseif has('unix') " {{{1
 
 	let s:Browsers = {}
 	" Set this manually, since the first in the list is the default:
-	let s:BrowsersExist = 'fmnolw'
-
-	let s:Browsers['f'] = [['firefox', 'iceweasel'],  0]
-	let s:Browsers['m'] = ['mozilla',  0]
-	let s:Browsers['n'] = ['netscape', 0]
-	let s:Browsers['o'] = ['opera',    0]
-	let s:Browsers['l'] = ['lynx',     0]
-	let s:Browsers['w'] = ['w3m',      0]
+	let s:BrowsersExist = 'fcmnolw'
+	let s:Browsers['f'] = [['firefox', 'iceweasel'],  '']
+	let s:Browsers['c'] = ['google-chrome',  '']
+	let s:Browsers['m'] = ['mozilla',        '']
+	let s:Browsers['n'] = ['netscape',       '']
+	let s:Browsers['o'] = ['opera',          '']
+	let s:Browsers['l'] = ['lynx',           '']
+	let s:Browsers['w'] = ['w3m',            '']
 
 	for s:temp1 in keys(s:Browsers)
 		for s:temp2 in (type(s:Browsers[s:temp1][0]) == type([]) ? s:Browsers[s:temp1][0] : [s:Browsers[s:temp1][0]])
@@ -282,11 +283,11 @@ elseif has('unix') " {{{1
 		let s:NetscapeRemoteCmd = substitute(system("which netscape-remote"), "\n$", '', '')
 	endif
 	if v:shell_error != 0
-		if s:Browsers['f'][1] != 0
+		if s:Browsers['f'][1] != ''
 			let s:NetscapeRemoteCmd = s:Browsers['f'][1]
-		elseif s:Browsers['m'][1] != 0
+		elseif s:Browsers['m'][1] != ''
 			let s:NetscapeRemoteCmd = s:Browsers['m'][1]
-		elseif s:Browsers['n'][1] != 0
+		elseif s:Browsers['n'][1] != ''
 			let s:NetscapeRemoteCmd = s:Browsers['n'][1]
 		else
 			"BRCERROR Can't set up remote-control preview code.
@@ -323,11 +324,12 @@ endif
 " LaunchBrowser() {{{1
 "
 " Usage:
-"  :call LaunchBrowser({[nolmf]},{[012]},[url])
+"  :call LaunchBrowser({[fmncolw] | default},{[012]},[url])
 "    The first argument is which browser to launch:
 "      f - Firefox
 "      m - Mozilla
 "      n - Netscape
+"      c - Chrome
 "      o - Opera
 "      l - Lynx
 "      w - w3m
@@ -437,13 +439,25 @@ function! LaunchBrowser(...)
 		endif
 	endif " }}}
 
-	" Find running instances firefox/mozilla/netscape:  {{{
-	if has('unix')
+	if (which ==? 'c') " {{{
+		if new == 2
+			BRCMESG Opening new Chrome tab...
+			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . s:ShellEscape(file) . " &\""
+		elseif new
+			BRCMESG Opening new Chrome window...
+			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . s:ShellEscape(file) . " --new-window &\""
+		else
+			BRCMESG Sending remote command to Chrome...
+			let command="sh -c \"trap '' HUP; " . s:Browsers[which][1] . " " . s:ShellEscape(file) . " &\""
+		endif
+	endif " }}}
+
+	" Find running instances of firefox/mozilla/netscape:  {{{
+	if has('unix') && (which =~? '^[fmn]$')
 		let FirefoxRunning = 0
 		let MozillaRunning = 0
 		let NetscapeRunning = 0
-
-		let windows = system("xwininfo -root -children | egrep \"[Ff]irefox|[Nn]etscape|[Mm]ozilla\"; return 0")
+		let windows = system("xwininfo -root -children | egrep \"[Ff]irefox|[Cc]hrome|[Nn]etscape|[Mm]ozilla\"; return 0")
 
 		if windows =~? 'firefox'
 			let FirefoxRunning = 1
@@ -513,7 +527,7 @@ function! LaunchBrowser(...)
 	if exists('l:command')
 
 		if l:command =~# '^false'
-			BERROR Remote command is impossible, probably because the browser you are trying to control does not exist.
+			BRCERROR Remote command is impossible, probably because the browser you are trying to control is not installed.
 			return 0
 		endif
 

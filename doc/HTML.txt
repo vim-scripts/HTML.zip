@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2010 Jul 31
+		Last change: 2011 Apr 13
 		Author: Christian J. Robinson
 
 						*HTML.vim* *HTML-macros*
@@ -954,6 +954,15 @@ http://christianrobinson.name/vim/HTML/
 ;nff	Same as |;ff|, but start a new browser window.
 								*n_;tff-unix*
 ;tff	Same as |;nff|, but open a new tab.
+								*n_;gc-unix*
+;gc	Make Chrome view the current file, starting Chrome if it is not
+	running.
+								*n_;ngc-unix*
+;ngc	Same as |;gc|, but start a new browser window.
+								*n_;tgc-unix*
+;tgc	Same as |;ngc|, but open a new tab.
+
+Note: |;gc| and |;tgc| are functionally equivalent for now.
 								*n_;mo*
 ;mo	Make Mozilla view the current file, starting Mozilla if it is not
 	running. (Deprecated!)

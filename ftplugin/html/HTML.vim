@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <heptite@gmail.com>
 " URL:         http://christianrobinson.name/vim/HTML/
-" Last Change: July 31, 2010
-" Version:     0.36.4
+" Last Change: April 13, 2011
+" Version:     0.37.1
 " Original Concept: Doug Renze
 "
 "
@@ -52,7 +52,7 @@
 " - Add :HTMLmappingsreload/html/xhtml to the HTML menu?
 "
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.217 2010/07/31 22:56:45 infynity Exp $
+" $Id: HTML.vim,v 1.220 2011/04/13 20:23:05 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -147,7 +147,7 @@ function! SetIfUnset(var, ...)
 
   if a:0 == 0
     echohl ErrorMsg
-    echomsg "E119: Not enough arguments for function: SetIfUnset"
+    echomsg "E119: Not enough arguments for function: " . expand('<sfile>')
     echohl None
     return -1
   else
@@ -2219,6 +2219,13 @@ elseif has("unix")
     " Firefox: Open a new tab, and view the current file:
     call HTMLmap("nnoremap", "<lead>tff", ":call LaunchBrowser('f',2)<CR>")
 
+    " Chrome: View current file, starting Chrome if it's not running:
+    call HTMLmap("nnoremap", "<lead>gc", ":call LaunchBrowser('c',0)<CR>")
+    " Chrome: Open a new window, and view the current file:
+    call HTMLmap("nnoremap", "<lead>ngc", ":call LaunchBrowser('c',1)<CR>")
+    " Chrome: Open a new tab, and view the current file:
+    call HTMLmap("nnoremap", "<lead>tgc", ":call LaunchBrowser('c',2)<CR>")
+
     " Mozilla: View current file, starting Mozilla if it's not running:
     call HTMLmap("nnoremap", "<lead>mo", ":call LaunchBrowser('m',0)<CR>")
     " Mozilla: Open a new window, and view the current file:
@@ -2453,17 +2460,22 @@ if ! s:BoolVar('g:no_html_toolbar') && has("toolbar")
       HTMLmenu amenu  1.510 ToolBar.Netscape  ne
     endif
 
+    if s:browsers =~ 'c'
+      tmenu           1.520 ToolBar.Chrome    Launch Chrome on Current File
+      HTMLmenu amenu  1.520 ToolBar.Chrome    gc
+    endif
+
     if s:browsers =~ 'o'
-      tmenu           1.520 ToolBar.Opera     Launch Opera on Current File
-      HTMLmenu amenu  1.520 ToolBar.Opera     oa
+      tmenu           1.530 ToolBar.Opera     Launch Opera on Current File
+      HTMLmenu amenu  1.530 ToolBar.Opera     oa
     endif
 
     if s:browsers =~ 'w'
-      tmenu           1.530 ToolBar.w3m       Launch w3m on Current File
-      HTMLmenu amenu  1.530 ToolBar.w3m       w3
+      tmenu           1.540 ToolBar.w3m       Launch w3m on Current File
+      HTMLmenu amenu  1.540 ToolBar.w3m       w3
     elseif s:browsers =~ 'l'
-      tmenu           1.530 ToolBar.Lynx      Launch Lynx on Current File
-      HTMLmenu amenu  1.530 ToolBar.Lynx      ly
+      tmenu           1.540 ToolBar.Lynx      Launch Lynx on Current File
+      HTMLmenu amenu  1.540 ToolBar.Lynx      ly
     endif
 
   elseif maparg(g:html_map_leader . 'db', 'n') != ''
@@ -2533,22 +2545,28 @@ if exists("*LaunchBrowser")
     HTMLmenu amenu - HTML.&Preview.Firefox\ (New\ Tab)     tff
     amenu HTML.Preview.-sep1-                              <nop>
   endif
+  if s:browsers =~ 'c'
+    HTMLmenu amenu - HTML.&Preview.&Chrome                 gc
+    HTMLmenu amenu - HTML.&Preview.Chrome\ (New\ Window)   ngc
+    HTMLmenu amenu - HTML.&Preview.Chrome\ (New\ Tab)      tgc
+    amenu HTML.Preview.-sep2-                              <nop>
+  endif
   if s:browsers =~ 'm'
     HTMLmenu amenu - HTML.&Preview.&Mozilla                mo
     HTMLmenu amenu - HTML.&Preview.Mozilla\ (New\ Window)  nmo
     HTMLmenu amenu - HTML.&Preview.Mozilla\ (New\ Tab)     tmo
-    amenu HTML.Preview.-sep2-                              <nop>
+    amenu HTML.Preview.-sep3-                              <nop>
   endif
   if s:browsers =~ 'n'
     HTMLmenu amenu - HTML.&Preview.&Netscape               ne
     HTMLmenu amenu - HTML.&Preview.Netscape\ (New\ Window) nne
-    amenu HTML.Preview.-sep3-                              <nop>
+    amenu HTML.Preview.-sep4-                              <nop>
   endif
   if s:browsers =~ 'o'
     HTMLmenu amenu - HTML.&Preview.&Opera                  oa
     HTMLmenu amenu - HTML.&Preview.Opera\ (New\ Window)    noa
     HTMLmenu amenu - HTML.&Preview.Opera\ (New\ Tab)       toa
-    amenu HTML.Preview.-sep4-                              <nop>
+    amenu HTML.Preview.-sep5-                              <nop>
   endif
   if s:browsers =~ 'l'
     HTMLmenu amenu - HTML.&Preview.&Lynx                   ly
