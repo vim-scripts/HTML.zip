@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2011 Apr 13
+		Last change: 2011 May 27
 		Author: Christian J. Robinson
 
 						*HTML.vim* *HTML-macros*
@@ -742,6 +742,7 @@ Space (non-breaking)	&nbsp;		&<space>/;<space>	*i_;space*
 Quotation mark (")	&quot;		&'		*i_&'*
 Cent			&cent;		&c|		*i_&cbar*
 Pound			&pound;		&#		*i_&#*
+Euro			&euro;		&E=		*i_&E=*
 Yen			&yen;		&Y=		*i_&Y=*
 Left Angle Quote	&laquo;		&2<		*i_&2<*
 Right Angle Quote	&raquo;		&2>		*i_&2>*
