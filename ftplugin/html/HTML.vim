@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <heptite@gmail.com>
 " URL:         http://christianrobinson.name/vim/HTML/
-" Last Change: May 27, 2011
-" Version:     0.38.1
+" Last Change: July 27, 2011
+" Version:     0.39.1
 " Original Concept: Doug Renze
 "
 "
@@ -52,7 +52,7 @@
 " - Add :HTMLmappingsreload/html/xhtml to the HTML menu?
 "
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.222 2011/05/27 17:24:11 infynity Exp $
+" $Id: HTML.vim,v 1.225 2011/07/28 01:26:53 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -253,35 +253,55 @@ let g:did_html_functions = 1
 
 " HTMLencodeString()  {{{2
 "
-" Encode the characters in a string into their HTML &#...; representations.
+" Encode the characters in a string to/from their HTML representations.
 "
 " Arguments:
-"  1 - String:  The string to encode.
+"  1 - String:  The string to encode/decode.
 "  2 - String:  Optional, whether to decode rather than encode the string:
-"                d/decode: Decode the &#...; elements of the provided string
-"                anything else: Encode the string (default)
+"               - d/decode: Decode the %XX, &#...;, and &#x...; elements of
+"                           the provided string
+"               - %:        Encode as a %XX string
+"               - x:        Encode as a &#x...; string
+"               - omitted:  Encode as a &#...; string
+"               - other:    No change to the string
 " Return Value:
 "  String:  The encoded string.
 function! HTMLencodeString(string, ...)
-  let out = ''
+  let out = a:string
 
-  if a:0 > 0
-    if a:1 =~? '^d\(ecode\)\=$'
-      let out = substitute(a:string, '&#\(\d\+\);', '\=nr2char(submatch(1))', 'g')
-      let out = substitute(out, '%\(\x\{2}\)', '\=nr2char("0x".submatch(1))', 'g')
-      return out
-    elseif a:1 == '%'
-      let out = substitute(a:string, '\(.\)', '\=printf("%%%02X", char2nr(submatch(1)))', 'g')
-      return out
-    endif
+  if a:0 == 0
+    let out = substitute(out, '.', '\=printf("&#%d;",  char2nr(submatch(0)))', 'g')
+  elseif a:1 == 'x'
+    let out = substitute(out, '.', '\=printf("&#x%x;", char2nr(submatch(0)))', 'g')
+  elseif a:1 == '%'
+    let out = substitute(out, '[\x00-\x99]', '\=printf("%%%02X", char2nr(submatch(0)))', 'g')
+  elseif a:1 =~? '^d\(ecode\)\=$'
+    let out = substitute(out, '\(&#x\x\+;\|&#\d\+;\|%\x\x\)', '\=HTMLdecodeSymbol(submatch(1))', 'g')
   endif
 
-  let string = split(a:string, '\zs')
-  for c in string
-    let out = out . '&#' . char2nr(c) . ';'
-  endfor
-
   return out
+endfunction
+
+" HTMLdecodeSymbol()  {{{2
+"
+" Decode the HTML symbol string to its literal character counterpart
+"
+" Arguments:
+"  1 - String:  The string to decode.
+" Return Value:
+"  Character:  The decoded character.
+function! HTMLdecodeSymbol(symbol)
+  if a:symbol =~ '&#\(x\x\+\);'
+    let char = nr2char('0' . strpart(a:symbol, 2, strlen(a:symbol) - 3))
+  elseif a:symbol =~ '&#\(\d\+\);'
+    let char = nr2char(strpart(a:symbol, 2, strlen(a:symbol) - 3))
+  elseif a:symbol =~ '%\(\x\x\)'
+    let char = nr2char('0x' . strpart(a:symbol, 1, strlen(a:symbol) - 1))
+  else
+    let char = a:symbol
+  endif
+
+  return char
 endfunction
 
 " HTMLmap()  {{{2
@@ -412,6 +432,23 @@ function! s:MapCheck(map, mode)
   endif
 
   return 0
+endfunction
+
+" s:SI()  {{{2
+" 
+" 'Escape' special characters with a control-v so Vim doesn't handle them as
+" special keys during insertion.  For use in <C-R>=... type calls in mappings.
+"
+" Arguments:
+"  1 - String: The string to escape.
+" Return Value:
+"  String: The 'escaped' string.
+"
+" Limitations:
+"  Null strings have to be left unescaped, due to a limitation in Vim itself.
+"  (VimL represents newline characters as nulls...ouch.)
+function! s:SI(str)
+  return substitute(a:str, '[^\x00\x20-\x7E]', '\="\x16" . submatch(0)', 'g')
 endfunction
 
 " s:WR()  {{{2
@@ -1204,14 +1241,25 @@ function! s:ColorSelect(bufnr, ...)
   echo color
 endfunction
 
-function! s:ShellEscape(str) " {{{2
+" s:ShellEscape()  {{{2
+"
+" Quote a string and escape characters that the shell may treat as special.
+"
+" Arguments:
+"  String
+" Return Value:
+"  Escaped string
+"
+" Limitations:
+"  This function doesn't know how to escape for non-Unix OSes if the
+"  shellescape() internal Vim function is nonexistant.
+function! s:ShellEscape(str)
 	if exists('*shellescape')
 		return shellescape(a:str)
 	else
     if has('unix')
       return "'" . substitute(a:str, "'", "'\\\\''", 'g') . "'"
     else
-      " Don't know how to properly escape for 'doze, so don't bother:
       return a:str
     endif
 	endif
@@ -2003,20 +2051,23 @@ call HTMLmapo("<lead>lA", 1)
 
 " ---- Special Character (Character Entities) Mappings: ----------------- {{{1
 
-" Convert the character under the cursor or the highlighted string to straight
+" Convert the character under the cursor or the highlighted string to decimal
 " HTML entities:
-call HTMLmap("vnoremap", "<lead>&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
-"call HTMLmap("nnoremap", "<lead>&", "s<C-R>=HTMLencodeString(@\")<CR><Esc>")
+call HTMLmap("vnoremap", "<lead>&", "s<C-R>=<SID>SI(HTMLencodeString(@\"))<CR><Esc>")
 call HTMLmapo("<lead>&", 0)
+
+" Convert the character under the cursor or the highlighted string to hex
+" HTML entities:
+call HTMLmap("vnoremap", "<lead>*", "s<C-R>=<SID>SI(HTMLencodeString(@\", 'x'))<CR><Esc>")
+call HTMLmapo("<lead>*", 0)
 
 " Convert the character under the cursor or the highlighted string to a %XX
 " string:
-call HTMLmap("vnoremap", "<lead>%", "s<C-R>=HTMLencodeString(@\", '%')<CR><Esc>")
-"call HTMLmap("nnoremap", "<lead>%", "s<C-R>=HTMLencodeString(@\", '%')<CR><Esc>")
+call HTMLmap("vnoremap", "<lead>%", "s<C-R>=<SID>SI(HTMLencodeString(@\", '%'))<CR><Esc>")
 call HTMLmapo("<lead>%", 0)
 
 " Decode a &#...; or %XX encoded string:
-call HTMLmap("vnoremap", "<lead>^", "s<C-R>=HTMLencodeString(@\", 'd')<CR><Esc>")
+call HTMLmap("vnoremap", "<lead>^", "s<C-R>=<SID>SI(HTMLencodeString(@\", 'd'))<CR><Esc>")
 call HTMLmapo("<lead>^", 0)
 
 call HTMLmap("inoremap", "<elead>&", "&amp;")
@@ -2182,6 +2233,40 @@ call HTMLmap("inoremap", "<elead>uA", "&uArr;")
 call HTMLmap("inoremap", "<elead>rA", "&rArr;")
 call HTMLmap("inoremap", "<elead>dA", "&dArr;")
 call HTMLmap("inoremap", "<elead>hA", "&hArr;")
+" Roman numerals, upppercase:
+call HTMLmap("inoremap", "<elead>R1",    "&#x2160;")
+call HTMLmap("inoremap", "<elead>R2",    "&#x2161;")
+call HTMLmap("inoremap", "<elead>R3",    "&#x2162;")
+call HTMLmap("inoremap", "<elead>R4",    "&#x2163;")
+call HTMLmap("inoremap", "<elead>R5",    "&#x2164;")
+call HTMLmap("inoremap", "<elead>R6",    "&#x2165;")
+call HTMLmap("inoremap", "<elead>R7",    "&#x2166;")
+call HTMLmap("inoremap", "<elead>R8",    "&#x2167;")
+call HTMLmap("inoremap", "<elead>R9",    "&#x2168;")
+call HTMLmap("inoremap", "<elead>R10",   "&#x2169;")
+call HTMLmap("inoremap", "<elead>R11",   "&#x216a;")
+call HTMLmap("inoremap", "<elead>R12",   "&#x216b;")
+call HTMLmap("inoremap", "<elead>R50",   "&#x216c;")
+call HTMLmap("inoremap", "<elead>R100",  "&#x216d;")
+call HTMLmap("inoremap", "<elead>R500",  "&#x216e;")
+call HTMLmap("inoremap", "<elead>R1000", "&#x216f;")
+" Roman numerals, lowercase:
+call HTMLmap("inoremap", "<elead>r1",    "&#x2170;")
+call HTMLmap("inoremap", "<elead>r2",    "&#x2171;")
+call HTMLmap("inoremap", "<elead>r3",    "&#x2172;")
+call HTMLmap("inoremap", "<elead>r4",    "&#x2173;")
+call HTMLmap("inoremap", "<elead>r5",    "&#x2174;")
+call HTMLmap("inoremap", "<elead>r6",    "&#x2175;")
+call HTMLmap("inoremap", "<elead>r7",    "&#x2176;")
+call HTMLmap("inoremap", "<elead>r8",    "&#x2177;")
+call HTMLmap("inoremap", "<elead>r9",    "&#x2178;")
+call HTMLmap("inoremap", "<elead>r10",   "&#x2179;")
+call HTMLmap("inoremap", "<elead>r11",   "&#x217a;")
+call HTMLmap("inoremap", "<elead>r12",   "&#x217b;")
+call HTMLmap("inoremap", "<elead>r50",   "&#x217c;")
+call HTMLmap("inoremap", "<elead>r100",  "&#x217d;")
+call HTMLmap("inoremap", "<elead>r500",  "&#x217e;")
+call HTMLmap("inoremap", "<elead>r1000", "&#x217f;")
 
 " ----------------------------------------------------------------------------
 
@@ -3317,7 +3402,9 @@ endif
 
 " ---- Clean Up: -------------------------------------------------------- {{{1
 
-silent! unlet s:browsers
+if exists('s:browsers')
+  unlet s:browsers
+endif
 
 if exists(':HTMLmenu')
   delcommand HTMLmenu

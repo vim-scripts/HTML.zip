@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2011 May 27
+		Last change: 2011 Jul 27
 		Author: Christian J. Robinson
 
 						*HTML.vim* *HTML-macros*
@@ -47,7 +47,7 @@ insert </I><I> instead of <I></I>.
 This can not be done on most tags due to its dependence on the syntax
 highlighting.
 
-NOTE: Some tags are synonyms and Vim can't distinguish between them.  For
+NOTE: Some tags are synonyms and Vim can not distinguish between them.  For
 example, if you're within <I></I> and type |;em| it will assume you want
 </EM><EM> rather than <EM></EM>, which you should not be doing anyway.
 
@@ -222,7 +222,7 @@ HTML.vim is sourced.  e.g.: >
 	:let g:no_html_toolbar = 'yes'
 
 *g:no_html_menu*
-Set this variable to a nonzero value if you don't want the menu items to be
+Set this variable to a nonzero value if you do not want the menu items to be
 defined at all.  This implies that |g:no_html_toolbar| is set as well.  This
 variable must be set before HTML.vim is sourced.  e.g.: >
 	:let g:no_html_menu = 'yes'
@@ -363,7 +363,7 @@ You would get something like: >
 	menu displayed and highlighted with their respective color.  From this
 	window you can slect a color to be inserted in the buffer from which
 	the window was opened.  This command fails if you're not in an HTML
-	buffer or the colors menu wasn't defined.  {only in the GUI}
+	buffer or the colors menu was not defined.  {only in the GUI}
 
 							*n_;#* *i_;#*
 ;#	A shortcut mapping to call |:ColorSelect|.  {only in the GUI}
@@ -713,14 +713,19 @@ characters into the HTML buffer.  These are known as characters entities.
 
 	(Note that the "&" in this mapping is not translated to whatever
 	|g:html_map_entity_leader| is set to.)
+							*n_;star* *v_;star*
+;*	Similar to |n_;&| / |v_;&| but encodes to hexadecimal versions instead.
 							*n_;%* *v_;%*
 ;%	This mapping converts the motion or visually selected characters to
 	their %XX hexadecimal string for URIs.  For example, "foo bar" would
 	become "%66%6F%6F%20%62%61%72". (|n_;|)
 
-Note: Previously the ;& and ;% normal mode mappings didn't require a motion
+	(Note that this will not touch Unicode characters.  See
+	|HTMLencodeString()|)
+
+Note: Previously the ;& and ;% normal mode mappings did not require a motion
 and operated on the character "under" the cursor.  This was changed for
-multiple reasons.  Use ;&l or ;%l to emulate the old behavior.
+multiple reasons.  Type ;&l or ;%l to emulate the old behavior.
 
 							*n_;^* *v_;^*
 ;^	This mapping will decode the &#...; and %XX elements of the motion or
@@ -732,7 +737,7 @@ The following mappings work in insert mode only.
 Note that you can change the leader character for these mappings from '&' to
 another character of your preference.  See |g:html_map_entity_leader|.
 
-Name:			HTML:		Macro:
+Name:			HTML:		Macro: ~
 --------------------------------------------------------------------
 Ampersand (&)		&amp;		&&		*i_&&*
 Greater than (>)	&gt;		&>		*i_&>*
@@ -841,7 +846,7 @@ Left-right double arrow	&hArr;		&hA		*i_&hA*
 
 The greek alphabet:
 
-Name:			HTML:		Macro:
+Name:			HTML:		Macro: ~
 --------------------------------------------------------------------
 Upper Alpha		&Alpha;		&Al		*i_&Al*
 Upper Beta		&Beta;		&Be		*i_&Be*
@@ -894,6 +899,50 @@ Lower omega		&omega;		&og		*i_&og*
 Lower thetasym		&thetasym;	&ts		*i_&ts*
 Lower upsih		&upsih;		&uh		*i_&uh*
 Lower piv		&piv;		&pv		*i_&pv*
+
+
+Roman numerals, upppercase:
+
+Name:			HTML:		Macro: ~
+--------------------------------------------------------------------
+1			&#x2160;	&R1		*i_&R1*
+2			&#x2161;	&R2		*i_&R2*
+3			&#x2162;	&R3		*i_&R3*
+4			&#x2163;	&R4		*i_&R4*
+5			&#x2164;	&R5		*i_&R5*
+6			&#x2165;	&R6		*i_&R6*
+7			&#x2166;	&R7		*i_&R7*
+8			&#x2167;	&R8		*i_&R8*
+9			&#x2168;	&R9		*i_&R9*
+10			&#x2169;	&R10		*i_&R10*
+11			&#x216a;	&R11		*i_&R11*
+12			&#x216b;	&R12		*i_&R12*
+50			&#x216c;	&R50		*i_&R50*
+100			&#x216d;	&R100		*i_&R100*
+500			&#x216e;	&R500		*i_&R500*
+1000			&#x216f;	&R1000		*i_&R1000*
+
+
+Roman numerals, lowercase:
+
+Name:			HTML:		Macro: ~
+--------------------------------------------------------------------
+1			&#x2170;	&r1		*i_&r1*
+2			&#x2171;	&r2		*i_&r2*
+3			&#x2172;	&r3		*i_&r3*
+4			&#x2173;	&r4		*i_&r4*
+5			&#x2174;	&r5		*i_&r5*
+6			&#x2175;	&r6		*i_&r6*
+7			&#x2176;	&r7		*i_&r7*
+8			&#x2177;	&r8		*i_&r8*
+9			&#x2178;	&r9		*i_&r9*
+10			&#x2179;	&r10		*i_&r10*
+11			&#x217a;	&r11		*i_&r11*
+12			&#x217b;	&r12		*i_&r12*
+50			&#x217c;	&r50		*i_&r50*
+100			&#x217d;	&r100		*i_&r100*
+500			&#x217e;	&r500		*i_&r500*
+1000			&#x217f;	&r1000		*i_&r1000*
 
 ==============================================================================
 6. How to Use Browser Mappings				*browser-control*
@@ -1012,18 +1061,32 @@ Functions used by the HTML mappings:			*html-functions*
 ------------------------------------
 
 HTMLencodeString({string} [, {...}])			*HTMLencodeString()*
-	Returns {string} encoded into HTML entities.
+	Returns {string} encoded into HTML entities, or decode HTML encoded
+	strings.
 
-	If the second argument is "%" the string is encoded into %XX
-	hexadecimal string instead.
+	The second argument controls how the string is handled:
 
-	If the second argument is "d" or "decode" the &#...; and %XX elements
-	of the provided string will be decoded into their actual characters.
+	Argument:	Behavior: ~
+	d/decode	Decode the %XX, &#...;, and &#x...; elements of the
+			provided string
+	%		Encode as a %XX URI string
+	x		Encode as a &#x...; string (hexadecimal)
+	omitted		Encode as a &#...; string (decimal)
+	other		No change to the string
 
-	See |n_;&| and |n_;%| for examples.
+	See |n_;&|, |n_;star|, and |n_;%| for examples.
 
-	Note that Unicode characters can not be safely converted to %XX hex
-	strings for URIs do to a limit in the specification.
+	Notes:
+	- Unicode characters can not be safely converted to %XX hex strings
+	  for URIs due to a limit in the specification, so this function will
+	  leave them untouched.
+	- Null characters will be converted to newlines, due to a limitation
+	  in Vim itself.
+
+HTMLdecodeSymbol({symbol})				*HTMLdecodeSymbol()*
+	Returns the character representation of {symbol}, if it is in &#...;
+	or %XX format.  This function is typically used by |HTMLencodeString()|
+	to decode strings.
 
 HTMLgenerateTable()					*HTMLgenerateTable()*
 	This is normally called by the normal mapping |;ta|, but it works the
