@@ -2,8 +2,8 @@
 "
 " Author:      Christian J. Robinson <heptite@gmail.com>
 " URL:         http://christianrobinson.name/vim/HTML/
-" Last Change: July 27, 2011
-" Version:     0.39.1
+" Last Change: September 22, 2011
+" Version:     0.39.4
 " Original Concept: Doug Renze
 "
 "
@@ -52,7 +52,7 @@
 " - Add :HTMLmappingsreload/html/xhtml to the HTML menu?
 "
 " ---- RCS Information: ------------------------------------------------- {{{1
-" $Id: HTML.vim,v 1.225 2011/07/28 01:26:53 infynity Exp $
+" $Id: HTML.vim,v 1.229 2011/09/23 02:27:47 infynity Exp $
 " ----------------------------------------------------------------------- }}}1
 
 " ---- Initialization: -------------------------------------------------- {{{1
@@ -701,7 +701,8 @@ function! HTMLnextInsertPoint(...)
     if strpart(getline(line('.')), col('.') - 1, 2) == '</'
       normal %
       let done = 1
-    elseif strpart(getline(line('.')), col('.') - 1, 4) =~ ' *-->'
+    "elseif strpart(getline(line('.')), col('.') - 1, 4) =~ ' *-->'
+    elseif strpart(getline(line('.')), col('.') - 1) =~ '^ *-->'
       normal f>
       let done = 1
     else
@@ -1936,7 +1937,7 @@ call HTMLmap("inoremap", "<lead>sj", "<[{SCRIPT SRC}]=\"\" [{TYPE}]=\"text/javas
 call HTMLmap("inoremap", "<lead>eb", "<[{EMBED SRC=\"\" WIDTH=\"\" HEIGHT}]=\"\" /><CR><[{NOEMBED></NOEMBED}]><ESC>k$5F\"i")
 
 "       NOSCRIPT
-call HTMLmap("inoremap", "<lead>ns", "<[{NOSCRIPT}]><CR></[{NOSCRIP}]T><C-O>O")
+call HTMLmap("inoremap", "<lead>ns", "<[{NOSCRIPT}]><CR></[{NOSCRIPT}]><C-O>O")
 call HTMLmap("vnoremap", "<lead>ns", "<ESC>`>a<CR></[{NOSCRIPT}]><C-O>`<<[{NOSCRIPT}]><CR><ESC>", 1)
 call HTMLmapo('<lead>ns', 0)
 
@@ -1944,6 +1945,11 @@ call HTMLmapo('<lead>ns', 0)
 call HTMLmap("inoremap", "<lead>ob", "<[{OBJECT DATA=\"\" WIDTH=\"\" HEIGHT}]=\"\"><CR></[{OBJECT}]><ESC>k$5F\"i")
 call HTMLmap("vnoremap", "<lead>ob", "<ESC>`>a<CR></[{OBJECT}]><C-O>`<<[{OBJECT DATA=\"\" WIDTH=\"\" HEIGHT}]=\"\"><CR><ESC>k$5F\"", 1)
 call HTMLmapo('<lead>ob', 0)
+
+"       PARAM (Object Parameter)
+call HTMLmap("inoremap", "<lead>pm", "<[{PARAM NAME=\"\" VALUE}]=\"\" /><ESC>3F\"i")
+call HTMLmap("vnoremap", "<lead>pm", "<ESC>`>a\" [{VALUE}]=\"\" /><C-O>`<<[{PARAM NAME}]=\"<ESC>3f\"i", 0)
+call HTMLmapo('<lead>pm', 0)
 
 " Table stuff:
 call HTMLmap("inoremap", "<lead>ca", "<[{CAPTION></CAPTION}]><C-O>F<")
@@ -2154,6 +2160,7 @@ call HTMLmap("inoremap", "<elead>mi", "&micro;")
 call HTMLmap("inoremap", "<elead>pa", "&para;")
 call HTMLmap("inoremap", "<elead>se", "&sect;")
 call HTMLmap("inoremap", "<elead>.", "&middot;")
+call HTMLmap("inoremap", "<elead>*", "&bull;")
 call HTMLmap("inoremap", "<elead>x", "&times;")
 call HTMLmap("inoremap", "<elead>/", "&divide;")
 call HTMLmap("inoremap", "<elead>+-", "&plusmn;")
@@ -2758,10 +2765,11 @@ HTMLemenu HTML.Character\ Entities.Inverted\ Exlamation !        ¡
 HTMLemenu HTML.Character\ Entities.Inverted\ Question   ?        ¿
 HTMLemenu HTML.Character\ Entities.Paragraph            pa       ¶
 HTMLemenu HTML.Character\ Entities.Section              se       §
-HTMLemenu HTML.Character\ Entities.Middle\ Dot          .        ·
+HTMLemenu HTML.Character\ Entities.Middle\ Dot          \.       ·
+HTMLemenu HTML.Character\ Entities.Bullet               *        •
 HTMLemenu HTML.Character\ Entities.En\ dash             n-       \-
 HTMLemenu HTML.Character\ Entities.Em\ dash             m-       --
-HTMLemenu HTML.Character\ Entities.Ellipsis             3.       ...
+HTMLemenu HTML.Character\ Entities.Ellipsis             3\.      ...
  menu HTML.Character\ Entities.-sep5- <nul>
 HTMLemenu HTML.Character\ Entities.Math.Multiply        x   ×
 HTMLemenu HTML.Character\ Entities.Math.Divide          /   ÷
@@ -3382,6 +3390,9 @@ HTMLmenu nmenu - HTML.&More\.\.\..NOSCRIPT                  nj i
 HTMLmenu imenu - HTML.&More\.\.\..Generic\ Embedded\ Object ob 
 HTMLmenu vmenu - HTML.&More\.\.\..Generic\ Embedded\ Object ob 
 HTMLmenu nmenu - HTML.&More\.\.\..Generic\ Embedded\ Object ob i
+HTMLmenu imenu - HTML.&More\.\.\..Object\ Parameter         pm 
+HTMLmenu vmenu - HTML.&More\.\.\..Object\ Parameter         pm 
+HTMLmenu nmenu - HTML.&More\.\.\..Object\ Parameter         pm i
 HTMLmenu imenu - HTML.&More\.\.\..Quoted\ Text              qu 
 HTMLmenu vmenu - HTML.&More\.\.\..Quoted\ Text              qu 
 HTMLmenu nmenu - HTML.&More\.\.\..Quoted\ Text              qu i

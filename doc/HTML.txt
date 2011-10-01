@@ -1,5 +1,5 @@
 *HTML.txt*	Set of HTML/XHTML macros, menus and toolbar buttons.
-		Last change: 2011 Jul 27
+		Last change: 2011 Sep 03
 		Author: Christian J. Robinson
 
 						*HTML.vim* *HTML-macros*
@@ -488,6 +488,10 @@ another character of your preference.  See |g:html_map_leader|.
 	(<OBJECT DATA="" WIDTH="" HEIGHT=""><CR></OBJECT>).  Visual mode puts
 	the selected text
 	<OBJECT DATA="" WIDTH="" HEIGHT=""><CR>here<CR></OBJECT>. (|n_;|)
+							*i_;pm* *v_;pm* *n_;pm*
+;pm	Object parameter
+	(<PARAM NAME="" VALUE="">).  Visual mode puts the selected
+	text <PARAM NAME="here" VALUE="">. (|n_;|)
 							*i_;em* *v_;em* *n_;em*
 ;em	Emphasize (<EM></EM>). (|html-smart-tag|) (|n_;|)
 							*i_;fo* *v_;fo* *n_;fo*
@@ -764,6 +768,7 @@ Micro			&micro;		&mi		*i_&mi*
 Paragraph		&para;		&pa		*i_&pa*
 Section			&sect;		&se		*i_&se*
 Middle Dot		&middot;	&.		*i_&.*
+Bullet			&bull;		&*		*i_&star*
 One Quarter		&frac14;	&14		*i_&14*
 One Half		&frac12;	&12		*i_&12*
 Three Quarters		&frac34;	&34		*i_&34*
